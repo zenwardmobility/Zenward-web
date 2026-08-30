@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Phone } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
 import { ContactForm } from "@/components/public/ContactForm";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
+import { business } from "@/lib/business";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = pageMetadata({
@@ -27,7 +29,26 @@ export default function ContactPage() {
       </Section>
 
       <Section tone="white" narrow>
-        <ContactForm />
+        <div className="grid grid-cols-1 gap-2xl lg:grid-cols-[1fr_18rem]">
+          <ContactForm />
+          <aside className="flex flex-col gap-4 rounded-lg border border-border-subtle bg-surface-app p-lg lg:self-start">
+            <p className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>Prefer to call?</p>
+            <a
+              href={business.phoneHref}
+              className={cn(typography.body, "inline-flex items-center gap-2 font-semibold text-brand-interactive-teal hover:text-brand-care-navy")}
+            >
+              <Phone className="size-4" weight="fill" aria-hidden />
+              {business.phoneDisplay}
+            </a>
+            <p className={cn(typography.bodySmall, "text-text-secondary")}>
+              To arrange a specific trip, use the{" "}
+              <a href="/request-transportation" className="font-medium text-brand-interactive-teal underline">
+                Request Transportation
+              </a>{" "}
+              form instead — it captures the trip details our team needs.
+            </p>
+          </aside>
+        </div>
       </Section>
     </>
   );

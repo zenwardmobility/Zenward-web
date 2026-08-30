@@ -16,10 +16,24 @@
  */
 
 export type AnalyticsEvent =
-  | { name: "request_transportation_clicked"; source: "header" | "hero" | "footer" | "mobile_nav" | "provider_page" | "other" }
+  | {
+      name: "request_transportation_clicked";
+      source:
+        | "header"
+        | "hero"
+        | "footer"
+        | "mobile_nav"
+        | "reassurance_strip"
+        | "getting_to_care"
+        | "patients_families"
+        | "final_cta"
+        | "services_page"
+        | "provider_page"
+        | "other";
+    }
   | { name: "request_form_started" }
   | { name: "request_form_submitted"; hasReturnTrip: boolean }
-  | { name: "provider_cta_clicked"; source: "hero" | "healthcare_providers_page" | "footer" }
+  | { name: "provider_cta_clicked"; source: "homepage" | "healthcare_providers_page" | "footer" }
   | { name: "contact_started"; topic: "general" | "provider" | "support" };
 
 function dispatch(event: AnalyticsEvent): void {

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { ClipboardText, UsersThree, FileText, ChatsCircle } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
-import { PhotoPlaceholder } from "@/components/layout/PhotoPlaceholder";
+import { BrandImage } from "@/components/layout/BrandImage";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
+import { brandImages } from "@/lib/images";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
@@ -47,9 +48,9 @@ export default function HealthcareProvidersPage() {
           <div>
             <p className={cn(typography.eyebrow, "text-brand-arrival-gold")}>Healthcare Providers</p>
             <h1 className={cn(typography.sectionTitle, "mt-3 text-white")}>
-              Patient transportation, coordinated clearly
+              Transportation coordination your team can rely on
             </h1>
-            <p className={cn(typography.lede, "mt-4 max-w-lg text-white/85")}>
+            <p className={cn(typography.lede, "mt-4 max-w-[32rem] text-white/85")}>
               Zenward works with clinics, dialysis centers, rehabilitation providers, senior care organizations,
               and hospital discharge teams to coordinate non-emergency medical transportation for the patients
               you refer.
@@ -65,7 +66,13 @@ export default function HealthcareProvidersPage() {
               </TrackedLinkButton>
             </div>
           </div>
-          <PhotoPlaceholder description="A discharge coordinator reviewing a patient's transportation plan." aspect="square" />
+          <BrandImage
+            asset={brandImages.staffAssistingSenior}
+            aspectClass="aspect-[4/3] lg:aspect-square"
+            sizes="(min-width: 1024px) 30rem, 100vw"
+            className="ring-1 ring-white/10"
+            objectPosition="center 30%"
+          />
         </div>
       </Section>
 
@@ -99,6 +106,10 @@ export default function HealthcareProvidersPage() {
             </div>
           ))}
         </div>
+        <p className={cn(typography.bodySmall, "mx-auto mt-lg max-w-[42rem] text-center text-text-muted")}>
+          Provider-facing tools are rolling out alongside Zenward&rsquo;s launch. Talk to our team about how your
+          organization coordinates transportation today and what would help.
+        </p>
       </Section>
 
       <Section tone="navy">
@@ -106,7 +117,7 @@ export default function HealthcareProvidersPage() {
           <h2 className={cn(typography.sectionTitle, "text-white")}>
             Let&rsquo;s talk about your patients&rsquo; transportation needs
           </h2>
-          <p className={cn(typography.lede, "max-w-xl text-white/80")}>
+          <p className={cn(typography.lede, "max-w-[36rem] text-white/80")}>
             Tell us about your organization and the transportation coordination you&rsquo;re looking for.
           </p>
           <TrackedLinkButton

@@ -13,9 +13,11 @@ const nextConfig: NextConfig = {
   },
   agentRules: false,
   images: {
-    // No remote image domains are configured yet — homepage imagery is
-    // local placeholder treatments (see docs/design/reference-index.md).
-    // Add real production-photography hosts here once approved.
+    // Approved production photography is served locally from public/images
+    // (see docs/design/brand-assets.md) and optimized by next/image on
+    // demand — no remote image domains are needed. Add a host here only if
+    // brand imagery is ever moved to a CDN.
+    formats: ["image/avif", "image/webp"],
   },
 };
 

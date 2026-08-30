@@ -55,7 +55,7 @@ export function ContactForm() {
       <div className="rounded-lg border border-success-border bg-success-bg p-xl text-center">
         <CheckCircle className="mx-auto size-10 text-success-strong" weight="fill" aria-hidden />
         <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>Message received</p>
-        <p className={cn(typography.body, "mx-auto mt-2 max-w-md text-text-secondary")}>
+        <p className={cn(typography.body, "mx-auto mt-2 max-w-[28rem] text-text-secondary")}>
           Thanks for reaching out — our team will get back to you.
         </p>
       </div>

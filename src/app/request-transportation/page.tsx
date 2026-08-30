@@ -3,6 +3,7 @@ import { Section } from "@/components/layout/Section";
 import { RequestTransportationForm } from "@/components/public/RequestTransportationForm";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
+import { business } from "@/lib/business";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = pageMetadata({
@@ -23,6 +24,13 @@ export default function RequestTransportationPage() {
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
           This is a transportation request, not a guaranteed ride. Zenward will review the details and contact
           you to confirm availability and next steps.
+        </p>
+        <p className={cn(typography.bodySmall, "mt-3 text-text-muted")}>
+          Prefer to arrange it by phone? Call{" "}
+          <a href={business.phoneHref} className="font-medium text-brand-interactive-teal underline">
+            {business.phoneDisplay}
+          </a>
+          .
         </p>
       </Section>
 

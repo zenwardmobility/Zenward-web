@@ -65,7 +65,7 @@ export function RequestTransportationForm() {
       <div className="rounded-lg border border-success-border bg-success-bg p-xl text-center">
         <CheckCircle className="mx-auto size-10 text-success-strong" weight="fill" aria-hidden />
         <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>Request received</p>
-        <p className={cn(typography.body, "mx-auto mt-2 max-w-md text-text-secondary")}>
+        <p className={cn(typography.body, "mx-auto mt-2 max-w-[28rem] text-text-secondary")}>
           Zenward will review the transportation details and contact you to confirm availability and next steps.
         </p>
         {referenceId && (

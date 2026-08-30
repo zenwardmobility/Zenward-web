@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Target, Handshake, Compass } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
-import { PhotoPlaceholder } from "@/components/layout/PhotoPlaceholder";
+import { BrandImage } from "@/components/layout/BrandImage";
+import { brandImages } from "@/lib/images";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
@@ -44,7 +45,7 @@ export default function AboutPage() {
 
       <Section tone="white">
         <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
-          <PhotoPlaceholder description="A Zenward vehicle prepared for a scheduled transportation trip." aspect="video" />
+          <BrandImage asset={brandImages.wheelchairRampAssist} aspect="video" objectPosition="center 45%" />
           <div>
             <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Why Zenward exists</h2>
             <p className={cn(typography.body, "mt-4 text-text-secondary")}>
