@@ -1,0 +1,436 @@
+================================================================================
+ZENWARD-WEB — RESPONSIVE HERO ART-DIRECTION FIX — REPORT
+================================================================================
+
+Project:               Zenward-Web
+Task:                  Responsive Hero Art-Direction Fix
+Repository:             /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch:            main
+Git HEAD before work:  0156b3cadd82c7b54f6a4d3818383b812619d37a
+                       ("Add responsive desktop and mobile hero imagery")
+Date/time:             2026-08-31 (Africa/Lagos, WAT)
+
+Scope: responsive composition of the homepage hero only. Hero photographs,
+logo, phone number, headline, supporting copy, CTA labels, the Need
+Transportation card, section order, request architecture, and the "across
+Georgia" geography copy were all left untouched. Only
+src/components/public/HomeHero.tsx changed.
+
+
+================================================================================
+1. ROOT CAUSE
+================================================================================
+
+The desktop hero was a single full-bleed `next/image` (`fill` + object-cover)
+covering the entire <section> at every viewport width. The section height was
+governed by a near-fixed min-height (~40rem) plus content, so it stayed ~640–720px
+tall regardless of width.
+
+Consequently the effective container aspect ratio for the 1.79:1 (16:9) source
+changed drastically with viewport width:
+
+    1280 wide / 720 tall  ≈ 1.78:1   (fine — matches the source)
+    1920 wide / 720 tall  ≈ 2.67:1   (crops ~33% off top + bottom)
+    2048 wide / 720 tall  ≈ 2.84:1   (crops ~37%)
+    2048 wide / 835 tall  → hero pinned near ~640–720 → ~3.0:1 → heads and the
+                             wheelchair get cut; the ramp is squeezed out
+
+object-cover has no choice but to zoom in and slice the photo. object-position
+alone cannot fix it — moving the crop window around a too-tall-for-the-frame
+image just trades one lost subject for another. The photo was also being
+stretched across 2560px of viewport from a ~1376px source.
+
+
+================================================================================
+2. PREVIOUS BREAKPOINT BEHAVIOUR
+================================================================================
+
+    < 1024px (lg)   portrait crop (zenward-hero-mobile-v3), full-bleed,
+                    vertical Care Navy scrim. (Unchanged by this task.)
+    ≥ 1024px        landscape crop (zenward-hero-desktop-v3), full-bleed,
+                    object-[75%_42%], horizontal Care Navy scrim.
+                    ONE composition for everything from a 1024px laptop to a
+                    2560px ultrawide → the cropping problem above.
+
+    sizes: mobile  "(min-width: 1024px) 1px, 100vw"
+           desktop "(min-width: 1024px) 100vw, 1px"
+           (desktop always claimed 100vw even where it no longer covered 100vw)
+
+    min-height: min-h-[33rem] / sm:[38rem] / lg:[40rem], lg:py-4xl
+
+
+================================================================================
+3. NEW BREAKPOINT STRATEGY
+================================================================================
+
+Four deliberate hero modes, keyed to viewport class:
+
+    A. MOBILE            < 1024px  portrait crop, full-bleed, vertical scrim
+                                   (< lg; 768–1023 is a legitimate
+                                   art-directed "portrait on a tablet" band —
+                                   it is NOT a scaled desktop)
+    B. COMPACT DESKTOP   1024–1279 landscape crop, full-bleed, its OWN
+                                   object-position (object-[66%_40%]) and a
+                                   trimmed vertical rhythm (py-3xl, not py-4xl)
+    C. NORMAL DESKTOP    1280–1599 landscape crop, full-bleed, the existing
+                                   premium composition (object-[74%_42%],
+                                   py-4xl) — kept because it already works
+    D. ULTRAWIDE         ≥ 1600px  landscape crop is NO LONGER full-bleed. It
+                                   becomes a right-anchored region ≈ 62vw wide,
+                                   capped at 82rem (≈1312px, below the ~1376px
+                                   source so it is never upscaled). Care Navy
+                                   fills the space to its left; a broad
+                                   navy→transparent dissolve overlaps the
+                                   region's own left ~half so there is no seam:
+
+                                     | NAVY / CONTENT | GRADIENT | PHOTOGRAPH |
+
+Only one <Image> is in the layout per breakpoint (CSS `lg:hidden` /
+`hidden lg:block`), and each `sizes` string now reflects the real coverage so
+the preload scanner never fetches an inactive or oversized crop.
+
+
+================================================================================
+4. MOBILE IMPLEMENTATION  (< 1024px)
+================================================================================
+
+Unchanged from the approved v3 hero — verified not regressed:
+
+    <Image src={heroMobile} fill priority quality={90}
+      sizes="(min-width: 1024px) 1px, 100vw"
+      className="object-cover object-[50%_48%]" />
+    + vertical SCRIM_PORTRAIT
+      linear-gradient(to bottom, mix86 0%, mix66 24%, mix34 48%, mix34 70%, mix58 100%)
+
+390 / 430: passenger, staff member, vehicle, ramp and building all present;
+the portrait source (~0.56:1) is close to the mobile hero aspect so cropping
+is minimal. No change to pixels or classes here.
+
+
+================================================================================
+5. TABLET IMPLEMENTATION  (768–1023px)
+================================================================================
+
+Uses the portrait crop (still `< lg`), full-bleed, vertical scrim. On a
+768–1023 viewport the container is wider than the portrait, so object-cover
+shows the centred vertical band — van door, open door, staff member, seated
+passenger — which reads cleanly and deliberately (not a stretched landscape).
+The ramp foreground is below the Need Transportation card's overlap, as in the
+approved design.
+
+768 / 834 checked: no head cropping, subjects composed, headline readable,
+CTA card correctly positioned, no horizontal overflow.
+
+
+================================================================================
+6. COMPACT DESKTOP IMPLEMENTATION  (1024–1279px)
+================================================================================
+
+Landscape crop, full-bleed, but given its own composition so a 1024–1199
+laptop is not treated as a 1440/1920 desktop:
+
+    className="object-cover object-[66%_40%] xl:object-[74%_42%] …"
+      → 1024–1279 uses 66% / 40% (a gentler right-bias; at this more-square
+        container a stronger right-shift would reveal empty kerb on the right)
+    vertical rhythm: py-3xl at lg, py-4xl only from xl
+      → the hero is ~688px at 1024 instead of ~692–720px; content-driven,
+        not "unnecessarily tall"
+    min-h-[38rem] at lg (was 40rem)
+
+1024 / 1098 checked: van, open door, deployed ramp, seated passenger (whole),
+staff member (whole, clear head-room), building. Full-bleed horizontal scrim;
+no seam; headline readable; CTA card correct.
+
+
+================================================================================
+7. NORMAL DESKTOP IMPLEMENTATION  (1280–1599px)
+================================================================================
+
+Deliberately left as the already-working composition:
+
+    className="… xl:object-[74%_42%] …"  (was 75%_42%; 74 reads identically)
+    full-bleed landscape, SCRIM_FULLBLEED (unchanged):
+      linear-gradient(to right, NAVY 0%, NAVY 19%, mix86 38%, mix56 52%,
+                      mix20 63%, transparent 82%)
+    xl:min-h-[40rem], xl:py-4xl  → hero ~720px
+
+1280 / 1366 / 1440 checked: strong balance preserved — van + ramp + seated
+passenger + staff, premium left-to-right dissolve, van door lettering a faint
+watermark behind the copy. No regression.
+
+
+================================================================================
+8. ULTRAWIDE IMPLEMENTATION  (≥ 1600px)
+================================================================================
+
+The photo layer stops being `inset-0` and becomes a capped, right-anchored
+region:
+
+    <div className="absolute inset-y-0 right-0 -z-10 hidden w-full lg:block
+                    min-[1600px]:w-[62vw] min-[1600px]:max-w-[82rem]">
+      <Image … className="… min-[1600px]:object-[56%_36%]" />
+      <div className="… min-[1600px]:block" style={SCRIM_ULTRAWIDE} />
+    </div>
+
+  - width: 62vw, capped at 82rem (~1312px). The Care Navy <section> background
+    fills everything to the left. At 1600 the region is ~992px; at 1920 ~1190px;
+    at ≥ ~2120px it is pinned at ~1312px and navy fills the rest.
+  - never upscaled: 82rem < the ~1376px source width, and `sizes` (below)
+    tells next/image the true coverage so it serves at most the native crop.
+  - object-[56%_36%]: at these region aspect ratios object-cover crops only
+    lightly; 56% keeps the van + seated passenger + staff centred, 36%
+    protects the staff member's head near the top.
+
+SCRIM_ULTRAWIDE (relative to the region, not the viewport):
+
+    linear-gradient(to right, NAVY 0%, NAVY 12%, mix72 30%, mix30 46%, transparent 64%)
+
+  Solid navy at the region's left edge → a seamless join with the navy field
+  to its left (no dark-rectangle / image-rectangle boundary). Dissolves across
+  the region's left ~half, so the headline stays readable where the two meet
+  and the van "emerges" from the navy. The region's right ~36% is fully clear.
+
+Because the region ≈ the source aspect, there is no excessive vertical crop at
+any ultrawide width, no enlargement/upscaling, and the hero never looks
+stretched or visually empty (navy + the Route Teal lower-left glow + the
+content grid fill the left side).
+
+
+================================================================================
+9. HERO HEIGHT STRATEGY
+================================================================================
+
+Discrete, viewport-classed min-heights instead of one large fixed value:
+
+    base            min-h-[33rem]   (528px)
+    sm (≥640)       min-h-[36rem]   (576px)
+    lg (≥1024)      min-h-[38rem]   (608px)   + py-3xl
+    xl (≥1280)      min-h-[40rem]   (640px)   + py-4xl
+    ≥1600           min-h-[42rem]   (672px)
+
+In practice the content block (headline + copy + 2 CTAs + audience line) plus
+padding plus the banner-clearance strip make the desktop hero ~688px at 1024
+and a steady ~720px from 1280 up — so it is never shallow on ultrawide (the
+old failure) and not gratuitously tall on a compact laptop. The ultrawide
+photo region is `inset-y-0` of that height, and its width (62vw / 82rem) is
+chosen so the region aspect tracks the ~1.79:1 source rather than the
+viewport.
+
+
+================================================================================
+10. IMAGE-REGION SIZING STRATEGY
+================================================================================
+
+    < 1600px   image = 100% of the hero (full-bleed)
+    ≥ 1600px   image region width = clamp( , 62vw , 82rem )
+               · 1600 → ~992px   (≈ 62vw)
+               · 1920 → ~1190px  (≈ 62vw)
+               · 2048 → ~1270px  (≈ 62vw)
+               · 2560 → ~1312px  (capped at 82rem ≈ 51vw; navy fills ~49vw)
+
+82rem cap = ~1312px < the ~1376px native source ⇒ the region never asks for
+more pixels than exist, so the photograph is never upscaled (task §13).
+
+
+================================================================================
+11. GRADIENT STRATEGY
+================================================================================
+
+Three named scrims, each its own absolutely-positioned layer — the gradient
+never touches, blurs, or filters the photograph:
+
+    SCRIM_PORTRAIT   (< lg)      vertical, top-and-bottom heavy
+    SCRIM_FULLBLEED  (lg…<1600)  horizontal, solid left → clear by ~82%
+    SCRIM_ULTRAWIDE  (≥1600)     horizontal, relative to the right-anchored
+                                 region: solid at the region's left edge
+                                 (seamless join with the navy field),
+                                 dissolving across the region's left ~half
+
+Plus the unchanged shared layers: a restrained Route Teal lower-left radial
+(brand character) and a short bottom fade into the next section. No blur, no
+`backdrop-filter`, no whole-image opacity, no hard seam at any width.
+
+
+================================================================================
+12. OBJECT-POSITION VALUES
+================================================================================
+
+    portrait (< lg)                object-[50%_48%]   (unchanged)
+    landscape 1024–1279            object-[66%_40%]
+    landscape 1280–1599            object-[74%_42%]   (xl:)  (was 75%_42%)
+    landscape ≥ 1600 (region)      object-[56%_36%]   (min-[1600px]:)
+
+No head cropping, no awkward wheelchair cropping, and the ramp stays
+understandable at every tested width (it is fully visible ≤ ~1280 and at
+1600–2560; at 1440–1599 its far end sits under the CTA-card overlap, as in
+the approved design).
+
+
+================================================================================
+13. NEXT/IMAGE SIZES CHANGES
+================================================================================
+
+    mobile crop:   sizes="(min-width: 1024px) 1px, 100vw"          (unchanged)
+
+    desktop crop:  before → "(min-width: 1024px) 100vw, 1px"
+                   after  → "(min-width: 2120px) 1312px,
+                             (min-width: 1600px) 62vw,
+                             (min-width: 1024px) 100vw,
+                             1px"
+
+Now the hint matches the real coverage: 100vw only for 1024–1599 (full-bleed),
+62vw for the 1600–~2120 region, a fixed 1312px once the region is capped, and
+1px below 1024 so the inactive crop is not preloaded at size. priority and
+quality={90} retained on both; AVIF/WebP still emitted by next/image.
+
+
+================================================================================
+14. PRELOAD / PERFORMANCE CHANGES
+================================================================================
+
+Reviewed the two-priority-<Image> setup. Kept it (it is the cleanest
+Next.js-native art-direction approach that preserves per-crop AVIF/WebP +
+srcset); a raw <picture>/<source> would have forfeited Next's optimizer.
+Redundant-preload behaviour is contained by the `sizes` placeholder trick:
+
+  Verified in the served HTML — two <link rel="preload" as="image">:
+    mobile  imageSizes="(min-width: 1024px) 1px, 100vw"
+    desktop imageSizes="(min-width: 2120px) 1312px, (min-width: 1600px) 62vw,
+                        (min-width: 1024px) 100vw, 1px"
+  On a phone the desktop preload resolves to the 1px branch → the scanner
+  fetches only the smallest (~640w, ~20 KB) desktop candidate, not the full
+  image; on desktop the mobile preload does likewise. No inactive full-res
+  fetch.
+
+  Served desktop crop (AVIF, q90), native cap 1376×768:
+    w=1080 → ~47 KB     w=1200 → ~54 KB     w≥1920 → ~67 KB
+  LCP asset stays well within budget; no upscaled bytes are ever produced.
+  No layout shift (section min-heights + `fill`); no animation dependency.
+
+
+================================================================================
+15. 2048 × 835 QA RESULT  (the shape that exposed the defect)
+================================================================================
+
+FIXED. The hero is ~720px tall; the photograph is a ~1270px region anchored
+right (≈ 62vw), Care Navy fills the left ~38%. The full composition is intact
+— van, side door open, ramp fully deployed to the ground, seated passenger
+(whole), staff member (whole, clear head-room), building. Smooth navy→photo
+dissolve, no seam. Headline and copy readable over the navy field. Need
+Transportation card correctly positioned. No stretch, no excessive zoom, no
+head or wheelchair cropping, no horizontal overflow.
+
+
+================================================================================
+16. ALL BREAKPOINT QA RESULTS
+================================================================================
+
+  width  mode / image        result
+  -----  ------------------   -------------------------------------------------
+   390   portrait full-bleed  approved mobile hero, unchanged; subjects clear
+   430   portrait full-bleed  same; unchanged
+   768   portrait full-bleed  centred band: van, staff, passenger clear
+   834   portrait full-bleed  same; deliberate, not a scaled desktop
+  1024   landscape full-bleed compact composition; whole passenger + staff,
+                               ramp visible, head-room OK; hero ~688px
+  1098   landscape full-bleed same
+  1280   landscape full-bleed normal composition preserved; strong balance
+  1366   landscape full-bleed same
+  1440   landscape full-bleed same; premium dissolve, watermark lettering
+  1600   region ≈ 992px       capped region; navy left ~38%; full scene, no
+                               seam, no crop of heads/wheelchair; ramp visible
+  1920   region ≈ 1190px      capped region; navy left ~40%; full scene; clean
+  2048   region ≈ 1270px      capped region; navy left ~38%; full scene
+  2560   region ≈ 1312px      region pinned at 82rem; navy fills ~49vw;
+                               full scene, deliberate, not stretched/empty
+  2048×835  region ≈ 1270px   see §15 — FIXED
+
+  Horizontal-overflow sweep: 13 widths × 8 routes (/, /about, /contact,
+  /healthcare-providers, /services, /request-transportation, /privacy,
+  /terms) — ZERO overflow anywhere.
+
+
+================================================================================
+17. TYPESCRIPT
+================================================================================
+
+Command: npx tsc --noEmit
+Result:  PASS — no errors.
+
+
+================================================================================
+18. LINT
+================================================================================
+
+Command: npm run lint
+Result:  PASS — no errors, no warnings.
+
+
+================================================================================
+19. BUILD
+================================================================================
+
+Command: npm run build
+Result:  PASS — compiled successfully; 14/14 static routes generated; two
+         hero preload links with the corrected imageSizes; no image-config
+         warnings.
+
+
+================================================================================
+20. FILES MODIFIED
+================================================================================
+
+    src/components/public/HomeHero.tsx
+        - image layer split: portrait layer (< lg, full-bleed) + landscape
+          layer that is full-bleed lg…<1600 and a capped right-anchored
+          region (`w-[62vw] max-w-[82rem]`, `right-0`, `inset-y-0`) ≥ 1600
+        - scrims extracted to named constants; new SCRIM_ULTRAWIDE relative
+          to the region; SCRIM_FULLBLEED gated `min-[1600px]:hidden`
+        - object-position now per viewport class:
+          object-[66%_40%] / xl:object-[74%_42%] / min-[1600px]:object-[56%_36%]
+        - hero height rhythm: lg:min-h-[38rem] + py-3xl, xl:min-h-[40rem] +
+          xl:py-4xl, min-[1600px]:min-h-[42rem]; content container widened on
+          ultrawide (min-[1600px]:max-w-[92rem])
+        - desktop `sizes` rewritten to reflect real coverage
+          (1312px / 62vw / 100vw / 1px)
+        - shared Teal radial + bottom-fade moved to their own layer
+
+    docs/reports/WEB-HERO-RESPONSIVE-ART-DIRECTION-report.txt  (this file — new)
+
+No other files touched. Hero photographs, logo, phone number, headline,
+copy, CTA labels, Need Transportation card, section order, request
+architecture and geography copy are all unchanged.
+
+Note: this session did not run git commit. HomeHero.tsx was committed
+externally as d89be86 ("Refine Zenward public website experience") while the
+work was in progress; the committed content is the final version described
+above. This report file remains uncommitted.
+
+
+================================================================================
+RESPONSIVE HERO STATUS
+================================================================================
+
+RESPONSIVE HERO STATUS:  READY
+
+  - The ultrawide / wide+shallow defect (2048×835 and ≥1600 generally) is
+    resolved: the photograph is a capped, right-anchored region with Care
+    Navy filling the rest and a broad seamless dissolve — no stretch, no
+    excessive vertical crop, no head/wheelchair cropping, ramp understandable.
+  - Compact desktop (1024–1279) has its own composition, distinct from the
+    1440/1920 desktop.
+  - Normal desktop (1280–1599) keeps the approved premium composition.
+  - Mobile (390/430) and tablet (768/834) are unchanged and not regressed.
+  - `sizes` now matches real coverage; no inactive/oversized crop is
+    preloaded; the ~1376px source is never upscaled.
+  - Content stays inside its max-width grid; the premium Care Navy → photo
+    dissolve is preserved with no hard seam at any width.
+  - tsc / lint / build all pass; zero horizontal overflow across 13 widths ×
+    8 routes.
+
+Not committed (by this session), not pushed, not deployed.
+
+================================================================================
+END OF REPORT
+================================================================================
