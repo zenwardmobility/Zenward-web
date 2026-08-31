@@ -45,7 +45,7 @@ export default function AboutPage() {
 
       <Section tone="white">
         <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
-          <BrandImage asset={brandImages.wheelchairRampAssist} aspect="video" objectPosition="center 45%" />
+          <BrandImage asset={brandImages.staffWalkingAssist} aspect="video" objectPosition="center 40%" />
           <div>
             <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Why Zenward exists</h2>
             <p className={cn(typography.body, "mt-4 text-text-secondary")}>

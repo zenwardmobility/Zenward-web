@@ -19,10 +19,11 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
-import { SectionContainer } from "@/components/layout/SectionContainer";
 import { BrandImage } from "@/components/layout/BrandImage";
+import { HomeHero } from "@/components/public/HomeHero";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { LinkButton } from "@/components/ui/LinkButton";
+import { buttonClassNames } from "@/components/ui/buttonStyles";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
@@ -136,85 +137,40 @@ export default function HomePage() {
       />
 
       {/* 1. Hero */}
-      <Section tone="navy-gradient" bare>
-        <SectionContainer className="grid grid-cols-1 items-center gap-xl py-2xl lg:grid-cols-2 lg:gap-2xl lg:py-3xl">
-          <div>
-            <p className={cn(typography.eyebrow, "text-brand-arrival-gold")}>
-              Non-Emergency Medical Transportation
-            </p>
-            <h1 className={cn(typography.display, "mt-4 text-white")}>Care that gets you there.</h1>
-            <p className={cn(typography.lede, "mt-6 max-w-[32rem] text-white/85")}>
-              Dependable medical transportation for appointments, treatments, discharge journeys, and scheduled
-              care across {business.serviceArea}.
-            </p>
-            <p className={cn(typography.body, "mt-3 max-w-[32rem] text-white/70")}>
-              Clear coordination from request to arrival.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <TrackedLinkButton
-                href="/request-transportation"
-                size="lg"
-                onDark
-                event={{ name: "request_transportation_clicked", source: "hero" }}
-              >
-                Request Transportation
-              </TrackedLinkButton>
-              <TrackedLinkButton
-                href="/contact"
-                size="lg"
-                variant="outline"
-                onDark
-                event={{ name: "contact_started", topic: "general" }}
-              >
-                Talk to Our Team
-              </TrackedLinkButton>
-            </div>
-            <p className={cn(typography.metadata, "mt-6 text-white/60")}>
-              For patients, families, caregivers, and healthcare providers.
-            </p>
-          </div>
-          <BrandImage
-            asset={brandImages.wheelchairRampAssist}
-            aspectClass="aspect-[4/3] lg:aspect-square"
-            priority
-            sizes="(min-width: 1024px) 34rem, 100vw"
-            className="shadow-md ring-1 ring-white/10"
-          />
-        </SectionContainer>
-      </Section>
+      <HomeHero />
 
-      {/* 2. Immediate request / reassurance strip */}
-      <Section tone="mist">
-        <div className="rounded-lg border border-white/60 bg-surface-elevated p-lg shadow-sm sm:p-xl">
-          <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className={cn(typography.subsectionTitle, "text-text-primary")}>Need transportation?</p>
-              <p className={cn(typography.body, "mt-1 text-text-secondary")}>
-                Tell us about the trip. Zenward reviews every request and follows up to confirm.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <TrackedLinkButton
-                href="/request-transportation"
-                size="lg"
-                event={{ name: "request_transportation_clicked", source: "reassurance_strip" }}
-              >
-                Request Transportation
-              </TrackedLinkButton>
-              <a
-                href={business.phoneHref}
-                className={cn(
-                  typography.body,
-                  "inline-flex items-center justify-center gap-2 font-medium text-brand-interactive-teal hover:text-brand-care-navy",
-                )}
-              >
-                <Phone className="size-4" weight="fill" aria-hidden />
-                Or call {business.phoneDisplay}
-              </a>
+      {/* 2. Immediate request / reassurance banner — overlaps the hero as one system */}
+      <div className="relative z-10 -mt-14 px-md sm:-mt-16 sm:px-xl lg:-mt-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="rounded-lg bg-surface-elevated p-lg shadow-md ring-1 ring-brand-care-navy/10 sm:p-xl">
+            <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className={cn(typography.subsectionTitle, "text-text-primary")}>Need transportation?</p>
+                <p className={cn(typography.body, "mt-1 max-w-[34rem] text-text-secondary")}>
+                  Tell us about the trip. Zenward reviews every request and follows up to confirm.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <TrackedLinkButton
+                  href="/request-transportation"
+                  size="lg"
+                  event={{ name: "request_transportation_clicked", source: "reassurance_strip" }}
+                >
+                  Request Transportation
+                </TrackedLinkButton>
+                <a
+                  href={business.phoneHref}
+                  aria-label={`Call Zenward at ${business.phoneDisplay}`}
+                  className={buttonClassNames("secondary", "lg", false)}
+                >
+                  <Phone className="size-4" weight="fill" aria-hidden />
+                  Call {business.phoneDisplay}
+                </a>
+              </div>
             </div>
           </div>
         </div>
-      </Section>
+      </div>
 
       {/* 3. Trust principles */}
       <Section tone="white">
@@ -234,9 +190,9 @@ export default function HomePage() {
       <Section tone="mist">
         <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
           <BrandImage
-            asset={brandImages.staffAssistingSenior}
+            asset={brandImages.vanWalkerAssist}
             aspect="video"
-            objectPosition="center 35%"
+            objectPosition="center 42%"
           />
           <div>
             <h2 className={cn(typography.sectionTitle, "text-text-primary")}>
@@ -288,10 +244,10 @@ export default function HomePage() {
             </div>
           </div>
           <BrandImage
-            asset={brandImages.wheelchairRampAssist}
+            asset={brandImages.staffWalkingAssist}
             aspect="video"
             className="order-1 lg:order-2"
-            objectPosition="center 40%"
+            objectPosition="center 38%"
           />
         </div>
       </Section>

@@ -1,9 +1,9 @@
 # Zenward Web — Brand Assets
 
 **Status:** Approved production assets in use.
-**Last updated:** 2026-08-30
+**Last updated:** 2026-08-31
 
-Canonical, approved Zenward Mobility brand assets for the public marketing site, and the rules for using them. Supplied in the WEB-P1-E1 asset drop.
+Canonical, approved Zenward Mobility brand assets for the public marketing site, and the rules for using them. Logo supplied in the WEB-P1-E1 asset drop; photography replaced in the WEB-P1 photography-replacement drop (2026-08-31).
 
 ## Logo
 
@@ -21,17 +21,23 @@ Rules:
 
 ## Photography
 
-| File | Description (factual) | Approved uses |
-|---|---|---|
-| `zenward-wheelchair-ramp-assist.jpg` (1672 × 941) | White Zenward Mobility wheelchair-accessible van, side ramp deployed; a staff member assists an older passenger seated in a wheelchair outside a medical building. Vehicle carries the Zenward Mobility logo and the phone number 470-206-8005. | Homepage hero (LCP, `priority`), homepage "Patients & Families", `/about` |
-| `zenward-staff-assisting-senior.jpg` (1449 × 1085) | Black Zenward Mobility van at a hospital main entrance; a staff member walks beside an older passenger using a wheeled walker up an accessible ramp. Vehicle carries the Zenward Mobility logo and the phone number 470-206-8005. | Homepage "Getting to care should feel more certain", `/healthcare-providers` hero |
+Registered in `src/lib/images.ts` (`brandImages`). Each production `.jpg` in `public/images/` is a mozjpeg q82, native-resolution (no upscaling) derivative of the PNG master kept out of the served tree in `docs/design/source-assets/`. `next/image` generates responsive AVIF/WebP on demand.
 
-Both were supplied as ~2.3 MB PNGs and converted once to quality-82 mozjpeg (`sharp`) for delivery; `next/image` handles responsive sizing and AVIF/WebP on demand. The PNG sources were not retained — regenerate from the asset drop if a lossless master is needed.
+| Master (`docs/design/source-assets/`) | Production derivative (`public/images/`) | `brandImages` key | Description (factual) | Approved uses |
+|---|---|---|---|---|
+| `zenward-hero-ramp-assist.png` (1024 × 1024, from "Hero Image 1.png") | `zenward-hero-ramp-assist.jpg` | `heroRampAssist` | Navy Zenward Mobility van with its side ramp deployed to the ground; a staff member steadies an older passenger using a rollator, outside a stone-and-glass medical building. Van carries the Zenward Mobility mark and 470-206-8005. | Homepage hero (LCP, `priority`, full-bleed with Care Navy → transparent gradient) |
+| `zenward-van-walker-assist.png` (1264 × 848, from "Staff assist 2.png") | `zenward-van-walker-assist.jpg` | `vanWalkerAssist` | White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 470-206-8005. | Homepage "Getting to care should feel more certain"; `/healthcare-providers` hero |
+| `zenward-staff-walking-assist.png` (1264 × 848, from "Staff Assist.png") | `zenward-staff-walking-assist.jpg` | `staffWalkingAssist` | A Zenward Mobility staff member walking beside an older passenger who is using a walker, on a path outside a modern care residence. No vehicle in frame. | Homepage "Patients & Families"; `/about` |
+
+`vanWalkerAssist` and `staffWalkingAssist` each appear twice, but never on the same page/scroll — the homepage shows three distinct photographs, and the reuses land on separate standalone pages (`/healthcare-providers`, `/about`).
+
+**Regenerating a derivative:** `sharp("docs/design/source-assets/<name>.png").jpeg({ quality: 82, mozjpeg: true }).toFile("public/images/<name>.jpg")` — never upscale, never re-compress a JPEG.
 
 Image rules:
 
-- Preserve the on-vehicle Zenward Mobility branding and the phone number **470-206-8005** that appear in the photographs. Never overlay CSS on top of them, crop them out deliberately, or alter them.
-- Render only through `src/components/layout/BrandImage.tsx` (rounded, soft shadow, deliberate crop, blur placeholder).
+- Preserve the on-vehicle Zenward Mobility branding and the phone number **470-206-8005** that appear in the photographs. Never crop them out deliberately or alter them, and keep them clear of gradient overlays where they carry meaning.
+- Framed content images render through `src/components/layout/BrandImage.tsx` (rounded, soft shadow, deliberate `object-position`, blur placeholder). The homepage hero is the one exception: a full-bleed `next/image` in `src/components/public/HomeHero.tsx` with the Care Navy → transparent gradient scrim (horizontal on desktop, vertical on mobile) — no hard seam between the text area and the photograph.
+- Crops are tuned per placement (and per breakpoint for the hero) via `object-position` so the passenger, staff member, ramp, and van branding stay visible. Do not let `object-cover` remove the meaning of the frame.
 - Alt text is factual and describes only what is visibly in frame — see `src/lib/images.ts`. No fabricated claims (no DOT number, license number, fleet ID, on-vehicle website, or healthcare-partner branding is invented anywhere).
 
 ## Phone number

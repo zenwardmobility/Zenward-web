@@ -4,12 +4,15 @@
  * paths and alt strings. Static imports give Next/Image intrinsic dimensions
  * and a blur placeholder for free.
  *
- * Source + usage rules: docs/design/brand-assets.md. Alt text is factual and
- * describes only what is visibly in each frame — no fabricated claims.
+ * Production files here are mozjpeg q82 derivatives of the approved PNG
+ * masters kept in docs/design/source-assets/. Source ↔ derivative ↔ usage
+ * mapping: docs/design/brand-assets.md. Alt text is factual and describes
+ * only what is visibly in each frame — no fabricated claims.
  */
 import type { StaticImageData } from "next/image";
-import wheelchairRampAssist from "../../public/images/zenward-wheelchair-ramp-assist.jpg";
-import staffAssistingSenior from "../../public/images/zenward-staff-assisting-senior.jpg";
+import heroRampAssist from "../../public/images/zenward-hero-ramp-assist.jpg";
+import vanWalkerAssist from "../../public/images/zenward-van-walker-assist.jpg";
+import staffWalkingAssist from "../../public/images/zenward-staff-walking-assist.jpg";
 import zenwardLogo from "../../public/images/zenward-mobility-logo.png";
 import zenwardLogoTrimmed from "../../public/images/zenward-mobility-logo-trimmed.png";
 
@@ -19,15 +22,20 @@ export interface BrandImageAsset {
 }
 
 export const brandImages = {
-  /** White Zenward Mobility wheelchair-accessible van with side ramp deployed; a staff member assists an older passenger seated in a wheelchair outside a medical building. */
-  wheelchairRampAssist: {
-    src: wheelchairRampAssist,
-    alt: "A Zenward Mobility staff member assisting an older passenger in a wheelchair at the ramp of an accessible transport van outside a medical building",
+  /** Navy Zenward Mobility van with its side ramp deployed to the ground; a staff member steadies an older passenger using a rollator, outside a stone-and-glass medical building. Van carries the Zenward Mobility mark and 470-206-8005. Homepage hero. */
+  heroRampAssist: {
+    src: heroRampAssist,
+    alt: "A Zenward Mobility staff member helping an older passenger with a rollator toward the deployed side ramp of a Zenward Mobility van outside a medical building",
   },
-  /** Zenward Mobility van at a hospital main entrance; a staff member walks alongside an older passenger using a wheeled walker up an accessible ramp. */
-  staffAssistingSenior: {
-    src: staffAssistingSenior,
-    alt: "A Zenward Mobility staff member walking beside an older passenger using a walker on an accessible ramp near a hospital entrance, with a Zenward Mobility van parked alongside",
+  /** White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 470-206-8005. */
+  vanWalkerAssist: {
+    src: vanWalkerAssist,
+    alt: "A Zenward Mobility staff member assisting an older passenger using a walker beside a Zenward Mobility van outside an office building",
+  },
+  /** A Zenward Mobility staff member walking beside an older passenger who is using a walker, on a path outside a modern care residence. No vehicle in frame. */
+  staffWalkingAssist: {
+    src: staffWalkingAssist,
+    alt: "A Zenward Mobility staff member walking beside an older passenger who is using a walker on a path outside a care residence",
   },
 } satisfies Record<string, BrandImageAsset>;
 
