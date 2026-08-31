@@ -12,12 +12,15 @@ const mix = (pct: number) => `color-mix(in srgb, ${NAVY} ${pct}%, transparent)`;
 
 /**
  * Homepage hero — one continuous composition, built in three explicit layers:
- *   1. the sharp approved NEMT photograph (`brandImages.heroRampAssist`,
- *      the higher-resolution v2 asset), full-bleed via next/image `fill`
+ *   1. the sharp approved NEMT photograph — two dedicated crops of the same
+ *      shoot: a 16:9 desktop composition and a 9:16 portrait mobile
+ *      composition. Only one is rendered per breakpoint (CSS), and each
+ *      `sizes` string collapses to a placeholder width at the other
+ *      breakpoint so the preload scanner does not fetch both at full size.
  *   2. a Care Navy → transparent gradient scrim (horizontal on desktop,
- *      vertical on mobile) — its own absolutely-positioned layer, it never
- *      touches or blurs the photograph
- *   3. the headline / copy / CTAs
+ *      vertical on mobile) — its own absolutely-positioned layer; it never
+ *      touches or blurs the photograph.
+ *   3. the headline / copy / CTAs.
  * No hard image seam, no separate rectangular photo. See
  * docs/design/brand-assets.md and reference 01-public-homepage.png.
  */
@@ -25,44 +28,55 @@ export function HomeHero() {
   return (
     <section className="relative isolate overflow-hidden bg-brand-care-navy text-white">
       <div className="absolute inset-0 -z-10">
-        {/* Layer 1: the sharp photograph. No filter, transform, or opacity is
-            applied here or anywhere in this tree — the scrims below are their
-            own layers. `quality={90}` because this is the LCP / primary visual. */}
+        {/* Layer 1 — mobile / tablet crop (portrait). Rendered < lg only. */}
         <Image
-          src={brandImages.heroRampAssist.src}
-          alt={brandImages.heroRampAssist.alt}
+          src={brandImages.heroMobile.src}
+          alt={brandImages.heroMobile.alt}
           fill
           priority
           quality={90}
-          sizes="100vw"
+          sizes="(min-width: 1024px) 1px, 100vw"
           placeholder="blur"
-          className="object-cover object-[74%_42%] lg:object-[56%_50%]"
+          className="object-cover object-[50%_48%] lg:hidden"
         />
-        {/* Layer 2a — Mobile / tablet: vertical Care Navy scrim. Strong at the
-            top and bottom edges for text; light through the middle so the van,
-            staff, passenger and ramp read clearly. */}
+        {/* Layer 1 — desktop crop (16:9). Rendered >= lg only. */}
+        <Image
+          src={brandImages.heroDesktop.src}
+          alt={brandImages.heroDesktop.alt}
+          fill
+          priority
+          quality={90}
+          sizes="(min-width: 1024px) 100vw, 1px"
+          placeholder="blur"
+          className="hidden object-cover object-[75%_42%] lg:block"
+        />
+
+        {/* Layer 2a — Mobile / tablet: vertical Care Navy scrim. Strong through
+            the headline zone (over the light building), light through the
+            middle so the van, wheelchair passenger, staff and ramp read
+            clearly, with a soft anchor at the bottom for the fine print. */}
         <div
           className="absolute inset-0 lg:hidden"
           style={{
-            backgroundImage: `linear-gradient(to bottom, ${mix(82)} 0%, ${mix(38)} 36%, ${mix(50)} 66%, ${mix(92)} 100%)`,
+            backgroundImage: `linear-gradient(to bottom, ${mix(86)} 0%, ${mix(66)} 24%, ${mix(34)} 48%, ${mix(34)} 70%, ${mix(58)} 100%)`,
           }}
         />
         {/* Layer 2b — Desktop: horizontal Care Navy → transparent dissolve.
-            Solid navy across the far-left column (covers the background
-            signage and gives the headline a clean field); dissolves through
-            the middle so the faces, van, ramp and branding on the right stay
-            clear. */}
+            Solid navy across the far left; held heavy through the mid-left so
+            the van's own door lettering reads as a faint watermark behind the
+            copy rather than competing with it; fully clear by ~63% so the
+            staff member, passenger, and ramp on the right stay sharp. */}
         <div
           className="absolute inset-0 hidden lg:block"
           style={{
-            backgroundImage: `linear-gradient(to right, ${NAVY} 0%, ${NAVY} 19%, ${mix(82)} 34%, ${mix(44)} 52%, ${mix(12)} 70%, ${mix(0)} 86%)`,
+            backgroundImage: `linear-gradient(to right, ${NAVY} 0%, ${NAVY} 19%, ${mix(86)} 38%, ${mix(56)} 52%, ${mix(20)} 63%, ${mix(0)} 82%)`,
           }}
         />
         {/* Restrained Route Teal depth in the lower-left dark zone — brand character, not decoration */}
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `radial-gradient(58% 68% at 0% 100%, color-mix(in srgb, ${TEAL} 24%, transparent) 0%, transparent 68%)`,
+            backgroundImage: `radial-gradient(58% 68% at 0% 100%, color-mix(in srgb, ${TEAL} 22%, transparent) 0%, transparent 68%)`,
           }}
         />
         {/* Hero melts into the section below instead of ending on a hard edge */}

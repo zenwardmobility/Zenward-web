@@ -1,0 +1,344 @@
+================================================================================
+ZENWARD-WEB — HERO IMAGE REPLACEMENT (v3) — REPORT
+================================================================================
+
+Project:               Zenward-Web
+Task:                  Hero Image Replacement Only (dedicated desktop + mobile)
+Repository:             /Users/datamatics/Zenward-Web
+Git branch:            main
+Git HEAD before work:  8238e1e5585c69349f626b2578159992138d38fb
+                       ("Improve homepage hero image quality and responsive rendering")
+Date/time:             2026-08-31 (Africa/Lagos, WAT)
+
+Scope: replace the homepage hero imagery only. No homepage redesign, no copy
+change, no logo change, no section-order change. Forms / SEO / legal /
+launch-hardening untouched. Nothing committed, pushed, or deployed.
+
+
+================================================================================
+1. DESKTOP SOURCE
+================================================================================
+
+    public/images/incoming/zenward-hero-desktop-new.png   (as supplied)
+
+Navy Zenward Mobility van at a medical-building entrance, side sliding door
+open and aluminium ramp deployed to the ground; a staff member (navy polo)
+stands with an older passenger who is seated in a wheelchair. The van door
+carries "Zenward Mobility" and "470-206-8005". Bright, clean, unhurried.
+
+
+================================================================================
+2. MOBILE SOURCE
+================================================================================
+
+    public/images/incoming/zenward-hero-mobile-new.png   (as supplied)
+
+The same scene, shot / cropped as a vertical portrait: the building fills the
+top, the van and open door are on the left, and the wheelchair passenger and
+staff member are centred, with the ramp in the foreground. A dedicated mobile
+composition — not the desktop frame rotated.
+
+
+================================================================================
+3. SOURCE DIMENSIONS
+================================================================================
+
+    Desktop:  1376 x 768   PNG   1,467,228 bytes (~1433 KB)   1.792 : 1  (16:9)
+    Mobile:    768 x 1376   PNG   1,296,485 bytes (~1266 KB)   0.558 : 1  (9:16)
+
+Both are 1376 px on their long edge — good for the majority of displays but
+below the ~2200-3000 px an extra-large / high-DPI *desktop* hero ideally
+wants. Neither was upscaled (per the task's own rule). The portrait mobile
+crop comfortably covers phone widths at 3x device-pixel-ratio.
+
+
+================================================================================
+4. PRODUCTION FILENAMES
+================================================================================
+
+Served (public/images/):
+    zenward-hero-desktop-v3.jpg
+    zenward-hero-mobile-v3.jpg
+
+`-v3` is a deliberate new canonical filename — the current hero path was NOT
+overwritten. Next.js additionally content-hashes the static import, so the
+actual served paths are
+    /_next/static/media/zenward-hero-desktop-v3.<hash>.jpg
+    /_next/static/media/zenward-hero-mobile-v3.<hash>.jpg
+— fresh URLs that cannot collide with any Vercel / browser cache of the old
+asset. No query-string cache-busting was added to the UI.
+
+Masters (not served) — docs/design/source-assets/:
+    zenward-hero-desktop-v3.png
+    zenward-hero-mobile-v3.png
+
+The incoming files were moved out of public/images/incoming/ and that folder
+was removed. The previous hero master + derivative (zenward-hero-ramp-assist-
+v2.*) were removed.
+
+
+================================================================================
+5. PRODUCTION DIMENSIONS
+================================================================================
+
+    Desktop derivative:  1376 x 768   (native — NOT resized, NOT upscaled)
+    Mobile derivative:     768 x 1376   (native — NOT resized, NOT upscaled)
+
+next/image caps larger requests at these native widths and serves AVIF/WebP:
+    desktop  w>=1920 -> 1376 x 768  AVIF ~65-67 KB   (WebP fallback ~175 KB)
+             w=1200  -> 1200 x 670  AVIF ~53 KB
+             w=640   ->  640 x 357  AVIF ~22 KB
+    mobile   w>=828  ->  768 x 1376 AVIF ~48-49 KB
+             w=640   ->  640 x 1147 AVIF ~36 KB
+
+
+================================================================================
+6. OPTIMIZATION PERFORMED
+================================================================================
+
+PNG source -> mozjpeg, quality 90, chromaSubsampling "4:4:4" (no chroma
+subsampling — keeps the on-van lettering and the ramp's perforated edges
+crisp), native resolution, no upscaling:
+
+    Desktop:  1467 KB PNG  ->  ~241 KB JPEG q90 4:4:4  (on disk)
+    Mobile:   1266 KB PNG  ->  ~188 KB JPEG q90 4:4:4  (on disk)
+
+Masters recompressed to tight lossless PNG for docs/design/source-assets/
+(~426-436 KB each; pixel-identical to the supplied files).
+
+next.config.ts already allow-lists quality 90 (images.qualities = [75, 90],
+added in the previous hero task). Faces, vehicle detail, and branding are not
+visibly softened by the JPEG step — the only softness is the source-resolution
+ceiling on very large desktop displays (see item 10).
+
+
+================================================================================
+7. DESKTOP IMPLEMENTATION
+================================================================================
+
+src/components/public/HomeHero.tsx — Layer 1, desktop <Image>:
+
+    <Image
+      src={brandImages.heroDesktop.src}
+      alt={brandImages.heroDesktop.alt}
+      fill
+      priority
+      quality={90}
+      sizes="(min-width: 1024px) 100vw, 1px"
+      placeholder="blur"
+      className="hidden object-cover object-[75%_42%] lg:block"
+    />
+
+- Rendered at `lg` (>=1024px) and up; `hidden` below that.
+- `sizes` collapses to `1px` below lg so a phone's preload scanner fetches
+  only the smallest desktop candidate (~22 KB), not the full image.
+- object-position 75% 42%: pushes the frame toward the wheelchair passenger
+  and staff member on the right (kept sharp), lets the van + open door fill
+  the centre-left behind the copy, and keeps the van's own door lettering in
+  the heavily-scrimmed zone so it reads as a faint watermark rather than
+  competing with the headline.
+- No raw <img>. Central registry (src/lib/images.ts) — no raw public paths in
+  the component.
+
+
+================================================================================
+8. MOBILE IMPLEMENTATION
+================================================================================
+
+src/components/public/HomeHero.tsx — Layer 1, mobile <Image>:
+
+    <Image
+      src={brandImages.heroMobile.src}
+      alt={brandImages.heroMobile.alt}
+      fill
+      priority
+      quality={90}
+      sizes="(min-width: 1024px) 1px, 100vw"
+      placeholder="blur"
+      className="object-cover object-[50%_48%] lg:hidden"
+    />
+
+- Rendered below `lg`; `lg:hidden` at desktop.
+- `sizes` collapses to `1px` at >=1024px so a desktop preload fetches only the
+  smallest mobile candidate (~36 KB).
+- The portrait source (0.558:1) is very close to the mobile hero container
+  aspect, so object-cover does almost no cropping — object-position 50% 48%
+  keeps the building strip, the van, the wheelchair passenger, the staff
+  member, and the ramp all naturally in frame. No awkward crop.
+- 768px (tablet) also uses this portrait image (the `lg` breakpoint is
+  1024px); the centre vertical band — van door, staff, passenger — reads
+  cleanly there.
+
+Only ONE hero <Image> is visible per breakpoint (CSS), and the `sizes`
+placeholder trick keeps the non-visible one from being preloaded at full
+resolution. Verified in the served HTML: two <link rel=preload as=image>,
+each with its correct imageSrcSet and imageSizes.
+
+
+================================================================================
+9. GRADIENT ADJUSTMENTS
+================================================================================
+
+The 3-layer architecture is unchanged and explicit in the code:
+    Layer 1  sharp photograph(s) — no filter / backdrop-filter / transform /
+             opacity anywhere in the tree
+    Layer 2  Care Navy -> transparent gradient scrim (its own <div>)
+    Layer 3  headline / copy / CTAs
+
+Retuned for the two new images:
+
+  Mobile / tablet (vertical), before -> after:
+    before: mix86 0% -> mix38 36% -> mix50 66% -> mix92 100%
+    after:  mix86 0% -> mix66 24% -> mix34 48% -> mix34 70% -> mix58 100%
+      Strong through the headline zone (which now sits over a bright building
+      top), light through the middle so the van / passenger / staff / ramp
+      read clearly, soft anchor at the bottom for the fine print.
+
+  Desktop (horizontal), before -> after:
+    before: NAVY 0% -> NAVY 19% -> mix82 34% -> mix44 52% -> mix12 70% -> mix0 86%
+    after:  NAVY 0% -> NAVY 19% -> mix86 38% -> mix56 52% -> mix20 63% -> mix0 82%
+      Solid navy across the far left; held heavier through the mid-left so the
+      van's door lettering behind the copy reads as a faint watermark;
+      fully clear by ~63% so the staff member, passenger, and ramp on the
+      right stay sharp.
+
+  Unchanged: the restrained Route Teal lower-left radial (brand character,
+  now at 22%) and the short bottom fade into the section below.
+
+  (mixNN = color-mix(in srgb, Care Navy NN%, transparent).)
+
+No blur. No hard "dark panel | image panel" seam. The premium left-to-right
+desktop dissolve is preserved. The photograph itself is untouched.
+
+
+================================================================================
+10. BROWSER QA
+================================================================================
+
+Verified with headless Chrome (device emulation), homepage:
+
+    Width   Hero image served     Notes
+    1920    DESKTOP (16:9)         staff + wheelchair passenger clear on the
+                                   right; van + open door centre; dissolve
+                                   smooth; van door lettering = faint watermark
+    1440    DESKTOP                same; ramp visible lower-right
+    1280    DESKTOP                fuller vertical view — ramp + passenger's
+                                   feet on the ramp visible
+    1024    DESKTOP                (breakpoint boundary — switches here)
+     768    MOBILE (portrait)      van door, staff (smiling), passenger clear;
+                                   centre band of the portrait
+     430    MOBILE                 full natural composition — building, van,
+                                   ramp foreground, passenger, staff
+     390    MOBILE                 same; premium, image-led, no awkward crop
+
+Zero horizontal overflow on all 8 routes at 390 / 430 / 768 / 1024 / 1280 /
+1440 / 1920. The Need Transportation card and its "Call 470-206-8005" button
+are unchanged. Header, section order, copy, logo, typography, CTA hierarchy —
+all unchanged.
+
+Honest note on desktop sharpness: the desktop source is 1376 px wide. On a
+standard-density 1440/1920 monitor the hero looks sharp; on a 4K/5K display
+the browser enlarges the visible portion (~2x) and mild softness is visible
+under close inspection. This is a source-resolution ceiling — the image is
+served at native maximum, no upscaling, q90, AVIF. A larger native desktop
+hero would remove it; it is not an implementation defect. The portrait mobile
+image is sharp at phone widths and 3x DPR.
+
+
+================================================================================
+11. TYPESCRIPT
+================================================================================
+
+Command: npx tsc --noEmit
+Result:  PASS — no errors.
+
+
+================================================================================
+12. LINT
+================================================================================
+
+Command: npm run lint
+Result:  PASS — no errors, no warnings.
+
+
+================================================================================
+13. BUILD
+================================================================================
+
+Command: npm run build
+Result:  PASS — compiled successfully; 14/14 static routes generated. Hero
+         served from /_next/static/media/zenward-hero-{desktop,mobile}-v3.<hash>.jpg
+         with &q=90 across the full srcset; two preload links (one per crop)
+         with the correct imageSizes. No image-config warnings.
+
+
+================================================================================
+14. FILES CREATED
+================================================================================
+
+    public/images/zenward-hero-desktop-v3.jpg              (~241 KB, q90 4:4:4)
+    public/images/zenward-hero-mobile-v3.jpg               (~188 KB, q90 4:4:4)
+    docs/design/source-assets/zenward-hero-desktop-v3.png  (~436 KB master)
+    docs/design/source-assets/zenward-hero-mobile-v3.png   (~426 KB master)
+    docs/reports/WEB-HERO-V3-REPLACEMENT-report.txt        (this file)
+
+
+================================================================================
+15. FILES MODIFIED
+================================================================================
+
+    src/components/public/HomeHero.tsx    two breakpoint-switched <Image>
+                                          components (mobile portrait / desktop
+                                          16:9) with `sizes` placeholder trick;
+                                          object-position per crop; gradients
+                                          retuned for the new images
+    src/lib/images.ts                     `heroRampAssist` -> `heroDesktop` +
+                                          `heroMobile`; imports -> ...-v3.jpg;
+                                          alt text updated (scene now shows a
+                                          wheelchair, not a rollator)
+    docs/design/brand-assets.md           hero rows -> desktop/mobile v3;
+                                          history + art-direction note
+    docs/design/reference-index.md        hero assets -> v3 desktop + mobile
+    docs/design/source-assets/README.md   master table + regeneration recipe -> v3
+
+
+================================================================================
+16. FILES REMOVED
+================================================================================
+
+    public/images/zenward-hero-ramp-assist-v2.jpg            (previous derivative)
+    docs/design/source-assets/zenward-hero-ramp-assist-v2.png (previous master)
+    public/images/incoming/                                   (processed; emptied
+                                                              and removed — masters
+                                                              relocated)
+
+
+================================================================================
+HERO REPLACEMENT STATUS
+================================================================================
+
+HERO REPLACEMENT STATUS:  READY
+
+Both approved images are integrated:
+  - dedicated 16:9 desktop crop and 9:16 portrait mobile crop, each rendered
+    only at its own breakpoint (CSS), with a `sizes` placeholder so the
+    off-breakpoint image is not preloaded at full size,
+  - cache-safe `-v3` filenames + content hashes,
+  - native resolution kept (no downscale, no upscale),
+  - q90 4:4:4 -> AVIF ~49 KB (mobile) / ~67 KB (desktop) served,
+  - fill + priority + quality={90} on both; no raw <img>,
+  - no blur / filter / transform / opacity on the photograph; gradient is a
+    separate layer; no hard seam; premium desktop dissolve preserved,
+  - mobile hero is image-led and naturally composed at 390 / 430,
+  - Need Transportation card, copy, logo, layout, section order unchanged,
+  - tsc / lint / build all pass; zero horizontal overflow on every route and
+    breakpoint.
+
+Caveat (not blocking): the desktop source is 1376 px wide, so on very large /
+high-DPI desktop displays the hero shows mild softness under close inspection.
+It is served at native resolution without upscaling as required. Removing this
+entirely needs a larger native desktop source, not a code change.
+
+================================================================================
+END OF REPORT
+================================================================================

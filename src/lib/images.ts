@@ -4,17 +4,20 @@
  * paths and alt strings. Static imports give Next/Image intrinsic dimensions
  * and a blur placeholder for free.
  *
- * Production files here are mozjpeg q82 derivatives of the approved PNG
- * masters kept in docs/design/source-assets/. Source ↔ derivative ↔ usage
- * mapping: docs/design/brand-assets.md. Alt text is factual and describes
- * only what is visibly in each frame — no fabricated claims.
+ * Production files here are mozjpeg derivatives of the approved PNG masters
+ * kept in docs/design/source-assets/ (supporting imagery q82; the hero
+ * crops q90 4:4:4 as the LCP visual). Source ↔ derivative ↔ usage mapping:
+ * docs/design/brand-assets.md. Alt text is factual and describes only what
+ * is visibly in each frame — no fabricated claims.
  */
 import type { StaticImageData } from "next/image";
-// `-v2` is a deliberate new filename: the approved hero photograph was
-// replaced with a higher-quality version. A new filename gives the deploy an
-// unambiguous new asset URL instead of relying on cache invalidation of an
-// overwritten path. Master: docs/design/source-assets/zenward-hero-ramp-assist-v2.png
-import heroRampAssist from "../../public/images/zenward-hero-ramp-assist-v2.jpg";
+// The homepage hero now has two dedicated compositions — a 16:9 desktop crop
+// and a 9:16 portrait mobile crop of the same approved photograph. `-v3` is a
+// deliberate new filename so each deploy gets an unambiguous new asset URL
+// rather than relying on cache invalidation of an overwritten path.
+// Masters: docs/design/source-assets/zenward-hero-{desktop,mobile}-v3.png
+import heroDesktop from "../../public/images/zenward-hero-desktop-v3.jpg";
+import heroMobile from "../../public/images/zenward-hero-mobile-v3.jpg";
 import vanWalkerAssist from "../../public/images/zenward-van-walker-assist.jpg";
 import staffWalkingAssist from "../../public/images/zenward-staff-walking-assist.jpg";
 import zenwardLogo from "../../public/images/zenward-mobility-logo.png";
@@ -25,11 +28,19 @@ export interface BrandImageAsset {
   alt: string;
 }
 
+const HERO_ALT =
+  "A Zenward Mobility staff member standing with an older passenger seated in a wheelchair at the foot of the deployed side ramp of a navy Zenward Mobility van, outside a medical building";
+
 export const brandImages = {
-  /** Navy Zenward Mobility van at a medical building, side ramp deployed to the kerb; a staff member steadies an older passenger who is using a rollator. Van carries the Zenward Mobility mark and 470-206-8005. Homepage hero (higher-resolution v2 asset, 1376×768). */
-  heroRampAssist: {
-    src: heroRampAssist,
-    alt: "A Zenward Mobility staff member helping an older passenger with a rollator toward the deployed side ramp of a Zenward Mobility van outside a medical building",
+  /** Homepage hero, desktop/tablet crop (16:9, 1376×768). Navy Zenward Mobility van at a medical building entrance, side door open and ramp deployed to the ground; a staff member stands with an older passenger seated in a wheelchair. Van door carries the Zenward Mobility mark and 470-206-8005. */
+  heroDesktop: {
+    src: heroDesktop,
+    alt: HERO_ALT,
+  },
+  /** Homepage hero, mobile crop (9:16 portrait, 768×1376) — the same scene, composed vertically with the passenger and staff member centred. */
+  heroMobile: {
+    src: heroMobile,
+    alt: HERO_ALT,
   },
   /** White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 470-206-8005. */
   vanWalkerAssist: {
