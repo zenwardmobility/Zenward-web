@@ -1,0 +1,570 @@
+================================================================================
+ZENWARD MOBILITY — WEB-P1-E2 COMPLETION REPORT
+================================================================================
+
+Project:                 Zenward-Web
+Phase:                    WEB-P1-E2 — Launch Hardening
+Repository:               /Users/datamatics/Zenward-Web
+Date/time of execution:   2026-08-31 (Africa/Lagos, WAT)
+Git branch:               main
+Git commit before work:   5d00a556fc3d8a15068170e44446d0eecd1fe050
+                          ("Refine Zenward hero and update brand photography")
+
+Scope note: The approved visual baseline (logo, hero, hero gradient, mobile
+hero, Need Transportation banner, highlighted phone CTA, section order,
+typography, Care Navy/teal system, provider section, footer, services, CTA
+hierarchy) was FROZEN. No visual redesign was performed. Visual changes were
+limited to: the /request-transportation phone-fallback CTA, the /contact phone
+CTA, the /privacy and /terms page content, and form success/error states.
+
+The separate Zenward Platform repository (/Users/datamatics/ZenWard) was NOT
+touched. No Supabase credentials or database access were added.
+
+Nothing was committed. Nothing was deployed.
+
+
+================================================================================
+1. CONTACT DELIVERY IMPLEMENTATION
+================================================================================
+
+A real ContactIntakeAdapter was implemented, provider-isolated:
+
+  src/lib/contact-intake/adapter.ts
+    - ContactIntakeAdapter interface (unchanged seam)
+    - StubContactIntakeAdapter   (default) — acknowledges, delivers nothing,
+                                  stores nothing, logs no message content,
+                                  touches no credential.
+    - EmailContactIntakeAdapter  — sends a plain-text internal enquiry via the
+                                  Resend REST API (https://api.resend.com/emails)
+                                  using a single fetch(). No SDK dependency, so
+                                  the provider surface is one function and is
+                                  swappable. 10s timeout.
+
+Selection: CONTACT_INTAKE_MODE = "stub" (default) | "email".
+
+Delivery format (email mode):
+    Subject: "New Zenward Website Enquiry — <topic label>"
+    Body (plain text) contains ONLY: reference id, topic, name, email,
+    phone (if given), organization (if given), and the message.
+    reply_to is set to the enquirer's email. No technical metadata.
+
+Credentials / destination are server-only environment variables, never
+NEXT_PUBLIC_, never sent to the browser:
+    CONTACT_INTAKE_EMAIL   — internal inbox that receives enquiries
+    CONTACT_EMAIL_FROM     — verified Resend sender
+    CONTACT_EMAIL_API_KEY  — Resend API key
+
+If mode=email but any of the three is missing, the adapter fails closed and
+returns a non-technical "we couldn't send your message just now, please try
+again or call us" message; it logs only that the vars are unset (no content).
+
+Current production behaviour: CONTACT_INTAKE_MODE is unset ⇒ stub. Enabling
+real delivery is env configuration only (see section 5 / launch-readiness).
+
+
+================================================================================
+2. REQUEST INTAKE STATUS
+================================================================================
+
+Architecture preserved exactly:
+    Browser  →  Server Action (src/app/request-transportation/actions.ts)
+             →  validation (whitelist rebuild + normalise + caps + enums + guard)
+             →  RequestIntakeAdapter (src/lib/request-intake/adapter.ts)
+             →  [ destination ]
+
+Adapters:
+    StubRequestIntakeAdapter (default)
+        - Validates and acknowledges. Delivers NOTHING. Stores nothing.
+        - Returns { ok: true, delivered: false, referenceId }.
+        - In production, logs one line: "running in STUB mode: ... NOT
+          delivered anywhere" — NO request payload, ever.
+    PlatformRequestIntakeAdapter (implemented, not yet reachable)
+        - Signed server-to-server POST (Bearer token, 10s timeout) of the
+          validated payload to the Platform's trusted intake endpoint.
+        - Requires PLATFORM_INTAKE_URL + PLATFORM_INTAKE_TOKEN (server-only).
+        - If selected without them: fails closed with an honest "online
+          requests are temporarily unavailable, please call us" message —
+          it never fakes a successful delivery.
+        - A 2xx response ⇒ { ok: true, delivered: true }.
+
+Selection: REQUEST_INTAKE_MODE = "stub" (default) | "platform".
+The Platform API URL was NOT invented.
+
+Honesty guarantee (verified in-browser): in stub mode the success screen does
+NOT say "Zenward will contact you". It says the details are received and the
+visitor should also call to confirm, and shows a "Call 470-206-8005" button.
+Only delivered === true shows the "Zenward will review and contact you" copy.
+
+What is NOT done (by design): no Supabase connection, no anonymous DB access,
+no email delivery of transportation-request content, no full-payload logging,
+no browser-storage persistence, no request content to analytics.
+
+
+================================================================================
+3. REQUEST FALLBACK STATUS
+================================================================================
+
+The full approved form architecture and every field are retained.
+
+Phone fallback is now a highlighted, accessible CTA (not a text link) in two
+places:
+    - /request-transportation, directly under the intro: a bordered card
+      "Prefer to arrange by phone?" with a filled Care-Navy "Call
+      470-206-8005" button and the line "Calling isn't required — the form
+      works too." (does not imply calling is mandatory).
+    - On the non-delivered success screen (stub mode): the same phone button
+      with "please also call our team to confirm this trip".
+
+Component: src/components/public/PhoneCtaButton.tsx — one tel:+14702068005
+link, number sourced from src/lib/business.ts, 48px min height, visible
+focus, aria-label.
+
+
+================================================================================
+4. FORM SECURITY CHANGES
+================================================================================
+
+New shared module: src/lib/forms/guard.ts (server-side only).
+
+Both Server Actions now:
+    - Accept the payload as `unknown` and REBUILD it from a fixed field
+      whitelist — any unexpected properties the client sends are dropped.
+    - Normalise every string: strip C0/C1 control chars (keep tab/newline),
+      collapse runaway blank lines, trim, truncate to a per-field cap
+      (name 120, email 254, phone 40, org 160, short text 400, long text 2000).
+    - Validate enum/select fields against their allowed literal values
+      (relationship, return-trip, contact topic).
+    - Reject a total JSON payload larger than 16 KB before touching an adapter.
+    - Honeypot: hidden off-screen field `company_website`
+      (src/components/public/FormHoneypot.tsx, aria-hidden, tabIndex=-1);
+      non-empty ⇒ generic rejection.
+    - Timing: client records mount time; a submission faster than 2.5s, or
+      with an implausible timestamp, ⇒ generic rejection. (Verified: a ~3s
+      genuine fill is NOT rejected; a honeypot-filled submission IS.)
+    - Safe errors: users see short, non-technical messages only. No stack
+      traces, adapter/provider names, upstream response bodies, or secrets
+      reach the browser. Server logs carry status codes / error names only —
+      never form content.
+
+No CAPTCHA was added (not warranted).
+
+
+================================================================================
+5. ENVIRONMENT VARIABLES
+================================================================================
+
+.env.example was rewritten with an explicit PUBLIC vs SERVER-ONLY split and
+per-variable documentation. Actual names, matching the implementation:
+
+PUBLIC (inlined into the browser bundle — no secrets):
+    NEXT_PUBLIC_SITE_URL      canonical site URL (SEO, OG, sitemap, robots,
+                              JSON-LD). Unset ⇒ http://localhost:3000.
+    NEXT_PUBLIC_APP_URL       Zenward Platform URL for header "Sign In".
+                              Unset ⇒ link hidden. No placeholder.
+
+SERVER-ONLY (never sent to the browser, never NEXT_PUBLIC_):
+    REQUEST_INTAKE_MODE       "stub" (default) | "platform"
+    PLATFORM_INTAKE_URL       (platform mode only) — not guessed
+    PLATFORM_INTAKE_TOKEN     (platform mode only)
+    CONTACT_INTAKE_MODE       "stub" (default) | "email"
+    CONTACT_INTAKE_EMAIL      (email mode only) internal inbox
+    CONTACT_EMAIL_FROM        (email mode only) verified Resend sender
+    CONTACT_EMAIL_API_KEY     (email mode only) Resend API key
+
+Explicitly forbidden and absent: NEXT_PUBLIC_SUPABASE_URL,
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY, DATABASE_URL.
+
+No real values are committed.
+
+
+================================================================================
+6. ANALYTICS STATUS
+================================================================================
+
+The existing abstraction (src/lib/analytics/events.ts) is preserved. The
+typed AnalyticsEvent union is the only interface — there is no generic
+property escape hatch, so PII cannot be attached.
+
+Events retained: request_transportation_clicked, request_form_started,
+request_form_submitted, provider_cta_clicked, contact_started.
+
+Change: request_form_submitted now fires ONLY when the request was genuinely
+delivered (TransportationRequestResult.delivered === true). In stub mode it
+never fires. Documented in events.ts and enforced in the form component.
+
+Never sent to analytics: name, phone, email, address, appointment details,
+assistance requirements, notes, or message body. (Verified by the type; the
+form call sites pass only booleans / enums / source labels.)
+
+No analytics vendor is wired (DEFERRED — abstraction is ready).
+
+
+================================================================================
+7. SOCIAL IMAGE
+================================================================================
+
+Created: src/app/opengraph-image.jpg  (1200 x 630, ~104 KB, JPEG q88)
+         src/app/opengraph-image.alt.txt  (factual alt text)
+
+Composition: Care Navy → Route Teal gradient; the approved navy Zenward
+Mobility hero photograph on the right, dissolving into the navy via a
+gradient mask (matching the site hero treatment); the approved Zenward
+Mobility logo on a white chip, top-left; a gold "NON-EMERGENCY MEDICAL
+TRANSPORTATION" eyebrow; "Care that gets you there." in large white type;
+"Dependable medical transportation across Georgia." No invented claims.
+
+Wiring: Next.js file-convention picks it up automatically. Verified in the
+built <head>: og:image, og:image:width=1200, og:image:height=630,
+og:image:alt, twitter:image, twitter:card=summary_large_image — present on
+ALL 8 content pages (a double-suffix title bug and a missing-image-on-nested-
+pages bug were both fixed in src/lib/seo.ts as part of this). The image URL
+derives from NEXT_PUBLIC_SITE_URL.
+
+
+================================================================================
+8. STRUCTURED-DATA DECISION
+================================================================================
+
+DECISION: schema.org/Organization with a ContactPoint. NOT MedicalBusiness,
+NOT LocalBusiness.
+
+Rationale:
+    - MedicalBusiness would misrepresent Zenward as a medical-services
+      provider; it is a non-emergency transportation company.
+    - LocalBusiness implies a verified, published physical premises and
+      typically address / openingHours — none are confirmed for public use.
+    - Organization accurately states only what is verified.
+
+Emitted fields (homepage JSON-LD): name ("Zenward Mobility"), description,
+url (NEXT_PUBLIC_SITE_URL), logo, areaServed (State: Georgia), and
+contactPoint { telephone +14702068005, contactType "customer service",
+areaServed "US-GA", availableLanguage "English" }.
+
+NOT emitted: address, openingHours, aggregateRating, priceRange, license,
+partner/affiliation data.
+
+Recorded in docs/product/marketing-scope.md ("Structured data").
+Verified in the served HTML.
+
+
+================================================================================
+9. PRIVACY STATUS
+================================================================================
+
+src/app/privacy/page.tsx upgraded from placeholder to a launch-quality honest
+draft. Sections: what the policy covers (this website only); information you
+submit (transportation requests — every field listed; contact enquiries —
+every field listed, with a "no medical detail here" instruction); why we
+collect it (respond / coordinate / records; no selling, no ads); website
+technical information (standard hosting request logs); cookies and analytics
+(aggregate, no ad/tracking cookies, never form contents); service providers
+(hosting + email delivery for contact only; request content not sent to a
+third party via this site); how information is handled (reasonable steps,
+limited access, no perfect-security promise); how long we keep it (as long as
+needed; specific periods being finalised); your choices (access / correct /
+delete on request); changes; contact.
+
+Does NOT claim: HIPAA certification or compliance, specific encryption
+standards, fixed retention periods, or regulatory guarantees.
+
+An on-page notice states formal legal review is still required. "Last
+updated" date shown.
+
+
+================================================================================
+10. TERMS STATUS
+================================================================================
+
+src/app/terms/page.tsx upgraded from placeholder to a conservative launch-
+quality draft. Sections: what Zenward provides (NEMT; not emergency,
+ambulance, or stretcher); using this website; transportation requests are
+subject to review (a request is not a confirmed ride; no guaranteed
+availability; no guaranteed response time); emergencies → call 911;
+information on this site ("as is" while launching, may be corrected); changes;
+contact.
+
+Does NOT fabricate: insurance terms, refund rules, limitation-of-liability
+language, regulatory representations, licensing claims, or guaranteed
+response times.
+
+An on-page notice states formal legal review is still required. "Last
+updated" date shown.
+
+
+================================================================================
+11. CTA AUDIT
+================================================================================
+
+Request Transportation   → /request-transportation      OK (6 links on home,
+                                                          header, footer, page CTAs)
+Talk to Our Team          → /contact                     OK (header, hero,
+                                                          footer, providers)
+Call                      → tel:+14702068005             OK (home banner,
+                                                          home final CTA,
+                                                          mobile nav, /contact,
+                                                          /request-transportation,
+                                                          footer)
+Healthcare Providers      → /healthcare-providers        OK (nav, homepage
+                                                          section, footer)
+"Explore Provider Solutions" → /healthcare-providers     OK
+How It Works              → /#how-it-works                OK (anchor section
+                                                          id present)
+Sign In                   → NEXT_PUBLIC_APP_URL only      Correctly HIDDEN
+                                                          (env unset; 0
+                                                          occurrences in HTML)
+
+No dead links. No placeholder ("#") anchors. Phone number is never hardcoded
+in a component — only in src/lib/business.ts (and, as descriptive prose, in
+image alt/comment text describing what is printed on the vehicles).
+
+
+================================================================================
+12. MOBILE QA
+================================================================================
+
+Checked at 390px, 430px, 768px (CDP device emulation):
+    - Premium hero intact; navy van photo visible behind the gradient.
+    - Highlighted "Call 470-206-8005" CTA obvious in the Need Transportation
+      banner; Request Transportation remains the primary (gold/teal) CTA.
+    - Both forms comfortable; inputs full-width, 48px tall.
+    - Mobile navigation (hamburger) works; Sign In correctly absent.
+    - FAQ accordion usable.
+    - Footer readable.
+    - Horizontal overflow: ZERO on every route at every breakpoint
+      (scrollWidth === clientWidth; 0 elements exceeding viewport).
+The approved mobile design was not regressed.
+
+
+================================================================================
+13. ACCESSIBILITY
+================================================================================
+
+    - Inputs: <label htmlFor>, aria-describedby (help + error), aria-invalid.
+    - Errors: <p role="alert"> — announced.
+    - Success: panel has role="status" + aria-live="polite" and receives
+      focus (tabIndex=-1 + .focus()) so it is announced and lands the SR user.
+    - Honeypot: wrapper aria-hidden, input tabIndex=-1 — out of keyboard and
+      SR paths.
+    - Phone CTAs: real <a href="tel:">, aria-label "Call Zenward at
+      470-206-8005", keyboard focusable, 48px target.
+    - CTAs: LinkButton/anchor semantics (not click-div).
+    - FAQ: <button aria-expanded>.
+    - Focus visibility: global :focus-visible outline (2px teal) in
+      globals.css.
+    - Headings: exactly one <h1> per page; logical h2 structure.
+    - Motion: prefers-reduced-motion honoured globally; no parallax /
+      scroll-jacking / animation library.
+    - Contrast: white/near-white text sits over Care Navy at >=85% opacity in
+      the hero; gold eyebrow is bold uppercase on deep navy.
+
+
+================================================================================
+14. PERFORMANCE
+================================================================================
+
+    - LCP: hero image has priority; Next/Image serves it at its native
+      1024px max (no upscaling) as AVIF (~53 KB) with sizes="100vw".
+    - Other images: lazy, responsive sizes, AVIF/WebP via next/image.
+    - Fonts: Manrope + Inter self-hosted by next/font/google (no runtime
+      Google Fonts fetch), preloaded.
+    - Layout shift: Section/hero min-heights and fixed image aspect ratios
+      prevent CLS.
+    - Client JS: limited to the two form components, the header, the FAQ
+      accordion, and tracked-link buttons. No animation dependency added.
+    - Unused assets: superseded photography was removed in the prior phase;
+      no new unused assets. OG image is a single 104 KB static file.
+    - Build output: 14 static (prerendered) routes; no server rendering.
+
+
+================================================================================
+15. TYPESCRIPT
+================================================================================
+
+Command: npx tsc --noEmit
+Result:  PASS — no errors.
+
+
+================================================================================
+16. LINT
+================================================================================
+
+Command: npm run lint   (eslint / eslint-config-next)
+Result:  PASS — no errors, no warnings.
+(Two react-hooks/purity errors from Date.now() in a useRef initialiser were
+fixed by moving the timestamp capture into a mount useEffect.)
+
+
+================================================================================
+17. BUILD
+================================================================================
+
+Command: npm run build   (next build, Turbopack)
+Result:  PASS — compiled successfully; TypeScript checked; 14/14 static pages
+         generated. Routes: /, /_not-found, /about, /contact,
+         /healthcare-providers, /opengraph-image.jpg, /privacy,
+         /request-transportation, /robots.txt, /services, /sitemap.xml,
+         /terms. All prerendered as static content.
+
+
+================================================================================
+18. LAUNCH — READY ITEMS
+================================================================================
+
+(Full detail: docs/product/launch-readiness.md)
+
+    - Approved visual baseline frozen and unregressed.
+    - Transportation-request security boundary intact and hardened.
+    - Request Server Action: whitelist rebuild, normalisation, caps, enum
+      checks, honeypot, timing gate, payload cap, safe errors.
+    - Request "stub" honesty: delivered:false ⇒ "please also call" success
+      copy + phone CTA; request_form_submitted suppressed.
+    - Request phone fallback CTA (page + success screen).
+    - Contact adapter (Resend email) implemented, provider-isolated,
+      fails closed.
+    - Contact Server Action hardened identically; email-shape check.
+    - Contact data minimisation (fields + on-page guidance).
+    - Analytics privacy enforced by types; conversion event gated on delivery.
+    - Open Graph / social image created and wired site-wide; alt text.
+    - Structured data → Organization + ContactPoint (verified fields only);
+      decision documented.
+    - Privacy page: launch-quality honest draft, no fabricated claims.
+    - Terms page: launch-quality conservative draft, no fabricated claims.
+    - Domain config: NEXT_PUBLIC_SITE_URL is the single source of truth.
+    - Platform Sign In gated on NEXT_PUBLIC_APP_URL; hidden when unset.
+    - .env.example: PUBLIC vs SERVER-ONLY, every variable documented.
+    - No Supabase credentials present; forbidden set documented.
+    - SEO: single title suffix, unique descriptions, canonical on every page,
+      sitemap (8 routes), robots.
+    - One <h1> per page.
+    - Accessibility: labels, error/success announcement, focus management,
+      focus-visible, 48px targets, reduced-motion.
+    - CTA audit clean; no dead links.
+    - Mobile QA at 390/430/768 — no overflow, no regression.
+    - Performance: priority LCP, lazy/responsive images, self-hosted fonts,
+      no CLS, minimal JS.
+    - tsc / lint / build all pass.
+
+
+================================================================================
+19. LAUNCH — BLOCKED ITEMS
+================================================================================
+
+    1. Trusted TransportationRequest intake (REQUEST_INTAKE_MODE=platform).
+       BLOCKED BY: the Zenward Platform's RLS-secured, server-assigned-
+       organization_id intake endpoint does not exist yet.
+       MITIGATION IN PLACE: PlatformRequestIntakeAdapter is implemented and
+       fails closed; production runs in honest stub mode; every request path
+       surfaces the phone number as an immediate alternative.
+       UNBLOCKS WHEN: the Platform database security foundation is complete
+       and an intake URL + token are issued — then set two env vars and
+       REQUEST_INTAKE_MODE=platform. No code change; delivered:true then flips
+       the success copy and re-enables the conversion event automatically.
+
+    This blocks AUTOMATED DIGITAL REQUEST DELIVERY, not the site launch.
+    It is owned by the Platform team.
+
+
+================================================================================
+20. DEFERRED ITEMS
+================================================================================
+
+    - Contact email delivery in production: set CONTACT_INTAKE_MODE=email with
+      a verified Resend sender domain, API key, and destination inbox.
+      Adapter is ready; this is env configuration, not engineering.
+    - Analytics vendor selection and wiring into dispatch().
+    - Formal legal counsel review of /privacy and /terms (drafts are honest
+      and launch-usable; review flagged on-page).
+    - Custom production domain (set NEXT_PUBLIC_SITE_URL).
+    - Service-area specificity (copy is deliberately "Georgia" pending
+      platform ZD-016).
+    - OG image typography uses a system sans, not embedded Manrope (cosmetic).
+    - Cookie-consent management (only needed if a cookie-setting analytics
+      vendor is later chosen).
+
+
+================================================================================
+21. FILES CREATED
+================================================================================
+
+    src/lib/forms/guard.ts                         shared form hardening (server)
+    src/components/public/FormHoneypot.tsx          off-screen honeypot field
+    src/components/public/PhoneCtaButton.tsx        highlighted tel: CTA
+    src/app/opengraph-image.jpg                     1200x630 social image
+    src/app/opengraph-image.alt.txt                 social image alt text
+    docs/product/launch-readiness.md                READY / BLOCKED / DEFERRED
+    docs/reports/WEB-P1-E2-completion-report.txt    this file
+
+
+================================================================================
+22. FILES MODIFIED
+================================================================================
+
+    src/lib/seo.ts                                 explicit OG image in
+                                                   pageMetadata; single title
+                                                   suffix; ogImage constant
+    src/lib/request-intake/types.ts                + delivered: boolean
+    src/lib/request-intake/adapter.ts              stub returns delivered:false
+                                                   + prod warning (no payload);
+                                                   PlatformRequestIntakeAdapter
+                                                   (fails closed)
+    src/lib/contact-intake/adapter.ts              EmailContactIntakeAdapter
+                                                   (Resend); mode selection
+    src/lib/analytics/events.ts                    doc: request_form_submitted
+                                                   only on delivery
+    src/app/request-transportation/actions.ts      whitelist/normalise/caps/
+                                                   enums/guard/safe errors
+    src/app/contact/actions.ts                     same hardening + email check
+    src/components/public/RequestTransportationForm.tsx
+                                                   honeypot, timing, delivered-
+                                                   aware success + phone CTA,
+                                                   role=status + focus, maxLength
+    src/components/public/ContactForm.tsx          honeypot, timing,
+                                                   role=status + focus,
+                                                   maxLength, data-min note
+    src/app/request-transportation/page.tsx        highlighted phone fallback CTA
+    src/app/contact/page.tsx                        PhoneCtaButton in sidebar
+    src/app/privacy/page.tsx                        launch-quality draft
+    src/app/terms/page.tsx                          launch-quality draft
+    src/app/page.tsx                                JSON-LD MedicalBusiness →
+                                                   Organization + ContactPoint
+    .env.example                                    PUBLIC vs SERVER-ONLY;
+                                                   all variables documented
+    docs/architecture/request-intake-boundary.md    stub honesty + platform
+                                                   mode + delivered flag
+    docs/product/marketing-scope.md                 structured-data decision;
+                                                   stub honesty; open questions
+
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+FINAL STATUS:  READY (launch candidate)
+
+The Zenward-Web public marketing site is a public launch candidate. It can go
+live today on https://zenward-web.vercel.app or a custom domain, with:
+    - the transportation-request form in honest stub mode plus a highlighted
+      phone fallback on every path, and
+    - the contact form in stub mode until three Resend env values are set
+      (configuration, not engineering).
+
+The security boundary between the marketing site and the Zenward Platform is
+intact and, if anything, stronger than before this phase: no Supabase
+credentials, no database access, no email delivery or logging of transportation-
+request content, and analytics that cannot carry PII by construction.
+
+NEXT RECOMMENDED PHASE:
+    WEB-P1-E3 — Request Intake Integration: implement and connect the trusted
+    Zenward Platform TransportationRequest intake endpoint (set
+    PLATFORM_INTAKE_URL / PLATFORM_INTAKE_TOKEN, REQUEST_INTAKE_MODE=platform),
+    once the Platform database security foundation is complete. In parallel
+    (not blocking): enable CONTACT_INTAKE_MODE=email in production, and select
+    + wire an analytics vendor.
+
+BLOCKING ITEMS FOR FULL DIGITAL REQUEST DELIVERY (not for launch):
+    - Zenward Platform trusted TransportationRequest intake endpoint
+      (owned by the Platform team).
+
+================================================================================
+END OF REPORT
+================================================================================

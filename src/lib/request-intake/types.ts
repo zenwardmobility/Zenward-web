@@ -29,4 +29,12 @@ export interface TransportationRequestResult {
   /** A reference the requester can quote in a follow-up call — not a booking/trip ID of any kind. */
   referenceId?: string;
   error?: string;
+  /**
+   * True only when a **trusted delivery destination actually received** the
+   * request (the future Zenward Platform intake). The stub adapter returns
+   * `false`: it validated and acknowledged the form but nothing was
+   * delivered or stored. Drives the success-screen copy and gates the
+   * `request_form_submitted` analytics event.
+   */
+  delivered: boolean;
 }

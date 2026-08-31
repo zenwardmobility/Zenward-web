@@ -24,22 +24,22 @@ The **Server Action is the boundary**, not the adapter and not the page. The bro
 
 `REQUEST_INTAKE_MODE=stub` (the default — see `.env.example`) selects a stub adapter that:
 
-- Accepts the submission and returns a success result with a locally-generated reference id.
-- Persists nothing anywhere.
-- Sends nothing to any external service.
-- Never touches a credential of any kind.
+- Validates the submission (the Server Action whitelists fields, normalises and length-caps every string, checks enum values, runs a honeypot + fill-time check) and returns `{ ok: true, delivered: false }` with a locally-generated reference id.
+- Persists nothing anywhere. Sends nothing to any external service. Logs no request content (only a mode warning in production). Never touches a credential.
 
-This exists so the form has something real to submit to during this initialization phase, without connecting to any unfinished or unapproved backend.
+Because it reports `delivered: false`, the success screen tells the visitor to **also call** to confirm, rather than implying a request is queued — and the `request_form_submitted` analytics conversion does **not** fire. This keeps the site honest while the trusted intake does not exist. The `platform` mode (below) is implemented and fails closed — selecting it without `PLATFORM_INTAKE_URL` / `PLATFORM_INTAKE_TOKEN` returns an honest "please call us" error, never a fake success.
 
 ## The replacement point
 
 When the Zenward Platform's trusted `TransportationRequest` intake path exists (platform repo `docs/product/domain-model.md` §13, §L — a controlled server-side path that assigns `organization_id` itself, never trusting the client), replacing the stub is a matter of:
 
-1. Implementing a new class satisfying `RequestIntakeAdapter` (or `ContactIntakeAdapter`) that calls the platform's intake endpoint — most likely a signed, server-to-server HTTP call from this site's Server Action to a platform API route.
-2. Storing whatever credential that call requires in **this site's server-only environment** (never a `NEXT_PUBLIC_`-prefixed variable, never sent to the browser).
-3. Switching `REQUEST_INTAKE_MODE` (or adding an equivalent selector) to use the new adapter.
+1. `PlatformRequestIntakeAdapter` already exists (`src/lib/request-intake/adapter.ts`): a `Bearer`-token, 10s-timeout, server-to-server `POST` of the validated payload. It currently has no URL/token to call.
+2. Set `PLATFORM_INTAKE_URL` and `PLATFORM_INTAKE_TOKEN` in **this site's server-only environment** (never `NEXT_PUBLIC_`, never sent to the browser).
+3. Set `REQUEST_INTAKE_MODE=platform`.
 
-**No page, form component, or Server Action needs to change** — the adapter interface is the seam specifically so the delivery destination can change without touching UI code.
+**No page, form component, or Server Action needs to change** — the adapter interface is the seam specifically so the delivery destination can change without touching UI code. A successful platform response returns `delivered: true`, which flips the success copy and re-enables the `request_form_submitted` conversion automatically.
+
+The contact form follows the same pattern (`ContactIntakeAdapter`), but is allowed ordinary email delivery (`CONTACT_INTAKE_MODE=email`, Resend) because it collects no detailed passenger transportation information.
 
 ## What must never happen, at any point
 

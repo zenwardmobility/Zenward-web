@@ -32,6 +32,9 @@ export type AnalyticsEvent =
         | "other";
     }
   | { name: "request_form_started" }
+  // Fired ONLY when the request was genuinely delivered to a trusted
+  // destination (TransportationRequestResult.delivered === true). The stub
+  // adapter does not deliver, so in stub mode this event never fires.
   | { name: "request_form_submitted"; hasReturnTrip: boolean }
   | { name: "provider_cta_clicked"; source: "homepage" | "healthcare_providers_page" | "footer" }
   | { name: "contact_started"; topic: "general" | "provider" | "support" };

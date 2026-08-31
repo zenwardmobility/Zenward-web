@@ -116,16 +116,28 @@ const FAQ_ITEMS = [
   },
 ];
 
+// Conservative, accurate schema.org type — see docs/product/marketing-scope.md
+// "Structured data". Zenward is a transportation company, not a medical
+// provider, so `MedicalBusiness` would overstate the relationship; `LocalBusiness`
+// implies a verified physical premises we don't publish. `Organization` with a
+// `ContactPoint` covers exactly what is verified: name, phone, url, logo, and a
+// Georgia-level service area. No address, hours, rating, or price range.
 const organizationJsonLd = {
   "@context": "https://schema.org",
-  "@type": "MedicalBusiness",
+  "@type": "Organization",
   name: siteName,
   description:
     "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care.",
   url: siteUrl,
-  telephone: business.phoneHref.replace("tel:", ""),
-  areaServed: { "@type": "State", name: business.serviceArea },
   logo: absoluteUrl("/images/zenward-mobility-logo.png"),
+  areaServed: { "@type": "State", name: business.serviceArea },
+  contactPoint: {
+    "@type": "ContactPoint",
+    telephone: business.phoneHref.replace("tel:", ""),
+    contactType: "customer service",
+    areaServed: "US-GA",
+    availableLanguage: "English",
+  },
 };
 
 export default function HomePage() {

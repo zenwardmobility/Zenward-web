@@ -25,13 +25,15 @@ Registered in `src/lib/images.ts` (`brandImages`). Each production `.jpg` in `pu
 
 | Master (`docs/design/source-assets/`) | Production derivative (`public/images/`) | `brandImages` key | Description (factual) | Approved uses |
 |---|---|---|---|---|
-| `zenward-hero-ramp-assist.png` (1024 × 1024, from "Hero Image 1.png") | `zenward-hero-ramp-assist.jpg` | `heroRampAssist` | Navy Zenward Mobility van with its side ramp deployed to the ground; a staff member steadies an older passenger using a rollator, outside a stone-and-glass medical building. Van carries the Zenward Mobility mark and 470-206-8005. | Homepage hero (LCP, `priority`, full-bleed with Care Navy → transparent gradient) |
+| `zenward-hero-ramp-assist-v2.png` (1376 × 768) | `zenward-hero-ramp-assist-v2.jpg` (q90, 4:4:4, ~241 KB) | `heroRampAssist` | Navy Zenward Mobility van at a medical building, side ramp deployed to the kerb; a staff member steadies an older passenger who is using a rollator. Van carries the Zenward Mobility mark and 470-206-8005. | Homepage hero (LCP, `priority`, `quality={90}`, full-bleed with Care Navy → transparent gradient) |
 | `zenward-van-walker-assist.png` (1264 × 848, from "Staff assist 2.png") | `zenward-van-walker-assist.jpg` | `vanWalkerAssist` | White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 470-206-8005. | Homepage "Getting to care should feel more certain"; `/healthcare-providers` hero |
 | `zenward-staff-walking-assist.png` (1264 × 848, from "Staff Assist.png") | `zenward-staff-walking-assist.jpg` | `staffWalkingAssist` | A Zenward Mobility staff member walking beside an older passenger who is using a walker, on a path outside a modern care residence. No vehicle in frame. | Homepage "Patients & Families"; `/about` |
 
 `vanWalkerAssist` and `staffWalkingAssist` each appear twice, but never on the same page/scroll — the homepage shows three distinct photographs, and the reuses land on separate standalone pages (`/healthcare-providers`, `/about`).
 
-**Regenerating a derivative:** `sharp("docs/design/source-assets/<name>.png").jpeg({ quality: 82, mozjpeg: true }).toFile("public/images/<name>.jpg")` — never upscale, never re-compress a JPEG.
+**Hero asset history:** the homepage hero photograph was replaced with a higher-quality, wider-aspect version (`-v2`). The `-v2` filename is deliberate: a new asset path gives each deploy an unambiguous new URL rather than relying on cache invalidation of an overwritten file. The supplied hero source is 1376 px wide — good for the majority of displays, but below the ~2200–3000 px that a very large / high-DPI desktop hero ideally wants. It is **not** upscaled (per policy); on 4K/5K screens the visible portion is enlarged and shows mild softness under close inspection. A larger native hero source would remove that.
+
+**Regenerating a derivative:** supporting images — `sharp("docs/design/source-assets/<name>.png").jpeg({ quality: 82, mozjpeg: true }).toFile("public/images/<name>.jpg")`. The **hero** uses `quality: 90, mozjpeg: true, chromaSubsampling: "4:4:4"` (full chroma keeps the on-van text and ramp edges crisp) — it is the LCP / primary visual, so quality is prioritised over a small bandwidth saving. Never upscale; never re-compress a JPEG.
 
 Image rules:
 

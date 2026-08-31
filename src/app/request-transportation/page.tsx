@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/layout/Section";
 import { RequestTransportationForm } from "@/components/public/RequestTransportationForm";
+import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
-import { business } from "@/lib/business";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = pageMetadata({
@@ -25,13 +25,16 @@ export default function RequestTransportationPage() {
           This is a transportation request, not a guaranteed ride. Zenward will review the details and contact
           you to confirm availability and next steps.
         </p>
-        <p className={cn(typography.bodySmall, "mt-3 text-text-muted")}>
-          Prefer to arrange it by phone? Call{" "}
-          <a href={business.phoneHref} className="font-medium text-brand-interactive-teal underline">
-            {business.phoneDisplay}
-          </a>
-          .
-        </p>
+
+        <div className="mt-6 flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-lg sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className={cn(typography.body, "font-semibold text-text-primary")}>Prefer to arrange by phone?</p>
+            <p className={cn(typography.bodySmall, "mt-0.5 text-text-secondary")}>
+              Our team can take the details over the phone. Calling isn&rsquo;t required — the form works too.
+            </p>
+          </div>
+          <PhoneCtaButton tone="navy" className="shrink-0" />
+        </div>
       </Section>
 
       <Section tone="white" narrow>

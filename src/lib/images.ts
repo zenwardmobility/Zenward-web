@@ -10,7 +10,11 @@
  * only what is visibly in each frame — no fabricated claims.
  */
 import type { StaticImageData } from "next/image";
-import heroRampAssist from "../../public/images/zenward-hero-ramp-assist.jpg";
+// `-v2` is a deliberate new filename: the approved hero photograph was
+// replaced with a higher-quality version. A new filename gives the deploy an
+// unambiguous new asset URL instead of relying on cache invalidation of an
+// overwritten path. Master: docs/design/source-assets/zenward-hero-ramp-assist-v2.png
+import heroRampAssist from "../../public/images/zenward-hero-ramp-assist-v2.jpg";
 import vanWalkerAssist from "../../public/images/zenward-van-walker-assist.jpg";
 import staffWalkingAssist from "../../public/images/zenward-staff-walking-assist.jpg";
 import zenwardLogo from "../../public/images/zenward-mobility-logo.png";
@@ -22,7 +26,7 @@ export interface BrandImageAsset {
 }
 
 export const brandImages = {
-  /** Navy Zenward Mobility van with its side ramp deployed to the ground; a staff member steadies an older passenger using a rollator, outside a stone-and-glass medical building. Van carries the Zenward Mobility mark and 470-206-8005. Homepage hero. */
+  /** Navy Zenward Mobility van at a medical building, side ramp deployed to the kerb; a staff member steadies an older passenger who is using a rollator. Van carries the Zenward Mobility mark and 470-206-8005. Homepage hero (higher-resolution v2 asset, 1376×768). */
   heroRampAssist: {
     src: heroRampAssist,
     alt: "A Zenward Mobility staff member helping an older passenger with a rollator toward the deployed side ramp of a Zenward Mobility van outside a medical building",

@@ -50,10 +50,25 @@ This site does not fabricate: HIPAA compliance claims, certifications, licenses,
 
 A transportation request is intent, not a confirmed ride. This site never says "Ride confirmed," "Driver assigned," or "Booking complete" — only "Request received," with copy explaining that Zenward will follow up to confirm availability and next steps. This mirrors the platform's own confirmed TransportationRequest lifecycle model (platform repo `docs/product/lifecycle-model.md` §B) even though this site has no direct connection to that system yet.
 
+When the transportation-request intake is running in `stub` mode (nothing is delivered anywhere), the success screen does **not** say "we'll contact you" — it acknowledges the details and directs the visitor to call to confirm. Only a genuinely delivered request (future `platform` mode) shows the "Zenward will review and contact you" copy and counts as a `request_form_submitted` conversion.
+
+## Structured data (JSON-LD)
+
+The homepage emits one JSON-LD block. Decision (WEB-P1-E2): **`schema.org/Organization`** with a `ContactPoint`, not `MedicalBusiness` or `LocalBusiness`.
+
+- `MedicalBusiness` would misrepresent Zenward as a medical-services provider; it is a transportation company.
+- `LocalBusiness` implies a verified, published physical premises and typically `address` / `openingHours`, none of which are confirmed for public use.
+- `Organization` accurately states only what is verified: `name` (Zenward Mobility), `url` (`NEXT_PUBLIC_SITE_URL`), `logo`, a Georgia-level `areaServed`, and a customer-service `ContactPoint` with the real phone number.
+
+No `address`, `openingHours`, `aggregateRating`, `priceRange`, license, or partner data appears — consistent with "Claim discipline" above. Revisit if/when a verified public address and hours exist.
+
 ## Open questions
 
 - Production domain / subdomain strategy for this site vs. the platform app (platform repo ZD-079's open items).
 - Exact launch territory and service-area copy (gated on platform ZD-016).
-- Final legal review of `/privacy` and `/terms` (currently structural placeholders).
-- Whether/when a real request-intake delivery destination (replacing the stub adapter) is approved.
-- Real production photography to replace `PhotoPlaceholder` usages.
+- Final legal counsel review of `/privacy` and `/terms` (now launch-quality honest drafts, not placeholders — but not counsel-reviewed).
+- The trusted Zenward Platform TransportationRequest intake endpoint (replaces `REQUEST_INTAKE_MODE=stub`). Gated on the Platform database security foundation.
+- Contact email delivery: `CONTACT_INTAKE_MODE=email` needs a verified Resend sender domain + API key in production (currently `stub`).
+- Analytics vendor selection (the `track()` abstraction is ready; no vendor wired).
+
+See `docs/product/launch-readiness.md` for the full READY / BLOCKED / DEFERRED breakdown.

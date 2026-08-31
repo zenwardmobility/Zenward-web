@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { FormHoneypot } from "@/components/public/FormHoneypot";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
 import { track } from "@/lib/analytics/events";
@@ -18,6 +19,16 @@ export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | undefined>();
   const hasStarted = useRef(false);
+  const startedAt = useRef<number>(0);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    startedAt.current = Date.now();
+  }, []);
+
+  useEffect(() => {
+    if (status === "success") successRef.current?.focus();
+  }, [status]);
 
   function markStarted(topic: ContactTopic = "general") {
     if (!hasStarted.current) {
@@ -41,7 +52,11 @@ export function ContactForm() {
       message: String(formData.get("message") ?? ""),
     };
 
-    const result = await submitContactMessage(input);
+    const result = await submitContactMessage(input, {
+      hp: String(formData.get("company_website") ?? ""),
+      startedAt: startedAt.current || undefined,
+    });
+
     if (result.ok) {
       setStatus("success");
     } else {
@@ -52,7 +67,13 @@ export function ContactForm() {
 
   if (status === "success") {
     return (
-      <div className="rounded-lg border border-success-border bg-success-bg p-xl text-center">
+      <div
+        ref={successRef}
+        tabIndex={-1}
+        role="status"
+        aria-live="polite"
+        className="rounded-lg border border-success-border bg-success-bg p-xl text-center"
+      >
         <CheckCircle className="mx-auto size-10 text-success-strong" weight="fill" aria-hidden />
         <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>Message received</p>
         <p className={cn(typography.body, "mx-auto mt-2 max-w-[28rem] text-text-secondary")}>
@@ -63,14 +84,15 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} onFocus={() => markStarted()} className="flex flex-col gap-lg">
+    <form onSubmit={handleSubmit} onFocus={() => markStarted()} className="relative flex flex-col gap-lg">
+      <FormHoneypot />
       <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
-        <Input name="name" label="Your name" required autoComplete="name" />
-        <Input name="email" label="Email" type="email" required autoComplete="email" />
+        <Input name="name" label="Your name" required autoComplete="name" maxLength={120} />
+        <Input name="email" label="Email" type="email" required autoComplete="email" maxLength={254} />
       </div>
       <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
-        <Input name="phone" label="Phone (optional)" type="tel" autoComplete="tel" />
-        <Input name="organization" label="Organization (optional)" helpText="If you're reaching out on behalf of a healthcare provider." />
+        <Input name="phone" label="Phone (optional)" type="tel" autoComplete="tel" maxLength={40} />
+        <Input name="organization" label="Organization (optional)" helpText="If you're reaching out on behalf of a healthcare provider." maxLength={160} />
       </div>
       <Select
         name="topic"
@@ -83,7 +105,7 @@ export function ContactForm() {
           { value: "support", label: "Support for an existing request" },
         ]}
       />
-      <Textarea name="message" label="Message" required rows={5} />
+      <Textarea name="message" label="Message" required rows={5} maxLength={2000} />
 
       {error && (
         <p className={cn(typography.bodySmall, "text-critical-text")} role="alert">
@@ -94,6 +116,13 @@ export function ContactForm() {
       <Button type="submit" size="lg" loading={status === "submitting"} className="w-full sm:w-auto">
         Send Message
       </Button>
+      <p className={cn(typography.metadata, "text-text-muted")}>
+        For transportation, use{" "}
+        <a href="/request-transportation" className="font-medium text-brand-interactive-teal underline">
+          Request Transportation
+        </a>{" "}
+        instead — please don&rsquo;t include medical details here.
+      </p>
     </form>
   );
 }

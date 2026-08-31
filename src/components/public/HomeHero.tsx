@@ -11,37 +11,51 @@ const TEAL = "var(--color-brand-route-teal)";
 const mix = (pct: number) => `color-mix(in srgb, ${NAVY} ${pct}%, transparent)`;
 
 /**
- * Homepage hero — one continuous composition: the approved Zenward NEMT
- * photograph is a full-bleed background that dissolves into the Care Navy
- * section via a directional gradient scrim (horizontal on desktop, vertical
- * on mobile). No hard image seam, no separate rectangular photo. See
+ * Homepage hero — one continuous composition, built in three explicit layers:
+ *   1. the sharp approved NEMT photograph (`brandImages.heroRampAssist`,
+ *      the higher-resolution v2 asset), full-bleed via next/image `fill`
+ *   2. a Care Navy → transparent gradient scrim (horizontal on desktop,
+ *      vertical on mobile) — its own absolutely-positioned layer, it never
+ *      touches or blurs the photograph
+ *   3. the headline / copy / CTAs
+ * No hard image seam, no separate rectangular photo. See
  * docs/design/brand-assets.md and reference 01-public-homepage.png.
  */
 export function HomeHero() {
   return (
     <section className="relative isolate overflow-hidden bg-brand-care-navy text-white">
       <div className="absolute inset-0 -z-10">
+        {/* Layer 1: the sharp photograph. No filter, transform, or opacity is
+            applied here or anywhere in this tree — the scrims below are their
+            own layers. `quality={90}` because this is the LCP / primary visual. */}
         <Image
           src={brandImages.heroRampAssist.src}
           alt={brandImages.heroRampAssist.alt}
           fill
           priority
+          quality={90}
           sizes="100vw"
           placeholder="blur"
-          className="object-cover object-[64%_52%] lg:object-[68%_58%]"
+          className="object-cover object-[74%_42%] lg:object-[56%_50%]"
         />
-        {/* Mobile / tablet: vertical scrim — image stays perceptible through the middle, text stays fully readable */}
+        {/* Layer 2a — Mobile / tablet: vertical Care Navy scrim. Strong at the
+            top and bottom edges for text; light through the middle so the van,
+            staff, passenger and ramp read clearly. */}
         <div
           className="absolute inset-0 lg:hidden"
           style={{
-            backgroundImage: `linear-gradient(to bottom, ${mix(86)} 0%, ${mix(54)} 40%, ${mix(66)} 70%, ${mix(95)} 100%)`,
+            backgroundImage: `linear-gradient(to bottom, ${mix(82)} 0%, ${mix(38)} 36%, ${mix(50)} 66%, ${mix(92)} 100%)`,
           }}
         />
-        {/* Desktop: horizontal scrim — Care Navy fades into the photograph left to right */}
+        {/* Layer 2b — Desktop: horizontal Care Navy → transparent dissolve.
+            Solid navy across the far-left column (covers the background
+            signage and gives the headline a clean field); dissolves through
+            the middle so the faces, van, ramp and branding on the right stay
+            clear. */}
         <div
           className="absolute inset-0 hidden lg:block"
           style={{
-            backgroundImage: `linear-gradient(to right, ${NAVY} 0%, ${mix(92)} 30%, ${mix(58)} 52%, ${mix(20)} 72%, ${mix(0)} 100%)`,
+            backgroundImage: `linear-gradient(to right, ${NAVY} 0%, ${NAVY} 19%, ${mix(82)} 34%, ${mix(44)} 52%, ${mix(12)} 70%, ${mix(0)} 86%)`,
           }}
         />
         {/* Restrained Route Teal depth in the lower-left dark zone — brand character, not decoration */}

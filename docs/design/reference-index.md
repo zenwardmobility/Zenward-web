@@ -26,7 +26,7 @@ Documented in full in [brand-assets.md](./brand-assets.md). Summary:
 | Asset | Used on |
 |---|---|
 | `public/images/zenward-mobility-logo.png` (+ `-trimmed`) | Header, footer, brand JSON-LD |
-| `public/images/zenward-hero-ramp-assist.jpg` | Homepage hero |
+| `public/images/zenward-hero-ramp-assist-v2.jpg` | Homepage hero (higher-resolution replacement; `-v2` = cache-safe new URL) |
 | `public/images/zenward-van-walker-assist.jpg` | Homepage "Getting to care", `/healthcare-providers` hero |
 | `public/images/zenward-staff-walking-assist.jpg` | Homepage "Patients & Families", `/about` |
 

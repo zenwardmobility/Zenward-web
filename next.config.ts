@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
     // demand — no remote image domains are needed. Add a host here only if
     // brand imagery is ever moved to a CDN.
     formats: ["image/avif", "image/webp"],
+    // Allowed `quality` values. 75 = supporting imagery default; 90 = the
+    // homepage hero (LCP, primary visual — see src/components/public/HomeHero.tsx).
+    qualities: [75, 90],
   },
 };
 

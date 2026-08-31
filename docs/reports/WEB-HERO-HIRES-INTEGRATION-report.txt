@@ -1,0 +1,384 @@
+================================================================================
+ZENWARD-WEB — HERO HIGH-RESOLUTION ASSET INTEGRATION — REPORT
+================================================================================
+
+Project:               Zenward-Web
+Task:                  Hero High-Resolution Asset Integration
+Repository:             /Users/datamatics/Zenward-Web
+Git branch:            main
+Git HEAD before work:  5d00a556fc3d8a15068170e44446d0eecd1fe050
+                       ("Refine Zenward hero and update brand photography")
+Date/time:             2026-08-31 (Africa/Lagos, WAT)
+
+Scope: hero image quality only. Homepage layout, copy, logo, section structure,
+CTA hierarchy, and the "Need transportation? / Call 470-206-8005" card were NOT
+changed. No other image was chosen. Nothing committed, pushed, or deployed.
+
+
+================================================================================
+1. SOURCE IMAGE FILENAME
+================================================================================
+
+As supplied (manually placed by the requester):
+    public/images/zenward-hero-ramp-assist.png
+
+This REPLACED the previous hero. The previous production derivative
+(public/images/zenward-hero-ramp-assist.jpg, 1024x1024) was deleted by the
+requester in the same change; git shows it as a tracked deletion.
+
+
+================================================================================
+2. SOURCE DIMENSIONS
+================================================================================
+
+    Width:         1376 px
+    Height:        768 px
+    Aspect ratio:  1.792 : 1  (~16:9)
+    Format:        PNG (8-bit RGB, no alpha)
+
+Composition: navy Zenward Mobility van at a medical building, side sliding
+door open, aluminium ramp deployed to the kerb; a staff member (navy polo)
+steadies an older passenger who is using a rollator. Van door carries the
+Zenward Mobility mark and "470-206-8005". A background sign reads "Dental
+Hospital" (generic building signage — hidden by the desktop gradient, cropped
+out on tablet/mobile; see item 9).
+
+This is a genuinely new, sharper, wider-aspect photograph than the previous
+1:1 asset — better suited to a wide hero.
+
+
+================================================================================
+3. SOURCE FILE SIZE
+================================================================================
+
+    1,544,784 bytes  (1509 KB / ~1.47 MB)  PNG
+
+
+================================================================================
+4. WHETHER THE FILENAME CHANGED FOR CACHE SAFETY
+================================================================================
+
+YES — deliberately.
+
+The production site is already deployed on Vercel. Overwriting an existing
+public URL is not a reliable way to guarantee the new asset everywhere. A new
+canonical filename was created so the next deploy produces an unambiguous new
+asset URL:
+
+    zenward-hero-ramp-assist-v2.jpg
+
+Next.js additionally content-hashes the static import, so the actual served
+path is /_next/static/media/zenward-hero-ramp-assist-v2.<hash>.jpg — a fresh
+URL that cannot collide with any cached copy of the old file.
+
+No arbitrary query-string cache-busting was added anywhere in the UI.
+
+
+================================================================================
+5. PRODUCTION DERIVATIVE FILENAME
+================================================================================
+
+    public/images/zenward-hero-ramp-assist-v2.jpg
+
+The lossless PNG master was moved (not served) to:
+
+    docs/design/source-assets/zenward-hero-ramp-assist-v2.png   (482 KB)
+
+The superseded 1024x1024 master (docs/design/source-assets/
+zenward-hero-ramp-assist.png) and the old derivative were removed.
+
+
+================================================================================
+6. PRODUCTION DERIVATIVE DIMENSIONS
+================================================================================
+
+    1376 x 768  (native — NOT resized, NOT upscaled)
+
+The previous asset used a 1024 px width; that constraint was NOT carried over.
+The full native resolution of the supplied source is retained. It was not
+upscaled toward the 2200-3000 px target because the supplied source does not
+contain that detail (per the task's own "do not upscale" rule). See item 12.
+
+
+================================================================================
+7. PRODUCTION FILE SIZE
+================================================================================
+
+    On-disk derivative (public/images/zenward-hero-ramp-assist-v2.jpg):
+        246,902 bytes  (~241 KB)   JPEG, mozjpeg quality 90, chroma 4:4:4
+
+    Actually served to browsers (next/image, on-demand):
+        w=1080  AVIF q90 ->  ~51 KB   (1080 x 603)
+        w>=1920 AVIF q90 ->  ~79 KB   (1376 x 768, native cap — no upscale)
+        w=1920  WebP q90 -> ~175 KB   (fallback for browsers without AVIF)
+
+The hero is the LCP / primary visual; ~79 KB for the full-resolution AVIF is
+well within a sensible budget. No uncontrolled multi-MB photograph is shipped.
+
+Format choice: JPEG q90 with 4:4:4 chroma (no chroma subsampling) rather than
+the q82 4:2:0 used for supporting images — full chroma keeps the on-van text
+("Zenward Mobility", "470-206-8005") and the ramp's perforated-metal edges
+crisp. Quality was prioritised over the small bandwidth saving, as instructed.
+
+
+================================================================================
+8. NEXT/IMAGE CONFIGURATION
+================================================================================
+
+src/components/public/HomeHero.tsx — Layer 1 (the photograph):
+
+    <Image
+      src={brandImages.heroRampAssist.src}   // static import, central registry
+      alt={brandImages.heroRampAssist.alt}
+      fill
+      priority
+      quality={90}
+      sizes="100vw"
+      placeholder="blur"
+      className="object-cover object-[74%_42%] lg:object-[56%_50%]"
+    />
+
+next.config.ts:
+    images.formats   = ["image/avif", "image/webp"]
+    images.qualities = [75, 90]   // added — Next 16 requires quality values
+                                  // to be allow-listed; 90 is the hero
+
+- fill + priority + sizes="100vw": correct for a full-bleed LCP hero.
+- quality={90}: verified in the served srcset (every entry is &q=90).
+- No raw <img>.
+- The static import means the deploy URL changes automatically with the file.
+- src/lib/images.ts updated to import ...-v2.jpg; alt text preserved (factual,
+  no fabricated claims).
+
+
+================================================================================
+9. GRADIENT CHANGES
+================================================================================
+
+The approved 3-layer architecture is unchanged and now explicit in the code
+comments:
+    Layer 1  sharp photograph (next/image fill) — no filter / transform /
+             opacity applied here or anywhere in the tree
+    Layer 2  Care Navy -> transparent gradient scrim (its own absolutely-
+             positioned <div>; never touches the photo)
+    Layer 3  headline / copy / CTAs (SectionContainer)
+
+The previous scrim made the photo look hazy. It was lightened:
+
+  Desktop (horizontal), before:
+    NAVY 0% -> mix92 30% -> mix58 52% -> mix20 72% -> mix0 100%
+  Desktop, after:
+    NAVY 0% -> NAVY 19% -> mix82 34% -> mix44 52% -> mix12 70% -> mix0 86%
+      - Solid navy is held across the far-left column (0-19%). This gives the
+        headline a clean field AND fully covers the background "Dental
+        Hospital" signage without touching object-position.
+      - The mid/right values are lower (mix44 vs mix58, mix12 vs mix20), so
+        the staff face, passenger, van, ramp, and branding read clearly.
+      - The fade completes at 86%, so the far-right edge is fully un-tinted.
+
+  Mobile / tablet (vertical), before:
+    mix86 0% -> mix54 40% -> mix66 70% -> mix95 100%
+  Mobile / tablet, after:
+    mix82 0% -> mix38 36% -> mix50 66% -> mix92 100%
+      - Lighter through the middle; still strong at top and bottom for text.
+
+(mixNN = color-mix(in srgb, Care Navy NN%, transparent).)
+
+Unchanged: the subtle Route Teal lower-left radial (brand character) and the
+short bottom fade into the section below. No hard "dark panel | image panel"
+boundary — the desktop left-to-right dissolve is preserved and premium.
+
+
+================================================================================
+10. DESKTOP OBJECT-POSITION
+================================================================================
+
+    lg:object-[56%_50%]   (was 68% 58%, tuned for the old 1:1 file)
+
+Re-tuned for the new 1.792:1 source. On a wide hero, object-cover shows the
+full image width and crops top/bottom; 50% vertical keeps the faces and the
+ramp both in frame while trimming excess foreground road. 56% horizontal
+centres the composition slightly toward the people.
+
+Desktop priorities check:
+    1. passenger clearly visible          - yes
+    2. staff member clearly visible       - yes (full body, face clear)
+    3. vehicle visible                    - yes (van fills the centre-left)
+    4. ramp / accessibility context       - yes (deployed ramp prominent)
+    5. dark left area behind text         - yes (solid-navy scrim column)
+
+
+================================================================================
+11. MOBILE OBJECT-POSITION
+================================================================================
+
+    object-[74%_42%]   (base; applies at <=1023px, i.e. mobile + tablet)
+
+A portrait hero crops the 16:9 source hard on the sides, so the horizontal
+value was pushed to 74% to keep the staff member AND the passenger in frame
+(at ~64-90% of the source width); 42% vertical lifts the faces toward the top
+of the copy block. The ramp remains prominent in the lower half.
+
+At 390px: staff (torso + face above the paragraph), passenger (head/shoulder
++ the hand being held + rollator), ramp foreground, van door/rear. The
+"Dental Hospital" sign is cropped out entirely.
+At 768px (tablet): the full scene is visible and vivid — the strongest view.
+
+
+================================================================================
+12. LARGE-SCREEN SHARPNESS ASSESSMENT
+================================================================================
+
+Inspected at 1280, 1440, and 1920 (each at deviceScaleFactor 2, i.e. captured
+at 2560 / 2880 / 3840 device px).
+
+Result: a clear improvement over the previous hero. Faces, the polo-shirt
+fabric, the passenger's knit cardigan, van body panels and door handle, the
+ramp's perforated surface, the shrubs, and the building mullions all show real
+detail. The gradient no longer washes the photograph — the right half is
+crisp and vivid.
+
+Honest limitation: the supplied source is 1376 px wide. On a standard-density
+1440 or 1920 monitor the hero looks sharp. On a high-DPI / 4K / 5K desktop
+display the browser enlarges the visible portion (roughly 2x), and mild
+softness is visible under close inspection. This is a SOURCE-RESOLUTION
+ceiling, not an implementation issue — the image is served at its native
+maximum with no upscaling, at quality 90, in AVIF. Reaching the task's
+2200-3000 px ideal would require a larger native hero photograph; the task
+explicitly forbids upscaling to get there.
+
+No pixelation, banding, blockiness, or compression artefacts were observed.
+
+
+================================================================================
+13. MOBILE ASSESSMENT
+================================================================================
+
+390 / 430 (deviceScaleFactor 3) and 768: the hero remains prominent in the
+first-screen experience — it is a full-bleed background photograph, not a
+text-only hero. Staff, passenger, ramp, and vehicle are all present. Text
+contrast is comfortable against the lightened vertical scrim. The primary
+"Request Transportation" CTA stays visually dominant; the "Call 470-206-8005"
+card below is unchanged. Sharpness is good at these sizes (the source easily
+covers a phone-width hero at 3x).
+
+Zero horizontal overflow at every tested width.
+
+
+================================================================================
+14. LCP / PERFORMANCE ASSESSMENT
+================================================================================
+
+    Original source size:            ~1.47 MB PNG
+    Production derivative (on disk):  ~241 KB JPEG q90 4:4:4
+    Master (not served):             ~482 KB PNG in docs/design/source-assets/
+    Served desktop hero (measured):  ~79 KB AVIF at native 1376x768
+                                     (~175 KB WebP fallback)
+
+    - priority + fetchpriority high + preload: hero is the LCP candidate and
+      is requested immediately.
+    - next/image serves AVIF/WebP, capped at the source's native width (no
+      upscaled bytes for larger requests).
+    - No layout shift: the hero <section> has min-heights (33rem mobile /
+      38rem sm / 40rem lg) and the image uses fill.
+    - No animation library, no new client JS for the hero.
+    - placeholder="blur" shows a tiny (~1 KB) base64 LQIP only until the real
+      image paints; it is not a persistent blur and does not soften the final
+      photograph.
+
+Verdict: web-appropriate. The hero is reasonably the heaviest single image on
+the page (it is the primary visual) but remains lightweight in the delivered
+AVIF form.
+
+
+================================================================================
+15. TYPESCRIPT
+================================================================================
+
+Command: npx tsc --noEmit
+Result:  PASS — no errors.
+
+
+================================================================================
+16. LINT
+================================================================================
+
+Command: npm run lint
+Result:  PASS — no errors, no warnings.
+
+
+================================================================================
+17. BUILD
+================================================================================
+
+Command: npm run build
+Result:  PASS — compiled successfully; 14/14 static routes generated; hero
+         served from /_next/static/media/zenward-hero-ramp-assist-v2.<hash>.jpg
+         with &q=90 across the full srcset. No image-config warnings.
+
+Browser QA performed at 1920, 1440, 1280, 768, 430, 390 — hero renders the new
+asset, gradient dissolve intact, no hard seam, no old cached image, zero
+horizontal overflow on all 8 routes at all 6 widths.
+
+
+================================================================================
+18. FILES MODIFIED
+================================================================================
+
+Created:
+    public/images/zenward-hero-ramp-assist-v2.jpg              (241 KB, q90 4:4:4)
+    docs/design/source-assets/zenward-hero-ramp-assist-v2.png  (482 KB master)
+    docs/reports/WEB-HERO-HIRES-INTEGRATION-report.txt         (this file)
+
+Modified:
+    src/components/public/HomeHero.tsx      quality={90}; object-position
+                                            re-tuned (lg 56% 50%, base 74% 42%);
+                                            lighter gradients + solid-navy left
+                                            column; 3-layer architecture noted
+    src/lib/images.ts                       heroRampAssist import -> ...-v2.jpg;
+                                            doc comment updated
+    next.config.ts                          images.qualities = [75, 90]
+    docs/design/brand-assets.md             hero row -> v2; hero history + q90
+                                            regeneration recipe + source-size note
+    docs/design/reference-index.md          hero asset -> v2
+    docs/design/source-assets/README.md     master table -> v2; recipes
+
+Removed (superseded):
+    public/images/zenward-hero-ramp-assist.jpg          (old 1024 derivative)
+    docs/design/source-assets/zenward-hero-ramp-assist.png (old 1024 master)
+    public/images/zenward-hero-ramp-assist.png          (the requester's drop —
+                                                        relocated to the master
+                                                        folder as ...-v2.png)
+
+
+================================================================================
+HERO QUALITY STATUS
+================================================================================
+
+HERO QUALITY STATUS:  READY
+
+The newly supplied hero asset is integrated and rendered at professional
+quality across desktop, tablet, and mobile:
+  - cache-safe new filename (...-v2) + content hash,
+  - full native resolution retained (no downscale, no upscale),
+  - JPEG q90 4:4:4 -> AVIF ~79 KB served,
+  - next/image fill + priority + quality={90} + sizes="100vw",
+  - no blur / filter / transform / opacity on the photograph; gradient is a
+    separate layer,
+  - lighter scrim so faces, van, ramp, and branding are clear; premium
+    left-to-right dissolve preserved; background "Dental Hospital" signage
+    covered,
+  - crops re-tuned for the new 16:9 composition on desktop and mobile,
+  - tsc / lint / build all pass; zero horizontal overflow.
+
+ONE CAVEAT (not blocking, not an implementation defect): the supplied source
+is 1376 px wide — below the ~2200-3000 px that a very large / high-DPI desktop
+hero ideally wants. It is served at native resolution without upscaling (as
+required). It looks sharp on standard-density displays and good at normal
+viewing distance on 4K/5K; only close pixel-inspection on a large high-DPI
+screen shows mild softness. Removing that entirely requires a larger native
+hero photograph, not a code change.
+
+================================================================================
+END OF REPORT
+================================================================================
