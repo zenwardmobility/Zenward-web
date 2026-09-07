@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClipboardText, UsersThree, FileText, ChatsCircle } from "@phosphor-icons/react/dist/ssr";
+import { CalendarCheck, Hospital, ChatCircleText, UsersThree } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
 import { BrandImage } from "@/components/layout/BrandImage";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
@@ -19,24 +19,28 @@ const AUDIENCES = ["Dialysis centers", "Clinics", "Rehabilitation providers", "S
 
 const VALUE_PROPS = [
   {
-    icon: ClipboardText,
-    title: "Clear transportation requests",
-    description: "Submit a transportation request with the details your team already has on hand.",
+    icon: CalendarCheck,
+    title: "Appointment-led scheduling",
+    description:
+      "Rides arranged around the appointment time — routine visits, specialist appointments, dialysis and rehabilitation appointments.",
   },
   {
-    icon: FileText,
-    title: "Scheduled trip coordination",
-    description: "Zenward reviews and coordinates each trip, so scheduling isn't left to chance.",
+    icon: Hospital,
+    title: "Hospital discharge coordination",
+    description:
+      "Share the discharge details and Zenward coordinates transportation to the patient's next destination, so transport isn't what delays a discharge.",
+  },
+  {
+    icon: ChatCircleText,
+    title: "Clear communication with care teams",
+    description:
+      "Your team and the passenger know the pickup plan, and hear from Zenward if anything changes.",
   },
   {
     icon: UsersThree,
-    title: "Driver assignment visibility",
-    description: "Know that a trip has a driver assigned once dispatch has confirmed it.",
-  },
-  {
-    icon: ChatsCircle,
-    title: "Less fragmented communication",
-    description: "One place to send a transportation request instead of scattered calls and texts.",
+    title: "A consistent coordination contact",
+    description:
+      "One point of contact for your team's transportation needs — for one patient or an ongoing schedule.",
   },
 ];
 
@@ -95,7 +99,7 @@ export default function HealthcareProvidersPage() {
 
       <Section tone="mist">
         <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>
-          What coordinating with Zenward looks like
+          What working with Zenward looks like
         </h2>
         <div className="mt-2xl grid grid-cols-1 gap-lg sm:grid-cols-2">
           {VALUE_PROPS.map((prop) => (
@@ -107,8 +111,8 @@ export default function HealthcareProvidersPage() {
           ))}
         </div>
         <p className={cn(typography.bodySmall, "mx-auto mt-lg max-w-[42rem] text-center text-text-muted")}>
-          Provider-facing tools are rolling out alongside Zenward&rsquo;s launch. Talk to our team about how your
-          organization coordinates transportation today and what would help.
+          Zenward handles the scheduling and coordination behind the scenes. Talk to our team about how your
+          organization arranges transportation today, and how Zenward can help.
         </p>
       </Section>
 

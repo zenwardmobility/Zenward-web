@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Healthcare Providers", href: "/healthcare-providers" },
   { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export function PublicHeader() {
@@ -40,14 +41,6 @@ export function PublicHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          {business.signInUrl && (
-            <Link
-              href={business.signInUrl}
-              className={cn(typography.bodySmall, "font-medium text-text-secondary hover:text-text-primary")}
-            >
-              Sign In
-            </Link>
-          )}
           <LinkButton href="/contact" size="md" variant="outline">
             Talk to Our Team
           </LinkButton>
@@ -84,15 +77,6 @@ export function PublicHeader() {
               {link.label}
             </Link>
           ))}
-          {business.signInUrl && (
-            <Link
-              href={business.signInUrl}
-              onClick={close}
-              className={cn(typography.body, "rounded-sm px-2 py-3 font-medium text-text-primary hover:bg-surface-hover")}
-            >
-              Sign In
-            </Link>
-          )}
           <div className="mt-2 flex flex-col gap-2">
             <LinkButton href="/contact" size="lg" variant="outline" className="w-full" onClick={close}>
               Talk to Our Team

@@ -16,7 +16,7 @@ export function absoluteUrl(path: string): string {
 export const siteName = "Zenward Mobility";
 export const siteTagline = "Care that gets you there.";
 export const siteDescription =
-  "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care across Georgia.";
+  "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care — coordinated clearly from request to arrival.";
 
 /**
  * The canonical social-share image. Generated at build time from
@@ -29,7 +29,7 @@ export const ogImage = {
   url: absoluteUrl("/opengraph-image.jpg"),
   width: 1200,
   height: 630,
-  alt: 'Zenward Mobility — "Care that gets you there." A navy Zenward Mobility van with its side ramp deployed while a staff member assists an older passenger using a walker.',
+  alt: 'Zenward Mobility — "Care that gets you there." A navy Zenward Mobility van with its side door open and ramp deployed, while a staff member stands with an older passenger seated in a wheelchair outside a medical building.',
 } as const;
 
 /**

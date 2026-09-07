@@ -1,0 +1,135 @@
+================================================================================
+ZW-WEB-01D — FINAL PRE-COMMIT MICROCOPY PATCH — COMPLETION REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch:            main
+Git HEAD (unchanged):  5f214431786e14c3f8737e50503a68a968b1e17f
+Date:                  2026-09-07 (WAT)
+
+Scope: two copy corrections only. No layout, styling, components, CTAs,
+navigation, imagery, or any other copy changed. Not committed / pushed /
+deployed.
+
+
+================================================================================
+1. CORRECTION 1 — hospital discharge destination wording
+================================================================================
+
+Requested: replace "Zenward arranges the ride home" with
+           "Zenward coordinates transportation to the patient's next
+           destination." and apply the equivalent correction anywhere the
+           same idea appears.
+
+Applied (the phrase was swapped in place; the surrounding sentence structure
+was kept so the sentence still reads correctly):
+
+  A) src/app/page.tsx  — homepage section 6, PROVIDER_BENEFITS,
+     card "Discharge coordination"
+     BEFORE: "Share the discharge details and Zenward arranges the ride home,
+              so transport isn't what holds up a bed."
+     AFTER:  "Share the discharge details and Zenward coordinates
+              transportation to the patient's next destination, so transport
+              isn't what holds up a bed."
+
+  B) src/app/healthcare-providers/page.tsx — VALUE_PROPS,
+     card "Hospital discharge coordination"  (the same idea, phrased as
+     "coordinates the ride home")
+     BEFORE: "Share the discharge details and Zenward coordinates the ride
+              home, so transport isn't what delays a discharge."
+     AFTER:  "Share the discharge details and Zenward coordinates
+              transportation to the patient's next destination, so transport
+              isn't what delays a discharge."
+
+  These are the only two places where Zenward is described as
+  arranging/coordinating "the ride home" for a discharged patient. The literal
+  string "ride home" now appears nowhere in src/.
+
+
+================================================================================
+2. CORRECTION 2 — appointment-type list
+================================================================================
+
+Requested: replace "dialysis, and therapy" with
+           "dialysis and rehabilitation appointments".
+
+Applied:
+
+  src/app/healthcare-providers/page.tsx — VALUE_PROPS,
+  card "Appointment-led scheduling"
+     BEFORE: "Rides arranged around the appointment time — routine visits,
+              specialist appointments, dialysis, and therapy."
+     AFTER:  "Rides arranged around the appointment time — routine visits,
+              specialist appointments, dialysis and rehabilitation
+              appointments."
+
+  This is the only occurrence of the string "dialysis, and therapy" in the
+  repository. It now appears nowhere in src/.
+
+
+================================================================================
+3. FILES CHANGED
+================================================================================
+
+  src/app/page.tsx                       — 1 string (correction 1A)
+  src/app/healthcare-providers/page.tsx  — 2 strings (corrections 1B, 2)
+
+  Net effect of THIS patch: 3 description strings edited. No JSX, no
+  className, no component, no import, no CTA, no route, no image touched.
+
+  CREATED:
+  docs/reports/ZW-WEB-01D-final-precommit-microcopy.txt   (this file)
+
+
+================================================================================
+4. NOT CHANGED (deliberately — "make only these two corrections")
+================================================================================
+
+  - The "Hospital discharge transportation" SERVICE-CATEGORY card on the
+    homepage (SERVICES array) and on /services still reads "Coordinated
+    transportation home after a hospital stay." This is a different string
+    (not "Zenward arranges the ride home"), in a different context (the
+    six-item service taxonomy, not the discharge-coordination messaging). It
+    was left per the instruction to make only the two specified corrections.
+    ── FLAG FOR REVIEWER: if you want full consistency with correction 1, that
+       line (in both src/app/page.tsx and src/app/services/page.tsx) also says
+       "home"; say the word and it can be aligned.
+  - "Rehabilitation appointments" service card: "Consistent transportation for
+    recovery and therapy visits." — contains "therapy" but is not the string
+    "dialysis, and therapy"; left unchanged.
+  - Everything else (geography-neutral copy, ZW-WEB-01B positioning copy,
+    ZW-WEB-01C CTA sections, layout, styling, imagery, nav, all other copy) —
+    untouched by this patch.
+
+
+================================================================================
+5. QA
+================================================================================
+
+  npx tsc --noEmit   → PASS (no errors)
+  npm run lint        → PASS (no errors, no warnings)
+  npm run build       → PASS ("Compiled successfully"; all 8 static routes
+                        generated)
+
+  No visual QA performed or required — text-only change, no layout/style
+  impact. The two edited strings are description text inside existing card
+  components whose widths/wrapping are unaffected (the replacements are of
+  similar length).
+
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+  CORRECTION 1 ("ride home" → "transportation to the patient's next
+     destination"):                 APPLIED (2 places)
+  CORRECTION 2 ("dialysis, and therapy" → "dialysis and rehabilitation
+     appointments"):                APPLIED (1 place)
+  OTHER COPY / LAYOUT / STYLING / COMPONENTS / CTAs / NAV / IMAGERY:  unchanged
+  TypeScript / Lint / Build:        PASS / PASS / PASS
+  Committed / pushed / deployed:    NO
+
+================================================================================
+END OF REPORT
+================================================================================

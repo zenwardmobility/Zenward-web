@@ -1,0 +1,205 @@
+================================================================================
+ZW-WEB-01E — FINAL CONSISTENCY PATCH + POSITIONING COMMIT — REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch:            main
+Git HEAD before:       5f214431786e14c3f8737e50503a68a968b1e17f
+                       ("Document responsive hero art direction")
+Git HEAD after:        cf89e9a  ("Refine Zenward public transportation positioning")
+Pushed:                NO (local commit only — `main...origin/main [ahead 1]`)
+Date:                  2026-09-07 (WAT)
+
+
+================================================================================
+1. THE CONSISTENCY EDIT (this patch)
+================================================================================
+
+Requested: change the Hospital discharge transportation SERVICE description
+           "Coordinated transportation home after a hospital stay."
+        →  "Coordinated transportation following a hospital stay."
+           (homepage + Services page occurrences only; nothing else).
+
+Applied — exactly two occurrences, both in the six-item SERVICES arrays:
+
+  src/app/page.tsx:85        (homepage "Transportation for essential care" grid)
+     BEFORE: description: "Coordinated transportation home after a hospital stay."
+     AFTER:  description: "Coordinated transportation following a hospital stay."
+
+  src/app/services/page.tsx:34   ("Hospital Discharge Transportation" card)
+     BEFORE: description: "Coordinated transportation home after a hospital stay."
+     AFTER:  description: "Coordinated transportation following a hospital stay."
+
+The string "hospital stay" now appears only in those two lines, both with the
+new wording. Nothing else was changed by this patch (no layout, styling,
+components, CTAs, navigation, imagery, or other copy). This closes the
+consistency gap flagged in ZW-WEB-01D: the discharge-coordination messaging
+(ZW-WEB-01D corrections 1A/1B → "the patient's next destination") and the
+service-category description no longer disagree about the destination.
+
+
+================================================================================
+2. CHECKS
+================================================================================
+
+  npx tsc --noEmit   → PASS (no errors)
+  npm run lint        → PASS (no errors, no warnings)
+  npm run build       → PASS ("Compiled successfully"; all 8 static routes +
+                        sitemap / robots / opengraph-image generated)
+
+
+================================================================================
+3. THE COMMIT
+================================================================================
+
+  Commands run (as instructed):
+      git add .
+      git commit -m "Refine Zenward public transportation positioning"
+      (Co-Authored-By trailer appended per repo attribution policy.)
+      NO git push.
+
+  Commit:  cf89e9a  "Refine Zenward public transportation positioning"
+  Branch:  main (local only; not pushed to origin/main)
+
+  22 files changed, 1730 insertions(+), 114 deletions(-)
+
+  This single commit captures the full body of public-positioning work that
+  had accumulated uncommitted in the working tree across five passes:
+
+  (a) Geography-neutral positioning
+      - src/lib/business.ts       `serviceArea: "Georgia"` removed
+      - src/lib/seo.ts            siteDescription de-Georgia'd; ogImage.alt updated
+      - src/app/page.tsx          hero-adjacent copy, FAQ "Where does Zenward
+                                  operate?" rewritten, JSON-LD `areaServed`
+                                  (State + "US-GA") removed
+      - src/components/public/HomeHero.tsx      "across Georgia" removed from lede
+      - src/components/public/PublicFooter.tsx  state removed from © line
+      - src/app/about/page.tsx    metadata + "Launching in Georgia" value card
+                                  + hero lede
+      - src/app/request-transportation/page.tsx  metadata
+      - src/app/opengraph-image.jpg / .alt.txt   regenerated / updated
+      - docs/product/marketing-scope.md, launch-readiness.md, brand-assets.md
+
+  (b) Software / operator positioning removed
+      - src/components/public/PublicHeader.tsx  "Sign In" link removed
+                                                (desktop + mobile); "Contact"
+                                                added to primary nav
+      - src/lib/business.ts       `signInUrl` field + platform prose removed
+      - .env.example              NEXT_PUBLIC_APP_URL → reserved / unused
+      - src/app/page.tsx          "Explore Provider Solutions" →
+                                  "How Zenward works with providers";
+                                  "Provider tools are rolling out" → service line
+      - src/app/healthcare-providers/page.tsx   "Provider-facing tools rolling
+                                                out" removed; "dispatch" /
+                                                "visibility" wording reworked
+      - src/app/privacy/page.tsx  "hosting platform" → "hosting provider"
+
+  (c) Transportation-only positioning patch (ZW-WEB-01B)
+      - src/app/page.tsx          PROVIDER_CAPABILITIES (Transportation
+                                  requests / Trip scheduling / Driver
+                                  assignment / Trip records) → PROVIDER_BENEFITS
+                                  (Appointment-led scheduling / Discharge
+                                  coordination / Clear communication / One
+                                  coordination contact); subtle tech-enabler
+                                  footnote
+      - src/app/healthcare-providers/page.tsx   VALUE_PROPS feature list →
+                                                service benefits + use cases;
+                                                heading "coordinating" →
+                                                "working"
+
+  (d) Homepage CTA section refinement (ZW-WEB-01C)
+      - src/app/page.tsx section 10  provider CTA → institutional, left-aligned
+                                     grid, eyebrow "For Healthcare
+                                     Organizations", white secondary CTA, new
+                                     paragraph
+      - src/app/page.tsx section 11  passenger CTA heading "Need a ride to
+                                     care?" → "Need medical transportation?";
+                                     supporting copy updated; primary gold
+                                     "Request Transportation" + "Call
+                                     470-206-8005" kept
+
+  (e) Pre-commit microcopy (ZW-WEB-01D)
+      - "Zenward arranges/coordinates the ride home" → "Zenward coordinates
+        transportation to the patient's next destination" (page.tsx +
+        healthcare-providers/page.tsx)
+      - "dialysis, and therapy" → "dialysis and rehabilitation appointments"
+        (healthcare-providers/page.tsx)
+
+  (f) This consistency patch (ZW-WEB-01E)
+      - "Coordinated transportation home after a hospital stay." → "…following
+        a hospital stay." (page.tsx + services/page.tsx)
+
+  Plus the six completion reports under docs/reports/ (WEB-GEOGRAPHY-NEUTRAL-
+  POSITIONING, zenward-public-nemt-positioning-cleanup, ZW-WEB-01B, -01C,
+  -01D, and this -01E).
+
+  Explicitly NOT in scope / NOT touched anywhere in the commit: Hero V3
+  photographs / responsive art direction / gradients / sizes, the Zenward
+  logo, the phone number 470-206-8005, CTA destinations, form architecture,
+  RequestIntakeAdapter / ContactIntakeAdapter, Supabase, the Zenward Platform
+  repo, Vercel settings.
+
+
+================================================================================
+4. FILES IN THE COMMIT
+================================================================================
+
+  M  .env.example
+  M  docs/design/brand-assets.md
+  M  docs/product/launch-readiness.md
+  M  docs/product/marketing-scope.md
+  M  src/app/about/page.tsx
+  M  src/app/healthcare-providers/page.tsx
+  M  src/app/opengraph-image.alt.txt
+  M  src/app/opengraph-image.jpg
+  M  src/app/page.tsx
+  M  src/app/privacy/page.tsx
+  M  src/app/request-transportation/page.tsx
+  M  src/app/services/page.tsx
+  M  src/components/public/HomeHero.tsx
+  M  src/components/public/PublicFooter.tsx
+  M  src/components/public/PublicHeader.tsx
+  M  src/lib/business.ts
+  M  src/lib/seo.ts
+  A  docs/reports/WEB-GEOGRAPHY-NEUTRAL-POSITIONING-report.txt
+  A  docs/reports/ZW-WEB-01B-transportation-only-positioning-patch.txt
+  A  docs/reports/ZW-WEB-01C-homepage-cta-refinement.txt
+  A  docs/reports/ZW-WEB-01D-final-precommit-microcopy.txt
+  A  docs/reports/zenward-public-nemt-positioning-cleanup-report.txt
+
+  (docs/reports/ZW-WEB-01E-final-positioning-commit.txt — THIS report — was
+  written after the commit, per the instruction order, and is currently
+  uncommitted.)
+
+
+================================================================================
+5. POST-COMMIT STATE
+================================================================================
+
+  git log --oneline -2:
+     cf89e9a  Refine Zenward public transportation positioning
+     5f21443  Document responsive hero art direction
+
+  git status: working tree clean apart from this untracked report file.
+  git status -sb: `## main...origin/main [ahead 1]`  → 1 commit ahead, NOT pushed.
+
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+  CONSISTENCY EDIT APPLIED:          YES (2 occurrences: homepage + /services)
+  OTHER COPY / LAYOUT / STYLING:     unchanged
+  TypeScript / Lint / Build:         PASS / PASS / PASS
+  COMMITTED:                         YES — cf89e9a on main
+  PUSHED / DEPLOYED:                 NO
+
+  NEXT: review commit cf89e9a; push to origin/main when ready. Remaining
+  launch items are tracked in docs/product/launch-readiness.md (production
+  NEXT_PUBLIC_SITE_URL = https://www.zenwardmobility.com, contact email +
+  analytics vendor in prod env, counsel review of /privacy and /terms).
+
+================================================================================
+END OF REPORT
+================================================================================

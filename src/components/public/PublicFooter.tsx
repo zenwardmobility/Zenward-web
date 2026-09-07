@@ -67,7 +67,7 @@ export function PublicFooter() {
 
         <div className="mt-2xl flex flex-col gap-2 border-t border-white/15 pt-lg sm:flex-row sm:items-center sm:justify-between">
           <p className={cn(typography.metadata, "text-white/50")}>
-            © {new Date().getFullYear()} Zenward Mobility. Non-emergency medical transportation, {business.serviceArea}.
+            © {new Date().getFullYear()} Zenward Mobility. Non-emergency medical transportation.
           </p>
           <p className={cn(typography.metadata, "text-white/50")}>
             For medical emergencies, call 911. Zenward does not provide emergency transportation.

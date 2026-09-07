@@ -54,7 +54,7 @@ Image rules:
 
 ## Sign In / operations platform link
 
-The header "Sign In" link points at the Zenward operations platform. Its production URL is unconfirmed (Zenward Platform decision register ZD-027 / ZD-079). Set `NEXT_PUBLIC_APP_URL` to enable the link; until then the header omits it rather than guessing a domain. See `src/lib/business.ts` (`business.signInUrl`).
+The public header has **no "Sign In" / operator / platform / dashboard link** — the site presents Zenward Mobility only as a non-emergency medical transportation company. `NEXT_PUBLIC_APP_URL` is reserved and currently unused; `business.signInUrl` was removed. Any operator or account entry point lives elsewhere and is not linked from this site.
 
 ## What is never fabricated
 

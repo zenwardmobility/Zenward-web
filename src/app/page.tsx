@@ -14,8 +14,6 @@ import {
   MapPinLine,
   CalendarDots,
   UsersThree,
-  FileText,
-  SteeringWheel,
   CheckCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
@@ -54,18 +52,37 @@ const TRUST_PRINCIPLES = [
   },
 ];
 
-const PROVIDER_CAPABILITIES = [
-  { icon: ClipboardText, title: "Transportation requests", description: "Send a request with the details your team already has on hand." },
-  { icon: CalendarDots, title: "Trip scheduling", description: "Zenward reviews and schedules each trip around the appointment." },
-  { icon: SteeringWheel, title: "Driver assignment", description: "A trip is confirmed once a driver has been assigned to it." },
-  { icon: FileText, title: "Trip records", description: "A record of the transportation Zenward has coordinated for your patients." },
+const PROVIDER_BENEFITS = [
+  {
+    icon: CalendarCheck,
+    title: "Appointment-led scheduling",
+    description:
+      "Rides are arranged around when your patient needs to arrive — one visit or a standing weekly schedule.",
+  },
+  {
+    icon: Hospital,
+    title: "Discharge coordination",
+    description:
+      "Share the discharge details and Zenward coordinates transportation to the patient's next destination, so transport isn't what holds up a bed.",
+  },
+  {
+    icon: ChatCircleText,
+    title: "Clear communication with your team",
+    description: "Your team and the passenger know the pickup plan, and hear from us if anything changes.",
+  },
+  {
+    icon: UsersThree,
+    title: "One coordination contact",
+    description:
+      "A consistent point of contact for your team's transportation — not a different number every time.",
+  },
 ];
 
 const SERVICES = [
   { icon: Stethoscope, title: "Medical appointments", description: "Routine and specialist visits, on schedule." },
   { icon: Heartbeat, title: "Dialysis visits", description: "Dependable, recurring transportation for ongoing treatment." },
   { icon: FirstAidKit, title: "Rehabilitation appointments", description: "Consistent transportation for recovery and therapy visits." },
-  { icon: Hospital, title: "Hospital discharge transportation", description: "Coordinated transportation home after a hospital stay." },
+  { icon: Hospital, title: "Hospital discharge transportation", description: "Coordinated transportation following a hospital stay." },
   { icon: CalendarCheck, title: "Recurring scheduled care", description: "Standing transportation arranged around a recurring care schedule." },
   { icon: Wheelchair, title: "Senior medical transportation", description: "Transportation for older adults attending medical care." },
 ];
@@ -112,7 +129,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `Where does Zenward operate?`,
-    answer: `Zenward is launching in ${business.serviceArea}. Service area details are being finalized — contact us with your location and we'll confirm whether we can help.`,
+    answer: `Zenward is expanding service availability by market. Contact our team or submit a transportation request to confirm availability for your trip.`,
   },
 ];
 
@@ -120,8 +137,11 @@ const FAQ_ITEMS = [
 // "Structured data". Zenward is a transportation company, not a medical
 // provider, so `MedicalBusiness` would overstate the relationship; `LocalBusiness`
 // implies a verified physical premises we don't publish. `Organization` with a
-// `ContactPoint` covers exactly what is verified: name, phone, url, logo, and a
-// Georgia-level service area. No address, hours, rating, or price range.
+// `ContactPoint` covers exactly what is verified: name, phone, url, logo. No
+// `areaServed` — the public brand is geography-neutral and no broad service
+// territory is formally published (availability is confirmed per request); do
+// not add a state or country here without a verified operational basis. No
+// address, hours, rating, or price range.
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -130,12 +150,10 @@ const organizationJsonLd = {
     "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care.",
   url: siteUrl,
   logo: absoluteUrl("/images/zenward-mobility-logo.png"),
-  areaServed: { "@type": "State", name: business.serviceArea },
   contactPoint: {
     "@type": "ContactPoint",
     telephone: business.phoneHref.replace("tel:", ""),
     contactType: "customer service",
-    areaServed: "US-GA",
     availableLanguage: "English",
   },
 };
@@ -274,8 +292,8 @@ export default function HomePage() {
             </h2>
             <p className={cn(typography.lede, "mt-4 max-w-[32rem] text-white/80")}>
               Clinics, dialysis centers, rehabilitation providers, senior care organizations, and hospital
-              discharge teams work with Zenward to arrange and track patient transportation — without relying
-              solely on scattered phone calls and texts.
+              discharge teams work with Zenward to arrange dependable non-emergency medical transportation for
+              the patients they refer — with clear coordination from the request through to arrival.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <TrackedLinkButton
@@ -287,22 +305,23 @@ export default function HomePage() {
                 Talk to Zenward
               </TrackedLinkButton>
               <LinkButton href="/healthcare-providers" size="lg" variant="outline" onDark>
-                Explore Provider Solutions
+                How Zenward works with providers
               </LinkButton>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {PROVIDER_CAPABILITIES.map((cap) => (
-              <div key={cap.title} className="rounded-lg bg-white/5 p-lg ring-1 ring-white/10">
-                <cap.icon className="size-7 text-brand-calm-mist" weight="light" aria-hidden />
-                <p className={cn(typography.subsectionTitle, "mt-3 text-lg text-white")}>{cap.title}</p>
-                <p className={cn(typography.bodySmall, "mt-2 text-white/70")}>{cap.description}</p>
+            {PROVIDER_BENEFITS.map((benefit) => (
+              <div key={benefit.title} className="rounded-lg bg-white/5 p-lg ring-1 ring-white/10">
+                <benefit.icon className="size-7 text-brand-calm-mist" weight="light" aria-hidden />
+                <p className={cn(typography.subsectionTitle, "mt-3 text-lg text-white")}>{benefit.title}</p>
+                <p className={cn(typography.bodySmall, "mt-2 text-white/70")}>{benefit.description}</p>
               </div>
             ))}
           </div>
         </div>
         <p className={cn(typography.metadata, "mt-xl text-white/50")}>
-          Provider tools are rolling out alongside Zenward&rsquo;s launch. Talk to us about what your team needs.
+          Zenward uses modern operational tools to support scheduling, coordination, and communication — so
+          working with us stays simple. Talk to us about what your patients need.
         </p>
       </Section>
 
@@ -367,35 +386,42 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* 10. Provider sales CTA */}
+      {/* 10. Healthcare-organization relationship CTA — institutional, left-aligned,
+             a single restrained action. Deliberately quieter than the passenger
+             conversion block below. */}
       <Section tone="navy-gradient">
-        <div className="flex flex-col items-center gap-6 text-center">
-          <UsersThree className="size-10 text-brand-arrival-gold" weight="light" aria-hidden />
-          <h2 className={cn(typography.sectionTitle, "text-white")}>
-            Arrange transportation for the people you serve
-          </h2>
-          <p className={cn(typography.lede, "max-w-[42rem] text-white/80")}>
-            If your organization coordinates transportation for patients, we would like to talk with you about
-            how Zenward can help — for one patient or an ongoing schedule.
-          </p>
-          <TrackedLinkButton
-            href="/contact"
-            variant="primary"
-            size="lg"
-            onDark
-            event={{ name: "provider_cta_clicked", source: "homepage" }}
-          >
-            Talk to Zenward
-          </TrackedLinkButton>
+        <div className="grid grid-cols-1 gap-lg lg:grid-cols-[1.5fr_1fr] lg:items-center lg:gap-2xl">
+          <div>
+            <p className={cn(typography.eyebrow, "text-brand-arrival-gold")}>For Healthcare Organizations</p>
+            <h2 className={cn(typography.sectionTitle, "mt-3 text-white")}>
+              Arrange transportation for the people you serve
+            </h2>
+            <p className={cn(typography.lede, "mt-4 max-w-[40rem] text-white/80")}>
+              If your organization coordinates transportation for patients, Zenward can support one-time trips,
+              recurring care schedules, and ongoing transportation needs.
+            </p>
+          </div>
+          <div className="lg:justify-self-end">
+            <TrackedLinkButton
+              href="/contact"
+              variant="secondary"
+              size="lg"
+              onDark
+              event={{ name: "provider_cta_clicked", source: "homepage" }}
+            >
+              Talk to Zenward
+            </TrackedLinkButton>
+          </div>
         </div>
       </Section>
 
-      {/* 11. Transportation request CTA */}
+      {/* 11. Passenger / family request CTA — the primary direct-conversion block:
+             solid navy, centred, two actions. */}
       <Section tone="navy">
         <div className="flex flex-col items-center gap-6 text-center">
-          <h2 className={cn(typography.sectionTitle, "text-white")}>Need a ride to care?</h2>
+          <h2 className={cn(typography.sectionTitle, "text-white")}>Need medical transportation?</h2>
           <p className={cn(typography.lede, "max-w-[36rem] text-white/80")}>
-            Request transportation for yourself or someone you care for — it only takes a few minutes.
+            Request transportation for yourself or someone you care for. It only takes a few minutes.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <TrackedLinkButton

@@ -1,0 +1,210 @@
+================================================================================
+ZW-WEB-01C — HOMEPAGE CTA SECTION REFINEMENT — COMPLETION REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch:            main
+Git HEAD (unchanged):  5f214431786e14c3f8737e50503a68a968b1e17f
+Date:                  2026-09-07 (WAT)
+
+Goal: refine the two stacked dark CTA sections near the bottom of the homepage
+so they read as two DIFFERENT, intentional blocks rather than duplicated
+landing-page banners — while keeping Zenward positioned only as a
+non-emergency medical transportation service company. No page redesign, no
+change to the established Zenward visual identity, spacing system, typography,
+colours, button styling or responsiveness. Not committed / pushed / deployed.
+
+Single file changed: src/app/page.tsx (homepage sections 10 and 11).
+
+
+================================================================================
+1. THE PROBLEM
+================================================================================
+
+Sections 10 and 11 were near-identical in composition:
+  - both: <Section> dark navy, one centred flex column, `sectionTitle` h2,
+    `lede` paragraph, button(s).
+  - section 10 added a large gold `UsersThree` icon and one CTA.
+  - section 11 had two CTAs.
+They looked like the same block twice.
+
+
+================================================================================
+2. SECTION 1 — HEALTHCARE ORGANISATIONS  (homepage section 10)
+================================================================================
+
+Intent: institutional / relationship-focused, restrained, clearly the
+QUIETER of the two blocks. Kept on the premium Care Navy → teal gradient.
+
+  BEFORE
+    <Section tone="navy-gradient">  centred column
+      [gold UsersThree icon, size-10]
+      h2  "Arrange transportation for the people you serve"
+      p   "If your organization coordinates transportation for patients, we
+           would like to talk with you about how Zenward can help — for one
+           patient or an ongoing schedule."
+      CTA "Talk to Zenward"   (variant="primary" → gold on navy)
+
+  AFTER
+    <Section tone="navy-gradient">   (gradient + typography unchanged)
+      2-column grid on lg  (grid-cols-[1.5fr_1fr], items-center) — collapses
+      to one column below lg
+      LEFT:
+        eyebrow  "For Healthcare Organizations"   (typography.eyebrow, gold)
+                 — the "subtle provider-oriented visual cue"
+        h2       "Arrange transportation for the people you serve"   (KEPT)
+        p        "If your organization coordinates transportation for patients,
+                  Zenward can support one-time trips, recurring care schedules,
+                  and ongoing transportation needs."   (the requested copy)
+      RIGHT (lg) / below (mobile):
+        CTA      "Talk to Zenward"   (KEPT label; variant="secondary" → white
+                 on navy — calmer/more institutional than gold, and distinct
+                 from Section 2's gold primary)
+
+  What makes it feel institutional and different:
+   - left-aligned, asymmetric two-column layout (an addressed statement, not a
+     centred marketing punch);
+   - an audience eyebrow label;
+   - one restrained white action set apart to the side (desktop) / beneath
+     (mobile);
+   - no icon cluster, NO feature cards, no product/platform framing;
+   - the gradient now shows through the open right side of the grid (its
+     teal→navy transition is visible, as the brief asks it to be preserved).
+
+
+================================================================================
+3. SECTION 2 — PASSENGERS / FAMILIES  (homepage section 11)
+================================================================================
+
+Intent: remains the STRONGER direct-conversion block. Kept solid Care Navy
+(not the gradient), centred, two actions.
+
+  BEFORE
+      h2  "Need a ride to care?"
+      p   "Request transportation for yourself or someone you care for — it
+           only takes a few minutes."
+      [Request Transportation] [Call 470-206-8005]
+
+  AFTER
+      h2  "Need medical transportation?"          (requested heading change)
+      p   "Request transportation for yourself or someone you care for. It
+           only takes a few minutes."             (requested supporting copy)
+      [Request Transportation]  (primary, gold on navy — KEPT)
+      Call 470-206-8005         (secondary phone action — KEPT)
+
+  Composition unchanged (solid navy, centred, two CTAs). It stays the punchier
+  block by contrast: solid vs gradient, centred vs left, gold primary vs white
+  secondary, two actions vs one.
+
+
+================================================================================
+4. "RELATED BUT NOT IDENTICAL" — the deliberate contrast
+================================================================================
+
+                       SECTION 1 (orgs)          SECTION 2 (passengers)
+  Background            navy → teal gradient      solid Care Navy
+  Alignment             left, asymmetric grid     centred
+  Eyebrow               "For Healthcare Orgs"     none
+  Heading (h2)          same `sectionTitle` token — RELATED
+  Primary emphasis      one white secondary CTA   one gold primary CTA + phone
+  Actions               1                         2
+  Feel                  relationship / editorial  direct conversion
+
+  Shared (keeps them a pair): dark navy family, identical type scale, identical
+  Section spacing rhythm, same button component + sizes, adjacent on the page.
+
+
+================================================================================
+5. CONSTRAINTS HONOURED
+================================================================================
+
+  - No page redesign; only sections 10 & 11 of src/app/page.tsx touched.
+  - Brand colours, spacing tokens (`gap-lg`, `gap-2xl`, Section padding),
+    typography tokens (`eyebrow`, `sectionTitle`, `lede`, `button`), button
+    styling (`TrackedLinkButton` variants) — all from the existing system;
+    nothing new introduced.
+  - Section 1 gradient (`tone="navy-gradient"`) preserved.
+  - No SaaS-style feature cards; no product/platform/portal/dashboard/operator/
+    fleet-management/Nemryn language (verified: 0 in the changed lines).
+  - No wheelchair / stretcher / ambulance / emergency / Medicaid / certification
+    claims added (verified: 0 in the changed lines).
+  - `UsersThree` icon import retained (still used by PROVIDER_BENEFITS earlier
+    on the page).
+
+
+================================================================================
+6. QA
+================================================================================
+
+  TypeScript:  npx tsc --noEmit   → PASS (no errors)
+  Lint:        npm run lint        → PASS (no errors, no warnings)
+  Build:       npm run build       → PASS (compiled successfully; all 8 static
+                                    routes generated)
+
+  Desktop QA (1280px, npx next start, headless Chrome — screenshots):
+    - Section 1: gradient intact; eyebrow + left-aligned heading + new
+      paragraph; "Talk to Zenward" white button in the right column, vertically
+      centred; gradient's teal corner visible in the open space. Reads as a
+      calm institutional callout.
+    - Section 2: solid navy, centred; "Need medical transportation?" + new copy
+      + gold "Request Transportation" + "Call 470-206-8005". Reads as the
+      stronger conversion block. Clear visual difference from Section 1.
+
+  Mobile QA (390px — screenshots):
+    - Section 1 grid collapses to one column: eyebrow, heading (wraps to 2
+      lines cleanly), paragraph, then a natural-width left-aligned "Talk to
+      Zenward" white button. Restrained.
+    - Section 2: centred heading (wraps to 2 lines), centred copy, full-width
+      "Request Transportation" gold button + phone link below.
+    - No horizontal overflow.
+
+  Horizontal-overflow sweep (homepage): 390 / 430 / 768 / 1024 / 1280 / 1440 /
+  1920 px → all "ok".
+
+
+================================================================================
+7. FILES
+================================================================================
+
+  MODIFIED:  src/app/page.tsx   (homepage sections 10 & 11 only)
+  CREATED:   docs/reports/ZW-WEB-01C-homepage-cta-refinement.txt   (this file)
+
+  (The working tree also carries the three earlier uncommitted passes:
+  geography-neutral positioning, software-positioning cleanup, and the
+  transportation-only positioning patch ZW-WEB-01B.)
+
+
+================================================================================
+8. KNOWN REMAINING ISSUES
+================================================================================
+
+  - None from this change.
+  - Pre-existing, unrelated launch items remain open in
+    docs/product/launch-readiness.md (production NEXT_PUBLIC_SITE_URL, contact
+    email + analytics vendor in prod env, counsel review of the legal drafts).
+
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+  TWO CTA SECTIONS NOW READ AS DISTINCT:   YES
+      Section 1 = institutional / relationship (gradient, left, 1 white CTA)
+      Section 2 = primary direct conversion (solid, centred, gold CTA + phone)
+  ZENWARD POSITIONING:                     NEMT TRANSPORTATION SERVICE COMPANY
+  SOFTWARE / PLATFORM / FEATURE FRAMING:   none introduced
+  SECTION 1 COPY:                          replaced as specified
+  SECTION 1 HEADING + CTA:                 kept
+  SECTION 2 HEADING:                       "Need medical transportation?"
+  SECTION 2 COPY:                          replaced as specified
+  SECTION 2 CTAs:                          "Request Transportation" + "Call 470-206-8005" kept
+  VISUAL IDENTITY / SPACING / TYPE / BUTTONS / RESPONSIVENESS:  preserved
+  TypeScript / Lint / Build:               PASS / PASS / PASS
+  Desktop QA / Mobile QA @ 390px:          PASS / PASS
+  Horizontal overflow:                     none (390–1920)
+  Committed / pushed / deployed:           NO
+
+================================================================================
+END OF REPORT
+================================================================================

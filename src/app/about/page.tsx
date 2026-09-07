@@ -9,7 +9,8 @@ import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = pageMetadata({
   title: "About",
-  description: "Zenward Mobility provides non-emergency medical transportation across Georgia.",
+  description:
+    "Zenward Mobility provides non-emergency medical transportation for patients, families, caregivers, and the healthcare providers who refer them.",
   path: "/about",
 });
 
@@ -26,8 +27,9 @@ const VALUES = [
   },
   {
     icon: Compass,
-    title: "Launching in Georgia",
-    description: "Zenward is launching its transportation service in Georgia, with careful attention to how we grow.",
+    title: "Deliberate about how we grow",
+    description:
+      "Zenward is expanding service availability by market, holding the same standard of coordination and care as it grows.",
   },
 ];
 
@@ -39,7 +41,7 @@ export default function AboutPage() {
         <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Care that gets you there.</h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
           Zenward Mobility provides non-emergency medical transportation for patients, families, caregivers, and
-          the healthcare providers who refer them — currently launching in Georgia.
+          the healthcare providers who refer them.
         </p>
       </Section>
 

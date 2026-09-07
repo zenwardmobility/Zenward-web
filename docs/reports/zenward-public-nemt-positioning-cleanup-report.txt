@@ -1,0 +1,434 @@
+================================================================================
+ZENWARD MOBILITY — PUBLIC WEBSITE POSITIONING CLEANUP — REPORT
+(present Zenward Mobility ONLY as a Non-Emergency Medical Transportation company)
+================================================================================
+
+Project:               Zenward-Web (public marketing site)
+Repository:             /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch:            main
+Git HEAD before work:  5f214431786e14c3f8737e50503a68a968b1e17f
+                       ("Document responsive hero art direction")
+Date/time:             2026-09-07 (Africa/Lagos, WAT)
+
+Scope: information-architecture / copy / navigation / CTA / metadata cleanup to
+remove any positioning of Zenward Mobility as software / an operating system /
+a platform / operator technology. No redesign. The premium visual identity,
+layout system, typography, approved imagery, brand colours, responsive
+behaviour and Hero V3 art direction are all preserved untouched. No Nemryn
+anything. ZenwardApp / app.zenwardmobility.com / Supabase / auth / the
+operations platform were NOT touched (out of scope). Not committed / pushed /
+deployed.
+
+NOTE: this working tree also contains the immediately-preceding
+"Geography-Neutral Positioning" pass (its own report:
+docs/reports/WEB-GEOGRAPHY-NEUTRAL-POSITIONING-report.txt). The two passes are
+complementary positioning cleanups sharing one uncommitted diff.
+
+
+================================================================================
+1. AUDIT — search terms and where they landed
+================================================================================
+
+Repo-wide search for: operator(s), platform, software, operating system,
+dispatch software, fleet management, SaaS, dashboard, sign in / login,
+app.zenwardmobility.com, run your business, manage your fleet, trip assurance,
+revenue assurance, request hub, business operations, operating infrastructure,
+"for operators", "built for operators", "provider platform / solutions",
+"explore provider", "facility / provider dashboard / login".
+
+PUBLIC-FACING (rendered to visitors) — found and fixed:
+
+  P1  src/components/public/PublicHeader.tsx   "Sign In" link (desktop actions
+      + mobile nav), gated on `business.signInUrl` (NEXT_PUBLIC_APP_URL). An
+      app / operations-platform entry point in the public nav.
+  P2  src/app/page.tsx  homepage healthcare-providers section — secondary CTA
+      "Explore Provider Solutions" (→ /healthcare-providers). "Provider
+      Solutions" = software-product framing.
+  P3  src/app/page.tsx  same section, footnote: "Provider tools are rolling out
+      alongside Zenward's launch. Talk to us about what your team needs." —
+      promises provider software.
+  P4  src/app/page.tsx  same section, lede: "…work with Zenward to arrange and
+      track patient transportation…" — "track" leans toward a tracking tool.
+  P5  src/app/healthcare-providers/page.tsx  footnote: "Provider-facing tools
+      are rolling out alongside Zenward's launch…" — promises provider
+      software.
+  P6  src/app/healthcare-providers/page.tsx  VALUE_PROPS card: title "Driver
+      assignment visibility" / "Know that a trip has a driver assigned once
+      dispatch has confirmed it." — "visibility" + "dispatch" = ops-software
+      language.
+  P7  src/app/healthcare-providers/page.tsx  VALUE_PROPS card: "One place to
+      send a transportation request instead of scattered calls and texts." —
+      "one place to send" implies a portal.
+  P8  src/app/privacy/page.tsx  "…a website hosting platform…" — generic
+      English, but tightened to avoid the word entirely.
+
+CONFIG:
+
+  P9  src/lib/business.ts  `signInUrl` field + doc comment about the "header
+      Sign In link" and the "Zenward operations platform".
+  P10 .env.example  `NEXT_PUBLIC_APP_URL` documented as "for the header 'Sign
+      In' link".
+
+DOCS referencing the removed Sign In:
+  P11 docs/design/brand-assets.md — "Sign In / operations platform link"
+      paragraph.
+  P12 docs/product/launch-readiness.md — "Platform Sign In" row.
+
+INTERNAL / TECHNICAL — reviewed and DELIBERATELY LEFT (not public, legitimate
+architecture/legal/dev context; §16 allows this):
+
+  - src/lib/request-intake/adapter.ts / types.ts — code comments + the
+    `REQUEST_INTAKE_MODE=platform` adapter mode + `PLATFORM_INTAKE_URL/TOKEN`
+    env names. This is the documented server-to-server integration seam
+    (docs/architecture/request-intake-boundary.md); it is never shown to a
+    visitor. The comment "a signal for operators watching logs" means the
+    people operating this website, not NEMT operators.
+  - src/lib/contact-intake/adapter.ts — comment "moving to a CRM / Platform
+    inbox" (internal).
+  - src/lib/business.ts / src/lib/seo.ts — comments referencing the "Zenward
+    Platform decision register" (internal cross-repo pointers).
+  - src/app/globals.css — comment: brand tokens are "replicated from the
+    Zenward Platform's approved design system" (internal provenance note).
+  - src/components/layout/Section.tsx — comment "not a generic SaaS page"
+    (a design instruction that AGREES with this task's goal).
+  - src/lib/analytics/events.ts — a local function named `dispatch()` and a
+    comment listing analytics vendors (Plausible / PostHog / GA4). Internal.
+  - src/app/healthcare-providers/page.tsx — VALUE_PROPS[0]/[1] ("Clear
+    transportation requests", "Scheduled trip coordination") read as a
+    described service, not a product; left as-is.
+
+DEDICATED SOFTWARE / OPERATOR ROUTES OR PAGES: none exist. There is no
+/sign-in, /login, /for-operators, /platform, /operator, /dashboard route or
+component. Nothing to delete.
+
+
+================================================================================
+2. ROUTES AUDITED  (8 — the complete route set)
+================================================================================
+
+  /                         homepage
+  /services                 service categories
+  /healthcare-providers     provider proposition
+  /about                    company
+  /contact                  contact form + phone
+  /request-transportation   request form
+  /privacy                  legal (draft)
+  /terms                    legal (draft)
+
+  Anchor: /#how-it-works  → homepage section id="how-it-works" ("From request
+  to arrival"). Present and resolving (used by the "How It Works" nav item).
+
+
+================================================================================
+3. ROUTES KEPT
+================================================================================
+
+  All 8. Every route is transportation-first and appropriate for a NEMT
+  company. None presents software.
+
+
+================================================================================
+4. ROUTES REMOVED
+================================================================================
+
+  NONE. No software/operator routes existed to remove. No route became
+  orphaned by the copy changes.
+
+
+================================================================================
+5. LINKS REMOVED
+================================================================================
+
+  - Header "Sign In" link  (desktop actions cluster)      — removed
+  - Header "Sign In" link  (mobile navigation panel)      — removed
+    Both were conditionally rendered on `business.signInUrl`
+    (NEXT_PUBLIC_APP_URL); in the current deployment the env var is unset so
+    the link was already hidden at runtime, but the markup + the config field
+    are now gone entirely.
+
+  No other links removed. `app.zenwardmobility.com` was NOT referenced
+  anywhere in this repo (only "the Zenward operations platform" prose in
+  business.ts, now deleted). No redirects into software existed.
+
+  Links ADDED: "Contact" → /contact added to the primary nav (desktop + mobile)
+  per the recommended transportation-first header structure.
+
+
+================================================================================
+6. COPY REWRITTEN
+================================================================================
+
+  HOMEPAGE (src/app/page.tsx), healthcare-providers section:
+    lede  "…work with Zenward to arrange and track patient transportation…"
+       →  "…work with Zenward to arrange dependable patient transportation…"
+    CTA   "Explore Provider Solutions"
+       →  "How Zenward works with providers"        (still links /healthcare-providers)
+    note  "Provider tools are rolling out alongside Zenward's launch. Talk to
+           us about what your team needs."
+       →  "Zenward coordinates the transportation — your team sends the
+           request and stays informed. Talk to us about what your patients
+           need."
+
+  HEALTHCARE PROVIDERS (src/app/healthcare-providers/page.tsx):
+    card  "Driver assignment visibility" / "Know that a trip has a driver
+           assigned once dispatch has confirmed it."
+       →  "Confirmed driver assignment" / "You know a trip is set once Zenward
+           has assigned a driver to it."
+    card  "One place to send a transportation request instead of scattered
+           calls and texts."
+       →  "One point of contact for a transportation request, instead of
+           scattered calls and texts."
+    note  "Provider-facing tools are rolling out alongside Zenward's launch.
+           Talk to our team about how your organization coordinates
+           transportation today and what would help."
+       →  "Talk to our team about how your organization coordinates
+           transportation today, and how Zenward can help — for one patient
+           or an ongoing schedule."
+
+  PRIVACY (src/app/privacy/page.tsx):
+    "…a website hosting platform, and — for contact enquiries — an email
+     delivery service…"
+       →  "…a website hosting provider, and — for contact enquiries — an
+           email delivery service…"
+
+  Not touched: hero headline/copy, service categories, About body, Request
+  Transportation form + copy, Terms, all CTAs that already read
+  "Request Transportation" / "Talk to Zenward" / "Talk to Our Team" /
+  "Call 470-206-8005".
+
+
+================================================================================
+7. SOFTWARE POSITIONING REMOVED  (summary)
+================================================================================
+
+  - Public "Sign In" / app / operations-platform entry point  — gone (header
+    markup + `business.signInUrl` config).
+  - "Explore Provider Solutions" CTA                           — gone.
+  - Two "provider tools / provider-facing tools are rolling out" software
+    promises (homepage + providers page)                       — gone.
+  - "Driver assignment visibility" + "dispatch has confirmed"  — reworded to a
+    coordinated-service statement.
+  - "one place to send" (portal implication)                   — "one point of
+    contact".
+  - "arrange and track" (tool implication)                     — "arrange
+    dependable".
+  - Last stray "platform" in visible copy (privacy)            — "provider".
+
+  Zenward Mobility now reads, everywhere a visitor can see, as a company that
+  provides and coordinates non-emergency medical transportation — not as
+  software for NEMT businesses.
+
+
+================================================================================
+8. HEADER — FINAL STATE
+================================================================================
+
+  Desktop (≥1024px):
+    [Zenward Mobility logo]   Services · How It Works · Healthcare Providers ·
+    About · Contact           [Talk to Our Team]  [Request Transportation]
+
+  Mobile (<1024px):
+    [Zenward Mobility logo]                                        [menu ☰]
+    open panel:
+      Services / How It Works / Healthcare Providers / About / Contact
+      [Talk to Our Team]  [Request Transportation]
+      Call 470-206-8005
+
+  - No "Sign In", no "Operator Login", no "Platform", no "Dashboard".
+  - Primary CTA: Request Transportation (visually primary, teal).
+  - Secondary: Talk to Our Team (outline) → /contact.
+  - Phone (470-206-8005) present in the mobile menu.
+  - Logo, sticky behaviour, backdrop blur, spacing — unchanged.
+
+
+================================================================================
+9. FOOTER — FINAL STATE
+================================================================================
+
+  Unchanged by this task (already transportation-only; the geography pass
+  removed the trailing state from the © line):
+
+    [Zenward Mobility logo chip]   "Care that gets you there."   470-206-8005
+    Explore:            Services · How It Works · Healthcare Providers · About
+    Get transportation: Request Transportation · Talk to Our Team
+    Legal:              Privacy Policy · Terms of Service
+    © 2026 Zenward Mobility. Non-emergency medical transportation.
+    For medical emergencies, call 911. Zenward does not provide emergency
+    transportation.
+
+  No Sign In / operator / platform / Nemryn links. No software links.
+
+
+================================================================================
+10. REQUEST TRANSPORTATION — STATUS
+================================================================================
+
+  WORKING. The page, the "Prefer to arrange by phone?" card, and the form are
+  unchanged by this task. Submission still communicates:
+    - stub mode (current default): "Request received" + "please also call to
+      confirm" + a Call 470-206-8005 button; `request_form_submitted` does not
+      fire.
+    - delivered mode (future): "Zenward will review the transportation details
+      and contact you to confirm availability and next steps."
+  No "Ride confirmed" / auto-confirmation language anywhere. Internal
+  architecture (Server Action → RequestIntakeAdapter, `platform` mode seam) is
+  not exposed to the visitor. Verified via `npx next start`.
+
+
+================================================================================
+11. SEO / METADATA CHANGES
+================================================================================
+
+  No SaaS/software terms were present in any page <title> or meta description,
+  so no metadata rewrite was required for this task. (Titles remain the concise
+  "About" / "Services" / "Healthcare Providers" / … with the single
+  "| Zenward Mobility" template.)
+
+  Verified across all 8 rendered routes' <head>: descriptions and
+  og:/twitter: descriptions contain only transportation concepts
+  ("Non-Emergency Medical Transportation", "medical transportation",
+  "coordination", "request to arrival", patient/family/provider framing) — no
+  "platform", "software", "operating system", "dashboard", "operator".
+
+  Structured data (homepage JSON-LD): `schema.org/Organization` +
+  `ContactPoint` only; name, url, logo, telephone. No software/product schema,
+  no `SoftwareApplication`, no `Service` product listing.
+
+  .env.example: `NEXT_PUBLIC_APP_URL` comment changed from "for the header
+  'Sign In' link" to "Reserved / currently UNUSED … the public site … has no
+  'Sign In' / operator / platform link".
+
+
+================================================================================
+12. MOBILE QA  (npx next start, headless Chrome device emulation)
+================================================================================
+
+  390px:
+    - Header compact, real logo, hamburger.
+    - Menu opens: Services / How It Works / Healthcare Providers / About /
+      Contact, then [Talk to Our Team] / [Request Transportation] /
+      "Call 470-206-8005". No "Sign In". Verified in screenshot.
+    - Homepage hero, Need Transportation card, section flow — unchanged,
+      no horizontal overflow.
+  Provider section + healthcare-providers page verified at mobile width earlier
+  in the responsive-hero pass; copy-only changes here do not affect layout.
+
+
+================================================================================
+13. DESKTOP QA  (1280px, npx next start)
+================================================================================
+
+  - Header: logo + 5 nav items + 2 action buttons, fits comfortably, no
+    "Sign In". Verified in screenshot.
+  - Homepage healthcare-providers section: CTAs now "Talk to Zenward" +
+    "How Zenward works with providers"; footnote now the coordinated-service
+    line. Verified in screenshot.
+  - /healthcare-providers "What coordinating with Zenward looks like": the four
+    cards now read "Clear transportation requests", "Scheduled trip
+    coordination", "Confirmed driver assignment", "Less fragmented
+    communication"; closing line is the "talk to our team" coordination
+    message. Verified in screenshot.
+  - No layout holes from the copy changes; no component needed replacing.
+  - No horizontal overflow.
+
+
+================================================================================
+14. BUILD RESULT
+================================================================================
+
+  npx tsc --noEmit   → PASS (no errors)
+  npm run lint        → PASS (no errors, no warnings)
+  npm run build       → PASS (compiled successfully; all 8 static routes +
+                        sitemap/robots/opengraph-image generated)
+
+  Rendered scan (all 8 routes via `npx next start`):
+    sign-in / operator / platform / software / dashboard / provider-solutions /
+    operating-system / dispatch-software / fleet-management / SaaS / "run your
+    business" / "manage your fleet" / trip-assurance / revenue-assurance /
+    request-hub  →  0 visible-text occurrences on every route.
+    ("operator" only matches an `feComposite operator=` attribute inside the
+    base64 blur-placeholder SVG — not text, not positioning.)
+
+  Internal-link resolution: /, /about, /services, /healthcare-providers,
+  /contact, /request-transportation, /privacy, /terms  →  all HTTP 200.
+  /#how-it-works anchor id present on the homepage. 0 broken links.
+  0 new 404s.
+
+
+================================================================================
+15. KNOWN REMAINING ISSUES
+================================================================================
+
+  - Internal (non-public) code comments and the `REQUEST_INTAKE_MODE=platform`
+    adapter seam still say "Zenward Platform". This is the documented
+    server-to-server integration boundary and is invisible to visitors; left
+    intentionally. When the separate software-company / Nemryn transition is
+    planned, that naming can be revisited then (explicitly out of scope now).
+  - `NEXT_PUBLIC_APP_URL` remains in .env.example as a reserved-but-unused
+    placeholder (no code reads it). Harmless; documented.
+  - Pre-existing, unrelated launch items remain open in
+    docs/product/launch-readiness.md (set NEXT_PUBLIC_SITE_URL to the confirmed
+    production domain; wire the contact email provider + analytics vendor in
+    prod env; legal counsel review of /privacy and /terms). Not introduced or
+    affected by this task.
+
+
+================================================================================
+16. FILES MODIFIED
+================================================================================
+
+  src/components/public/PublicHeader.tsx   removed both "Sign In" links; added
+                                           "Contact" to primary nav
+  src/lib/business.ts                      removed `signInUrl`; reworked the
+                                           doc comment (no Sign In / operator /
+                                           platform link on the public site)
+  src/app/page.tsx                         provider-section lede, CTA label,
+                                           footnote (see §6)
+  src/app/healthcare-providers/page.tsx    two VALUE_PROPS cards + the closing
+                                           note (see §6)
+  src/app/privacy/page.tsx                 "hosting platform" → "hosting
+                                           provider"
+  .env.example                             NEXT_PUBLIC_APP_URL note → reserved/
+                                           unused
+  docs/design/brand-assets.md              "Sign In / operations platform"
+                                           paragraph → "no Sign In / operator /
+                                           platform link"
+  docs/product/launch-readiness.md         "Platform Sign In" row → "No
+                                           software / operator positioning" row
+
+  (Also in the same uncommitted working tree, from the immediately-preceding
+  geography pass: src/lib/seo.ts, src/components/public/HomeHero.tsx,
+  src/components/public/PublicFooter.tsx, src/app/about/page.tsx,
+  src/app/request-transportation/page.tsx, src/app/opengraph-image.jpg,
+  src/app/opengraph-image.alt.txt, docs/product/marketing-scope.md.)
+
+
+================================================================================
+17. FILES CREATED
+================================================================================
+
+  docs/reports/zenward-public-nemt-positioning-cleanup-report.txt   (this file)
+
+
+================================================================================
+FINAL STATUS
+================================================================================
+
+ZENWARD POSITIONING:                 NEMT TRANSPORTATION COMPANY
+SOFTWARE PLATFORM POSITIONING REMOVED: PASS
+OPERATOR SOFTWARE LINKS REMOVED:      PASS
+REQUEST TRANSPORTATION:               PASS
+BROKEN LINKS:                         0
+BUILD:                                PASS
+
+NEXT:
+  Continue the Zenward transportation-site launch-readiness track independently
+  from any software-platform / Nemryn development. Near-term launch items are
+  listed in docs/product/launch-readiness.md (production `NEXT_PUBLIC_SITE_URL`,
+  contact email provider + analytics vendor in prod env, counsel review of the
+  legal drafts).
+
+================================================================================
+END OF REPORT
+================================================================================

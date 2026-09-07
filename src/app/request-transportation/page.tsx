@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 export const metadata: Metadata = pageMetadata({
   title: "Request Transportation",
   description:
-    "Request non-emergency medical transportation in Georgia for appointments, treatments, discharge, or scheduled care.",
+    "Request non-emergency medical transportation for appointments, treatments, discharge, or scheduled care. Zenward reviews every request and follows up to confirm availability.",
   path: "/request-transportation",
 });
 

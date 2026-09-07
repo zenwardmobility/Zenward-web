@@ -7,12 +7,6 @@
  * The phone number below is the approved Zenward Mobility business line as
  * printed on the approved vehicle imagery (see docs/design/brand-assets.md).
  * It is real — do not replace it with a placeholder.
- *
- * `signInUrl` points at the Zenward operations platform. That app has its
- * own deployment and its production URL is not confirmed yet (Zenward
- * Platform decision register ZD-027 / ZD-079). Set `NEXT_PUBLIC_APP_URL`
- * once it is known; until then the header omits the Sign In link rather
- * than guessing a domain.
  */
 
 const PHONE_DIGITS = "4702068005";
@@ -23,8 +17,18 @@ export const business = {
   phoneDisplay: "470-206-8005",
   /** `tel:` href form (E.164). */
   phoneHref: `tel:+1${PHONE_DIGITS}`,
-  /** State the service is launching in. */
-  serviceArea: "Georgia",
-  /** Operations-platform sign-in, when its URL is configured. */
-  signInUrl: process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "",
 } as const;
+
+/*
+ * The public site presents Zenward Mobility only as a non-emergency medical
+ * transportation company. It intentionally has NO "Sign In" / operator /
+ * platform / dashboard link and no software positioning. Any operator or
+ * account application lives elsewhere and is not linked from this site.
+ *
+ * There is also deliberately NO `serviceArea` / `region` / `brandLocation`
+ * field: the public brand is geography-neutral so it can expand into multiple
+ * markets. Operational rollout happens market by market (tracked in the
+ * platform decision register, ZD-016) — that is not permanent brand geography,
+ * so it does not live in site config or copy. Availability for a specific trip
+ * is confirmed during request coordination.
+ */

@@ -1,0 +1,503 @@
+================================================================================
+ZENWARD-WEB — GEOGRAPHY-NEUTRAL POSITIONING — REPORT
+================================================================================
+
+Project:               Zenward-Web
+Task:                  Geography-Neutral Positioning
+Repository:             /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch:            main
+Git HEAD before work:  5f214431786e14c3f8737e50503a68a968b1e17f
+                       ("Document responsive hero art direction")
+Date/time:             2026-09-07 (Africa/Lagos, WAT)
+
+Scope: remove Georgia-specific positioning from the public brand, website
+copy, metadata, and structured data so the brand can expand into multiple
+markets. No national/coverage claims introduced. Hero V3 photographs,
+responsive art direction, gradients, sizes, logo, phone number, section
+structure, CTA destinations, form architecture, RequestIntakeAdapter, contact
+delivery, Supabase, Platform — all untouched. Not committed / pushed /
+deployed.
+
+
+================================================================================
+1. LOCATION REFERENCES DISCOVERED (pre-change repo audit)
+================================================================================
+
+CODE (src/):
+  A  src/lib/business.ts:27            `serviceArea: "Georgia"` (brand config)
+  B  src/components/public/HomeHero.tsx  hero lede: "...scheduled care across {business.serviceArea}."
+  C  src/components/public/PublicFooter.tsx  © line: "Non-emergency medical transportation, {business.serviceArea}."
+  D  src/app/page.tsx (FAQ)            "Where does Zenward operate?" → "Zenward is launching in {serviceArea}. Service area details are being finalized…"
+  E  src/app/page.tsx (JSON-LD)        `areaServed: { "@type": "State", name: "Georgia" }`
+  F  src/app/page.tsx (JSON-LD)        contactPoint `areaServed: "US-GA"`
+  G  src/app/page.tsx (comment)        "…logo, and a Georgia-level service area."
+  H  src/lib/seo.ts:19                 `siteDescription` "…scheduled care across Georgia." (default meta + og:description)
+  I  src/app/about/page.tsx:12         metadata description "…non-emergency medical transportation across Georgia."
+  J  src/app/about/page.tsx:29-30      VALUES card "Launching in Georgia" / "…launching its transportation service in Georgia…"
+  K  src/app/about/page.tsx:42         hero lede "…the healthcare providers who refer them — currently launching in Georgia."
+  L  src/app/request-transportation/page.tsx:12  metadata description "Request non-emergency medical transportation in Georgia …"
+  M  src/app/opengraph-image.jpg       rendered subtitle text "Dependable medical transportation across Georgia." (baked into the JPEG)
+  N  src/app/opengraph-image.alt.txt   "… Non-emergency medical transportation across Georgia."
+
+DOCS:
+  O  docs/product/marketing-scope.md:38   "- Launch market: **Georgia, USA**"
+  P  docs/product/marketing-scope.md:61   structured-data note "a Georgia-level `areaServed`"
+  Q  docs/product/launch-readiness.md:26  OG-image row "…Georgia line."
+  R  docs/product/launch-readiness.md:27  structured-data row "Georgia `areaServed`"
+  S  docs/product/launch-readiness.md:64  "Service-area specificity | Copy says 'Georgia' / 'launching in Georgia'…"
+  T  docs/design/brand-assets.md:61       "…specific service-area counties…" (a *negative* statement — we do NOT fabricate them)
+  U  docs/product/marketing-scope.md:47   "…specific service-area counties…" / "exact service area" (negative / non-committal, ZD-016 reference)
+  V  docs/reports/WEB-P1-E2-completion-report.txt (3 lines), WEB-HERO-RESPONSIVE-ART-DIRECTION-report.txt (1 line) — historical point-in-time reports
+
+Pages inspected with NO geographic reference: /services, /healthcare-providers,
+/contact, /privacy, /terms (bodies + metadata), header, footer nav, sitemap,
+robots. "launching" appears on /terms and /healthcare-providers but refers to
+the *company/service being new*, not a place — left as-is.
+
+
+================================================================================
+2. REFERENCES REMOVED
+================================================================================
+
+  A  src/lib/business.ts — `serviceArea` field deleted entirely. Replaced with
+     a comment stating the brand is geography-neutral and there is deliberately
+     no serviceArea / region / brandLocation field; operational rollout is
+     tracked in platform ZD-016, not site config.
+  C  Footer © line → "© {year} Zenward Mobility. Non-emergency medical
+     transportation." (state removed).
+  E  JSON-LD `areaServed: { State: Georgia }` — removed.
+  F  JSON-LD contactPoint `areaServed: "US-GA"` — removed.
+  M  OG image — regenerated (sharp) without the Georgia subtitle; new subtitle
+     "Clear coordination from request to arrival." (approved hero copy). Now
+     uses the current hero photo (`zenward-hero-desktop-v3.jpg`).
+  J  About VALUES card "Launching in Georgia" — replaced (see §3).
+  K  About hero lede "— currently launching in Georgia." — clause removed.
+  B  Hero lede "…across {business.serviceArea}." → "…scheduled care." (exact
+     change per brief §4).
+  O  marketing-scope.md "Launch market: Georgia, USA" — replaced (see §3).
+  R  launch-readiness.md rows updated to "No areaServed".
+
+
+================================================================================
+3. REFERENCES REWRITTEN
+================================================================================
+
+  D  Homepage FAQ — "Where does Zenward operate?"
+     BEFORE: "Zenward is launching in Georgia. Service area details are being
+              finalized — contact us with your location and we'll confirm
+              whether we can help."
+     AFTER:  "Zenward is expanding service availability by market. Contact our
+              team or submit a transportation request to confirm availability
+              for your trip."
+     (Question kept. No states, counties, universal or nationwide coverage.)
+
+  H  src/lib/seo.ts `siteDescription`
+     BEFORE: "Non-emergency medical transportation for appointments,
+              treatments, discharge journeys, and scheduled care across
+              Georgia."
+     AFTER:  "Non-emergency medical transportation for appointments,
+              treatments, discharge journeys, and scheduled care —
+              coordinated clearly from request to arrival."
+
+  I  /about metadata description
+     AFTER:  "Zenward Mobility provides non-emergency medical transportation
+              for patients, families, caregivers, and the healthcare
+              providers who refer them."
+
+  J  /about VALUES card
+     BEFORE: title "Launching in Georgia" / desc "Zenward is launching its
+              transportation service in Georgia, with careful attention to how
+              we grow."
+     AFTER:  title "Deliberate about how we grow" / desc "Zenward is expanding
+              service availability by market, holding the same standard of
+              coordination and care as it grows."
+
+  L  /request-transportation metadata description
+     AFTER:  "Request non-emergency medical transportation for appointments,
+              treatments, discharge, or scheduled care. Zenward reviews every
+              request and follows up to confirm availability."
+
+  N  opengraph-image.alt.txt — Georgia removed; updated to match the
+     regenerated image (wheelchair) and end with "…coordinated clearly from
+     request to arrival."
+
+  G  page.tsx JSON-LD comment — rewritten to say no `areaServed` is emitted
+     and not to add a state/country or substitute "United States" /
+     "nationwide" without a verified operational basis.
+
+  O  marketing-scope.md "Approved brand language" — "Launch market: Georgia,
+     USA" replaced with a "Geography: geography-neutral" bullet (operational
+     launch market ≠ permanent brand geography; no state/region/county/city in
+     copy, metadata or structured data; rollout tracked in ZD-016). Voice
+     bullet extended to forbid unsupported reach claims ("nationwide", "all 50
+     states", "coast to coast", "national network").
+
+  P  marketing-scope.md "Structured data" section — `areaServed` line rewritten
+     ("No `areaServed` is emitted … do not substitute United States / North
+     America / nationwide without a verified operational basis").
+
+  Q/R/S  launch-readiness.md — OG-image row, structured-data row, and the
+     "Service-area specificity" row (now "Geographic positioning") rewritten to
+     describe the geography-neutral state.
+
+
+================================================================================
+4. REFERENCES RETAINED (with reason)
+================================================================================
+
+  FILE: docs/design/brand-assets.md  (line 61)
+  REFERENCE: "…DOT/license numbers, service-area counties, or facility
+             relationships appear anywhere on this site."
+  WHY RETAINED: negative statement in the "what is never fabricated" list — it
+  asserts the site does NOT publish counties. Removing it would weaken a
+  guard-rail. No geographic positioning.
+
+  FILE: docs/product/marketing-scope.md  (line 47, "Claim discipline")
+  REFERENCE: "…or specific service-area counties." / "exact service area" /
+             "(ZD-016 launch territory …)".
+  WHY RETAINED: same negative/guard-rail framing plus a pointer to the
+  platform decision register for the operational rollout. Not public copy, not
+  positioning; it explains *why* the public copy is non-committal.
+
+  FILE: docs/reports/WEB-P1-E2-completion-report.txt (3 lines)
+        docs/reports/WEB-HERO-RESPONSIVE-ART-DIRECTION-report.txt (1 line)
+  REFERENCE: historical descriptions of copy that was live at the time those
+             phases were completed ("Dependable medical transportation across
+             Georgia.", "areaServed (State: Georgia)", "copy is deliberately
+             'Georgia'…").
+  WHY RETAINED: point-in-time completion records. Editing a historical report
+  to erase what was true then would falsify the record. This report supersedes
+  them for current state.
+
+  FILE: src/app/terms/page.tsx (~line 80), src/app/healthcare-providers/page.tsx (~line 110)
+  REFERENCE: "…while the service is launching…", "rolling out alongside
+             Zenward's launch".
+  WHY RETAINED: temporal ("the company/product is new"), not geographic. No
+  place named.
+
+  FILE: src/lib/seo.ts (header comment), docs/*  — "production domain is not
+  yet confirmed (ZD-027)".
+  NOTE (not geographic): the production domain IS now confirmed as
+  https://www.zenwardmobility.com. `NEXT_PUBLIC_SITE_URL` remains the single
+  source of truth and was NOT hardcoded (out of scope / "do not touch Vercel
+  settings"). launch-readiness.md "Production domain" row updated to name it.
+
+
+================================================================================
+5. HOMEPAGE CHANGES
+================================================================================
+
+  - Hero lede (src/components/public/HomeHero.tsx): "…and scheduled care across
+    Georgia." → "…and scheduled care." `business` import removed (only used for
+    serviceArea). "Care that gets you there.", "Clear coordination from request
+    to arrival.", "For patients, families, caregivers, and healthcare
+    providers." — all preserved verbatim. Photo / responsive art direction /
+    gradient / buttons / layout — untouched.
+  - FAQ "Where does Zenward operate?" answer rewritten (see §3).
+  - JSON-LD: `areaServed` (State) and contactPoint `areaServed` ("US-GA")
+    removed; comment updated.
+  Verified in rendered HTML at 1280 and 390: copy correct, no layout break,
+  no horizontal overflow.
+
+
+================================================================================
+6. FOOTER CHANGES
+================================================================================
+
+  src/components/public/PublicFooter.tsx — © line:
+  "© {year} Zenward Mobility. Non-emergency medical transportation, Georgia."
+  → "© {year} Zenward Mobility. Non-emergency medical transportation."
+  Everything else in the footer (logo chip, phone 470-206-8005, columns,
+  emergency line) unchanged. `business` import kept (phone).
+
+
+================================================================================
+7. FAQ CHANGES
+================================================================================
+
+  One FAQ item changed — "Where does Zenward operate?" (kept the question,
+  rewrote the answer to availability-confirmation language; see §3). No other
+  FAQ item touched.
+
+
+================================================================================
+8. SERVICES PAGE CHANGES
+================================================================================
+
+  None required — no geographic reference in body or metadata. The six
+  approved service categories are unchanged: Medical appointments, Dialysis
+  visits, Rehabilitation appointments, Hospital discharge transportation,
+  Recurring scheduled care, Senior medical transportation.
+
+
+================================================================================
+9. HEALTHCARE PROVIDERS CHANGES
+================================================================================
+
+  None required — no geographic reference in body or metadata. "rolling out
+  alongside Zenward's launch" (line ~110) is temporal, not geographic, and was
+  left as-is.
+
+
+================================================================================
+10. ABOUT CHANGES
+================================================================================
+
+  - metadata description → patient/family/caregiver/provider framing, no state.
+  - hero lede → "— currently launching in Georgia." clause removed.
+  - VALUES card 3 → "Deliberate about how we grow" / "expanding service
+    availability by market…" (keeps the Compass icon and the tone of the other
+    two cards). Verified at 1280 — three equal cards, no layout break.
+  - "Why Zenward exists" section and the other two VALUES cards — unchanged.
+
+
+================================================================================
+11. REQUEST TRANSPORTATION CHANGES
+================================================================================
+
+  - metadata description → no "in Georgia"; adds "Zenward reviews every request
+    and follows up to confirm availability" (availability-confirmation wording,
+    does not imply universal coverage).
+  - Page body, the "Prefer to arrange by phone?" card, and the form are
+    unchanged. Submission still communicates "Request received" (stub returns
+    delivered:false → "please also call to confirm"; delivered mode → "Zenward
+    will review and contact you"). No "ride confirmed" language anywhere.
+
+
+================================================================================
+12. CONTACT CHANGES
+================================================================================
+
+  None required — no geographic positioning; no offices/branches/hubs/physical
+  locations are stated or implied anywhere on the page.
+
+
+================================================================================
+13. SEO CHANGES
+================================================================================
+
+  - Default `siteDescription` (root layout meta + og:description) — Georgia
+    removed; now transportation + coordination focused.
+  - /about, /request-transportation metadata descriptions — rewritten (see §3).
+  - Titles: unchanged (already concise: "About", "Services", "Contact", etc.
+    with the "| Zenward Mobility" template). No keyword stuffing introduced.
+  - /services, /healthcare-providers, /contact, /privacy, /terms descriptions —
+    already geography-neutral, unchanged.
+  - Core positioning across all metadata: "Non-Emergency Medical
+    Transportation" / "medical transportation" / "coordination" / "request to
+    arrival". No SaaS/software terms. No nationwide claims.
+  - sitemap.ts / robots.ts — no geographic content; unchanged.
+
+
+================================================================================
+14. OPEN GRAPH CHANGES
+================================================================================
+
+  - src/app/opengraph-image.jpg — regenerated (1200×630, sharp): Care Navy →
+    teal field, white logo chip, gold eyebrow "NON-EMERGENCY MEDICAL
+    TRANSPORTATION", "Care that gets you there.", subtitle "Clear coordination
+    from request to arrival." (was "Dependable medical transportation across
+    Georgia."). Photo updated to the current hero (`zenward-hero-desktop-v3`).
+    ~109 KB.
+  - src/lib/seo.ts `ogImage.alt` — updated to the wheelchair scene, no Georgia.
+  - src/app/opengraph-image.alt.txt — updated to match, no Georgia.
+  - og:description / twitter:description — inherit `siteDescription` / page
+    descriptions, so all now geography-neutral. Verified in rendered <head> on
+    all 8 routes.
+
+
+================================================================================
+15. STRUCTURED-DATA CHANGES
+================================================================================
+
+  Homepage JSON-LD (src/app/page.tsx) — schema type UNCHANGED
+  (`schema.org/Organization` + `ContactPoint`, the conservative WEB-P1-E2
+  decision). Removed:
+    - `areaServed: { "@type": "State", name: "Georgia" }`
+    - contactPoint `areaServed: "US-GA"`
+  Not replaced with "United States" / "North America" / "nationwide". No
+  `areaServed` of any kind is emitted now (no formally-published service
+  territory). Kept: name, url (from NEXT_PUBLIC_SITE_URL), logo, telephone
+  (+14702068005), contactType "customer service", availableLanguage "English".
+  Still no address / hours / rating / price / license / partner / medical-
+  provider classification.
+
+  Verified served JSON-LD:
+  {"@context":"https://schema.org","@type":"Organization","name":"Zenward
+   Mobility","description":"Non-emergency medical transportation for
+   appointments, treatments, discharge journeys, and scheduled care.",
+   "url":"…","logo":"…/images/zenward-mobility-logo.png","contactPoint":
+   {"@type":"ContactPoint","telephone":"+14702068005","contactType":"customer
+   service","availableLanguage":"English"}}
+
+
+================================================================================
+16. BUSINESS-CONFIG CHANGES
+================================================================================
+
+  src/lib/business.ts — `serviceArea: "Georgia"` REMOVED (it was a general
+  brand/service-area field, used only for geography positioning: hero lede,
+  footer ©, FAQ answer, JSON-LD ×2 — all now rewritten). No `region` /
+  `brandLocation` / equivalent existed. Kept: `name`, `phoneDisplay`,
+  `phoneHref` (+14702068005), `signInUrl` (env-gated, unchanged). Added a
+  block comment stating the omission is deliberate and geography-neutral.
+  `HomeHero.tsx` `import { business }` removed (no longer referenced there);
+  `PublicFooter.tsx` and `page.tsx` keep the import for the phone number.
+
+
+================================================================================
+17. LEGAL-PAGE FINDINGS
+================================================================================
+
+  /privacy — one legal phrase: "We'll respond as required by applicable law."
+             Generic, jurisdiction-agnostic. No state named. RETAINED,
+             unchanged. No LEGAL REVIEW flag added (nothing changed).
+  /terms   — NO governing-law / jurisdiction / choice-of-venue clause exists
+             (the draft is deliberately conservative and already carries a
+             "pre-launch draft pending final legal review" banner). No state
+             reference of any kind. Nothing to retain or flag here beyond the
+             existing on-page counsel-review disclaimer.
+
+  Conclusion: there are NO counsel-drafted or governing-law geographic
+  references on the legal pages. No jurisdiction clause was added, removed, or
+  rewritten — out of scope for this task.
+
+
+================================================================================
+18. FUTURE LOCAL SEO ARCHITECTURE  (documentation only)
+================================================================================
+
+  Documented in docs/product/marketing-scope.md → new "Future local SEO
+  model" subsection:
+
+    - Core brand / core site (https://www.zenwardmobility.com) stays
+      geography-neutral permanently.
+    - When Zenward genuinely operates in a verified market, that market MAY
+      get its own page: /locations/atlanta, /locations/[market], describing
+      local availability.
+    - Those pages are created ONLY after operations in that market are real,
+      and they never make the core site or brand state-specific.
+    - No /locations/* route exists today; none was created in this pass.
+
+
+================================================================================
+19. FINAL REPOSITORY SEARCH  (Georgia / GA / areaServed / Atlanta / statewide / county / counties)
+================================================================================
+
+  src/  — CLEAN. Zero occurrences of Georgia / GA(word) / Atlanta / statewide /
+  US-GA. The only "areaServed" / "county" hits in src/ are inside the new
+  page.tsx JSON-LD comment and the new business.ts comment, both of which
+  state that the brand is geography-neutral and that areaServed/state/region
+  must NOT be added.
+
+  Rendered HTML (all 8 routes, `npx next start`) — CLEAN. grep for
+  georgia|areaServed|US-GA|statewide across /, /about, /services,
+  /healthcare-providers, /contact, /request-transportation, /privacy, /terms
+  → every route reports "clean".
+
+  docs/  — remaining matches, each explained:
+    docs/design/brand-assets.md:61            RETAINED — "never fabricated" guard-rail (see §4)
+    docs/product/marketing-scope.md:38,47,63  the NEW geography-neutral policy text (explains the stance / guard-rails)
+    docs/product/launch-readiness.md:27,64    the NEW "geography-neutral" status rows
+    docs/reports/WEB-P1-E2-completion-report.txt:214,239,241   RETAINED — historical record (see §4)
+    docs/reports/WEB-HERO-RESPONSIVE-ART-DIRECTION-report.txt:17  RETAINED — historical record (see §4)
+
+  No unexplained geographic positioning remains anywhere in the repository.
+
+
+================================================================================
+20. TYPESCRIPT
+================================================================================
+
+  Command: npx tsc --noEmit
+  Result:  PASS — no errors.
+
+
+================================================================================
+21. LINT
+================================================================================
+
+  Command: npm run lint
+  Result:  PASS — no errors, no warnings.
+
+
+================================================================================
+22. BUILD
+================================================================================
+
+  Command: npm run build
+  Result:  PASS — compiled successfully; all static routes generated;
+  regenerated OG image picked up; no warnings.
+
+  Browser check (npx next start): /, /services, /healthcare-providers, /about,
+  /request-transportation, /contact, /privacy, /terms all render; hero copy,
+  FAQ, footer, About cards verified; no layout break from the shortened copy;
+  no horizontal overflow at 1280 or 390.
+
+
+================================================================================
+23. FILES MODIFIED
+================================================================================
+
+  src/lib/business.ts
+  src/lib/seo.ts
+  src/app/page.tsx
+  src/app/about/page.tsx
+  src/app/request-transportation/page.tsx
+  src/components/public/HomeHero.tsx
+  src/components/public/PublicFooter.tsx
+  src/app/opengraph-image.jpg          (regenerated)
+  src/app/opengraph-image.alt.txt
+  docs/product/marketing-scope.md
+  docs/product/launch-readiness.md
+
+
+================================================================================
+24. FILES CREATED
+================================================================================
+
+  docs/reports/WEB-GEOGRAPHY-NEUTRAL-POSITIONING-report.txt   (this file)
+
+
+================================================================================
+25. BLOCKERS
+================================================================================
+
+  NONE.
+
+
+================================================================================
+26. NEXT RECOMMENDED WEB PHASE
+================================================================================
+
+  WEB-P1-E2 — Launch Hardening & Conversion Plumbing.
+  (Note: much of WEB-P1-E2 — form hardening, contact email adapter, honeypot,
+  structured data, privacy/terms drafts, OG image — was already implemented in
+  an earlier pass; remaining items are tracked in
+  docs/product/launch-readiness.md, chiefly: set NEXT_PUBLIC_SITE_URL to the
+  confirmed production domain, wire the contact email provider + analytics
+  vendor in production env, and obtain legal counsel review of /privacy and
+  /terms.)
+
+
+================================================================================
+GEOGRAPHY-NEUTRAL POSITIONING STATUS:  READY
+
+REMAINING PUBLIC GEOGRAPHIC POSITIONING:  NONE
+  (verified in src/ and in rendered HTML across all 8 routes; remaining
+  repo matches are the new geography-neutral policy text, a "never
+  fabricated" guard-rail, and historical completion reports.)
+
+LEGAL GEOGRAPHIC REFERENCES RETAINED:  NONE
+  (/privacy has only "as required by applicable law" — jurisdiction-agnostic;
+  /terms has no governing-law or jurisdiction clause at all. No counsel-drafted
+  geographic language exists to retain or flag.)
+
+BLOCKERS:  NONE
+
+NEXT RECOMMENDED PHASE:
+  WEB-P1-E2 — Launch Hardening & Conversion Plumbing
+================================================================================
+END OF REPORT
+================================================================================

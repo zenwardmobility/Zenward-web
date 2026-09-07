@@ -4,7 +4,6 @@ import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
-import { business } from "@/lib/business";
 
 const NAVY = "var(--color-brand-care-navy)";
 const TEAL = "var(--color-brand-route-teal)";
@@ -103,7 +102,7 @@ export function HomeHero() {
           <h1 className={cn(typography.display, "mt-4 text-white")}>Care that gets you there.</h1>
           <p className={cn(typography.lede, "mt-6 max-w-[34rem] text-pretty text-white/90")}>
             Dependable medical transportation for appointments, treatments, discharge journeys, and scheduled
-            care across {business.serviceArea}.
+            care.
           </p>
           <p className={cn(typography.body, "mt-3 max-w-[34rem] text-white/80")}>
             Clear coordination from request to arrival.

@@ -89,7 +89,7 @@ export default function PrivacyPage() {
 
         <Block heading="Service providers">
           <p>
-            We rely on a small number of providers to run the site: a website hosting platform, and — for
+            We rely on a small number of providers to run the site: a website hosting provider, and — for
             contact enquiries — an email delivery service. Each provider only handles the information needed for
             its function, and is expected to protect it. We do not use a third party to process the detailed
             contents of transportation requests through this website.

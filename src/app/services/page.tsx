@@ -31,7 +31,7 @@ const SERVICES = [
   {
     icon: Hospital,
     title: "Hospital Discharge Transportation",
-    description: "Coordinated transportation home after a hospital stay.",
+    description: "Coordinated transportation following a hospital stay.",
   },
   {
     icon: CalendarCheck,

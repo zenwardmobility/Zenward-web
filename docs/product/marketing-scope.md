@@ -35,8 +35,8 @@ This site's only connection to the platform, now or in the future, is through th
 - Brand: **Zenward Mobility**
 - Tagline: **Care that gets you there.**
 - Category: **Non-Emergency Medical Transportation**
-- Launch market: **Georgia, USA**
-- Voice: plain, professional, human, transportation-focused, credible, commercially clear. Never "AI-powered," "smart," "next-generation," "operating system," "future of mobility," or similar — Zenward should not read like a software startup.
+- Geography: **geography-neutral.** The public brand and this website are not tied to any state. Zenward may begin operations market by market, but operational launch market ≠ permanent brand geography, so no state, region, county, or city appears in site copy, metadata, or structured data. Availability for a specific trip is confirmed during request coordination. The operational rollout sequence is tracked in the platform decision register (ZD-016), not here.
+- Voice: plain, professional, human, transportation-focused, credible, commercially clear. Never "AI-powered," "smart," "next-generation," "operating system," "future of mobility," or similar — Zenward should not read like a software startup. No unsupported reach claims either ("nationwide," "all 50 states," "coast to coast," "national network").
 
 ## Services presented (approved list)
 
@@ -58,9 +58,13 @@ The homepage emits one JSON-LD block. Decision (WEB-P1-E2): **`schema.org/Organi
 
 - `MedicalBusiness` would misrepresent Zenward as a medical-services provider; it is a transportation company.
 - `LocalBusiness` implies a verified, published physical premises and typically `address` / `openingHours`, none of which are confirmed for public use.
-- `Organization` accurately states only what is verified: `name` (Zenward Mobility), `url` (`NEXT_PUBLIC_SITE_URL`), `logo`, a Georgia-level `areaServed`, and a customer-service `ContactPoint` with the real phone number.
+- `Organization` accurately states only what is verified: `name` (Zenward Mobility), `url` (`NEXT_PUBLIC_SITE_URL`), `logo`, and a customer-service `ContactPoint` with the real phone number.
 
-No `address`, `openingHours`, `aggregateRating`, `priceRange`, license, or partner data appears — consistent with "Claim discipline" above. Revisit if/when a verified public address and hours exist.
+No `areaServed` is emitted (geography-neutral brand; no broad service territory is formally published — see "Approved brand language"). Do not add a state or country to `areaServed`, and do not substitute `"United States"` / `"North America"` / `"nationwide"`, without a verified operational basis. No `address`, `openingHours`, `aggregateRating`, `priceRange`, license, or partner data appears — consistent with "Claim discipline" above. Revisit if/when a verified public address, hours, or defined service territory exist.
+
+## Future local SEO model
+
+The core brand at **https://www.zenwardmobility.com** stays geography-neutral. When Zenward genuinely operates in a verified market, that market may get its own page — `/locations/atlanta`, `/locations/[market]` — describing local availability. Those pages are created **only after** operations in that market are real, and they never make the core site or brand state-specific. No `/locations/*` route exists today, and none was created in this pass.
 
 ## Open questions
 
