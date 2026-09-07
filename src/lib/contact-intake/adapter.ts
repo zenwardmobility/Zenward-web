@@ -55,7 +55,8 @@ class StubContactIntakeAdapter implements ContactIntakeAdapter {
     } else {
       console.info(`[contact-intake:stub] acknowledged ${referenceId} — nothing delivered.`);
     }
-    return { ok: true, referenceId };
+    // Acknowledged, but nothing was sent anywhere — the UI must say so.
+    return { ok: true, referenceId, delivered: false };
   }
 }
 
@@ -76,7 +77,11 @@ class EmailContactIntakeAdapter implements ContactIntakeAdapter {
       console.error(
         "[contact-intake] mode=email but CONTACT_INTAKE_EMAIL / CONTACT_EMAIL_FROM / CONTACT_EMAIL_API_KEY are not all set.",
       );
-      return { ok: false, error: "We couldn't send your message just now. Please try again, or call us." };
+      return {
+        ok: false,
+        delivered: false,
+        error: "We couldn't send your message just now. Please try again, or call us.",
+      };
     }
 
     const referenceId = newReference();
@@ -100,13 +105,22 @@ class EmailContactIntakeAdapter implements ContactIntakeAdapter {
 
       if (!res.ok) {
         console.error(`[contact-intake] email provider responded ${res.status}.`);
-        return { ok: false, error: "We couldn't send your message just now. Please try again, or call us." };
+        return {
+          ok: false,
+          delivered: false,
+          error: "We couldn't send your message just now. Please try again, or call us.",
+        };
       }
 
-      return { ok: true, referenceId };
+      // 2xx from Resend — the enquiry is genuinely in a Zenward inbox.
+      return { ok: true, referenceId, delivered: true };
     } catch (err) {
       console.error("[contact-intake] email send failed.", err instanceof Error ? err.name : "unknown");
-      return { ok: false, error: "We couldn't send your message just now. Please try again, or call us." };
+      return {
+        ok: false,
+        delivered: false,
+        error: "We couldn't send your message just now. Please try again, or call us.",
+      };
     }
   }
 }

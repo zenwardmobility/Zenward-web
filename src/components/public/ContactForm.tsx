@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, Info, Phone } from "@phosphor-icons/react/dist/ssr";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
@@ -10,6 +10,7 @@ import { FormHoneypot } from "@/components/public/FormHoneypot";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
 import { track } from "@/lib/analytics/events";
+import { business } from "@/lib/business";
 import { submitContactMessage } from "@/app/contact/actions";
 import type { ContactMessageInput, ContactTopic } from "@/lib/contact-intake/types";
 
@@ -18,6 +19,8 @@ type Status = "idle" | "submitting" | "success" | "error";
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | undefined>();
+  const [referenceId, setReferenceId] = useState<string | undefined>();
+  const [delivered, setDelivered] = useState(false);
   const hasStarted = useRef(false);
   const startedAt = useRef<number>(0);
   const successRef = useRef<HTMLDivElement>(null);
@@ -59,6 +62,8 @@ export function ContactForm() {
 
     if (result.ok) {
       setStatus("success");
+      setReferenceId(result.referenceId);
+      setDelivered(result.delivered);
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong. Please try again.");
@@ -72,13 +77,47 @@ export function ContactForm() {
         tabIndex={-1}
         role="status"
         aria-live="polite"
-        className="rounded-lg border border-success-border bg-success-bg p-xl text-center"
+        className={cn(
+          "rounded-lg border p-xl text-center",
+          delivered ? "border-success-border bg-success-bg" : "border-border-strong bg-surface-elevated",
+        )}
       >
-        <CheckCircle className="mx-auto size-10 text-success-strong" weight="fill" aria-hidden />
-        <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>Message received</p>
-        <p className={cn(typography.body, "mx-auto mt-2 max-w-[28rem] text-text-secondary")}>
-          Thanks for reaching out — our team will get back to you.
-        </p>
+        {delivered ? (
+          <CheckCircle className="mx-auto size-10 text-success-strong" weight="fill" aria-hidden />
+        ) : (
+          <Info className="mx-auto size-10 text-brand-care-navy" weight="fill" aria-hidden />
+        )}
+        {delivered ? (
+          <>
+            <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>Message received</p>
+            <p className={cn(typography.body, "mx-auto mt-2 max-w-[28rem] text-text-secondary")}>
+              Thanks for reaching out. Our team will get back to you.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>
+              This message wasn&rsquo;t sent
+            </p>
+            <p className={cn(typography.body, "mx-auto mt-2 max-w-[30rem] text-text-secondary")}>
+              We couldn&rsquo;t deliver your message online, so no one at Zenward has received it. Please call our
+              team to reach us.
+            </p>
+            <a
+              href={business.phoneHref}
+              className={cn(
+                typography.button,
+                "mt-4 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-brand-care-navy px-6 text-white",
+              )}
+            >
+              <Phone className="size-4" weight="fill" aria-hidden />
+              Call {business.phoneDisplay}
+            </a>
+          </>
+        )}
+        {delivered && referenceId && (
+          <p className={cn(typography.metadata, "mt-4 text-text-muted")}>Reference: {referenceId}</p>
+        )}
       </div>
     );
   }

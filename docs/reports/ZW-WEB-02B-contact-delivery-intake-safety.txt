@@ -1,0 +1,491 @@
+================================================================================
+ZW-WEB-02B — CONTACT DELIVERY + REQUEST INTAKE SAFETY — COMPLETION REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch / HEAD:     main / 7a11d96 ("Refine Zenward public transportation
+                       positioning")  — UNCHANGED (not committed)
+Framework:             Next.js 16.3.3 (App Router), React 19.2.8, TypeScript 5
+Date:                  2026-09-07
+Status:                Implemented + verified locally. NOT committed, NOT
+                       pushed, NOT deployed.
+
+Scope honoured:
+  - Nemryn NOT integrated.
+  - Vercel Blob NOT added.
+  - Neither form redesigned (no field, layout, or CTA changes).
+  - Transportation-request payloads still NEVER go through email.
+  - REQUEST_INTAKE_MODE stub behaviour left fully intact.
+  - No Supabase / platform DB / persistence / secrets in NEXT_PUBLIC added.
+
+
+================================================================================
+1. FILES CHANGED
+================================================================================
+
+CODE (5):
+
+  src/lib/contact-intake/types.ts
+    + Added `delivered: boolean` to `ContactMessageResult` (with a doc
+      comment explaining stub/failure = false, provider-2xx = true).
+
+  src/lib/contact-intake/adapter.ts
+    ~ StubContactIntakeAdapter.submit() → returns
+        { ok: true, referenceId, delivered: false }
+      (content-free production console.warn preserved unchanged).
+    ~ EmailContactIntakeAdapter.submit():
+        - missing-credentials path → { ok:false, delivered:false, error }
+        - non-2xx Resend response  → { ok:false, delivered:false, error }
+        - thrown / timeout         → { ok:false, delivered:false, error }
+        - Resend 2xx               → { ok:true, referenceId, delivered:true }
+      Content-free logging preserved: still logs only an HTTP status number
+      or `Error.name`, never the message body, name, email, phone, or org.
+
+  src/app/contact/actions.ts
+    ~ All three early-return paths now thread `delivered: false`:
+        - guard failure (honeypot / fill-time)
+        - non-object / oversized payload
+        - validation failure (missing name / bad email / missing message)
+    ~ Adapter-call catch block → { ok:false, delivered:false, error }.
+      (The adapter's own result is returned as-is on the happy path, so a
+       real `delivered:true` flows straight through.)
+
+  src/components/public/ContactForm.tsx
+    + Imports `Info` icon and `business` (phone config).
+    + New state: `referenceId`, `delivered`.
+    ~ On result.ok → stores result.referenceId and result.delivered.
+    ~ Success panel now branches on `delivered`:
+        delivered === true:
+          - green success-styled panel, CheckCircle icon
+          - "Message received"
+          - "Thanks for reaching out. Our team will get back to you."
+          - "Reference: <id>" shown
+        delivered === false (e.g. stub mode):
+          - neutral panel (border-strong / surface-elevated), navy Info icon
+          - "This message wasn't sent"
+          - "We couldn't deliver your message online, so no one at Zenward
+             has received it. Please call our team to reach us."
+          - prominent navy "Call 470-206-8005" button (tel: link)
+          - NO reference id shown (nothing is tracked)
+    - No field, label, layout, or form-body change. Error path (result.ok
+      === false) unchanged: inline role="alert" + the page's always-present
+      "Prefer to call? / Call 470-206-8005" aside.
+
+  src/components/public/RequestTransportationForm.tsx
+    ~ assistanceNotes helper text ONLY:
+        FROM: "Wheelchair, walker, oxygen, companion, or other assistance."
+        TO:   "Tell us about any mobility or assistance needs for this trip.
+               Zenward will review the request and confirm what we can
+               accommodate."
+      Still one optional free-text <Textarea maxLength={2000}> — NOT
+      checkboxes. No other change to this form; delivery architecture
+      untouched.
+
+DOCUMENTATION (3):
+
+  .env.example
+    ~ Stale "Current deployment: https://zenward-web.vercel.app"
+      → "Production deployment: https://www.zenwardmobility.com".
+    ~ CONTACT_INTAKE_MODE block: documents `email` as the INTENDED
+      PRODUCTION VALUE; documents the delivery-gated success screen and the
+      fail-closed behaviour; adds "For production set CONTACT_INTAKE_MODE
+      =email and all three vars below"; "Owner-supplied — do not invent";
+      example sender domain updated to mail.zenwardmobility.com; destination
+      inbox note now "monitored, access-controlled".
+    ~ REQUEST_INTAKE_MODE block: notes stub is "the correct PRODUCTION value
+      for now" and "request content must never go out by email"; keeps
+      REQUEST_INTAKE_MODE=stub.
+
+  docs/product/launch-readiness.md
+    ~ Header: deployment URL corrected; phase line notes ZW-WEB-02B update;
+      date → 2026-09-07.
+    + New READY row "Contact 'delivered' honesty (ZW-WEB-02B)".
+    + New READY row "Request assistance-field copy safety (ZW-WEB-02B)".
+    ~ "Contact Server Action hardening" row notes delivered:false threading.
+    ~ DEFERRED "Contact email delivery in production" row rewritten: code
+      complete + truthful; lists the exact four Vercel Production vars the
+      owner sets; notes no retry/durable-backup yet (→ ZW-WEB-02C).
+    ~ Launch-recommendation bullet updated for the now-honest stub + the
+      config-only email path.
+
+  docs/architecture/request-intake-boundary.md
+    ~ Contact-form paragraph notes the new `delivered` contract and the
+      "say plainly when a message was NOT sent" behaviour.
+
+REPORTS (1, new, uncommitted):
+  docs/reports/ZW-WEB-02B-contact-delivery-intake-safety.txt   (this file)
+
+Diff stat: 8 files changed, +110 / -40  (plus this report).
+
+
+================================================================================
+2. CONTACT RESULT CONTRACT — BEFORE / AFTER
+================================================================================
+
+BEFORE:
+  interface ContactMessageResult {
+    ok: boolean;
+    referenceId?: string;
+    error?: string;
+  }
+  - No signal of whether anything was actually delivered.
+  - ContactForm showed "Message received / our team will get back to you"
+    unconditionally whenever ok === true — untrue in stub mode.
+
+AFTER:
+  interface ContactMessageResult {
+    ok: boolean;
+    referenceId?: string;
+    error?: string;
+    delivered: boolean;   // <-- new, REQUIRED
+  }
+
+  Truth table now enforced:
+
+    Situation                                    ok      delivered   UI
+    -------------------------------------------  ------  ----------  ------------------------
+    Stub adapter (default / current prod)        true    false       "This message wasn't
+                                                                     sent" + call CTA
+    Email mode, all creds set, Resend 2xx        true    true        "Message received" +
+                                                                     reference id
+    Email mode, missing creds                    false   false       error alert + form kept
+    Email mode, Resend non-2xx                   false   false       error alert + form kept
+    Email mode, network error / 10s timeout      false   false       error alert + form kept
+    Guard / payload / validation reject          false   false       error alert + form kept
+
+  It is now structurally impossible for the contact UI to state that Zenward
+  received a message unless a mail provider returned a 2xx.
+
+  (This mirrors `TransportationRequestResult.delivered`, which already
+   existed and is unchanged.)
+
+
+================================================================================
+3. STUB BEHAVIOUR  (CONTACT_INTAKE_MODE unset or "stub" — current production)
+================================================================================
+
+  - Server Action validates the payload exactly as before (whitelist,
+    normalise, length-cap, honeypot, fill-time, 16 KB cap, email-shape).
+  - StubContactIntakeAdapter returns { ok:true, referenceId:"ZW-MSG-…",
+    delivered:false }. Persists nothing, sends nothing, touches no
+    credential.
+  - Production log line (unchanged, content-free):
+      [contact-intake] running in STUB mode: an enquiry was acknowledged
+      but NOT delivered.
+  - Visitor sees the NON-delivered success panel:
+      "This message wasn't sent — We couldn't deliver your message online,
+       so no one at Zenward has received it. Please call our team to reach
+       us."  +  [ Call 470-206-8005 ]
+  - No reference id is shown (nothing is queued or tracked).
+  - Request-transportation stub is untouched and still shows its own honest
+    "Request received / please also call" screen with a ZW-STUB- reference.
+
+
+================================================================================
+4. EMAIL BEHAVIOUR  (CONTACT_INTAKE_MODE=email)
+================================================================================
+
+  Provider: Resend REST API (https://api.resend.com/emails), plain `fetch`,
+  no SDK, no npm dependency. 10-second AbortSignal timeout.
+
+  Requires ALL THREE server-only vars:
+    CONTACT_INTAKE_EMAIL   — destination inbox (to)
+    CONTACT_EMAIL_FROM     — verified Resend sender (from)
+    CONTACT_EMAIL_API_KEY  — Resend API key (Bearer)
+
+  Payload sent to Resend:
+    from     = CONTACT_EMAIL_FROM
+    to       = [CONTACT_INTAKE_EMAIL]
+    reply_to = the submitter's (shape-validated) email
+    subject  = "New Zenward Website Enquiry — <topic label>"
+    text     = plain-text block: Reference, Topic, Name, Email, Phone?,
+               Organization?, Message   (NO HTML — no injection surface)
+
+  Outcomes:
+    - Any missing var → console.error (names the missing vars, no PII) →
+      { ok:false, delivered:false, "We couldn't send your message just now.
+      Please try again, or call us." }
+    - Resend responds 2xx → { ok:true, referenceId:"ZW-MSG-…",
+      delivered:true } → visitor sees "Message received / Our team will get
+      back to you" + reference id.
+    - Resend responds non-2xx → console.error(`… responded <status>.`) →
+      { ok:false, delivered:false, <same error string> }.
+    - fetch throws / times out → console.error("… email send failed.",
+      err.name) → { ok:false, delivered:false, <same error string> }.
+
+  FAILS CLOSED in every failure case: it never returns delivered:true, and
+  never returns ok:true, unless Resend confirmed acceptance.
+
+  NOT in this phase (see §10 / ZW-WEB-02C): retry on transient failure, a
+  durable backup copy of a failed enquiry, rate limiting.
+
+
+================================================================================
+5. REQUEST-FORM WORDING CHANGE
+================================================================================
+
+  File:  src/components/public/RequestTransportationForm.tsx
+  Field: assistanceNotes  (label "Assistance needed (optional)", optional
+         <Textarea>, maxLength 2000) — unchanged except its helper text.
+
+  BEFORE: "Wheelchair, walker, oxygen, companion, or other assistance."
+          → enumerated specific equipment/accommodations, which can read as
+            a list of things Zenward guarantees.
+
+  AFTER:  "Tell us about any mobility or assistance needs for this trip.
+           Zenward will review the request and confirm what we can
+           accommodate."
+          → still invites the visitor to describe what they need, but makes
+            explicit that accommodation is subject to review and
+            confirmation — no wheelchair / oxygen / stretcher / any specific
+            capability is implied or promised.
+
+  Verified in-browser (see §7): the exact new string renders under the
+  textarea via aria-describedby, at 390 px and desktop, no wrap/overflow
+  issue.
+
+  The field is still a single free-text textarea. It was NOT converted to
+  checkboxes. No delivery-architecture change.
+
+
+================================================================================
+6. ENVIRONMENT REQUIREMENTS
+================================================================================
+
+CURRENT (repo default — safe, honest, launch-viable):
+  REQUEST_INTAKE_MODE = stub        (or unset)
+  CONTACT_INTAKE_MODE = stub        (or unset)
+  → both forms acknowledge truthfully; both tell the visitor to call.
+
+TO ENABLE CONTACT DELIVERY IN PRODUCTION
+(Vercel → Project → Settings → Environment Variables → Production):
+  CONTACT_INTAKE_MODE   = email
+  CONTACT_INTAKE_EMAIL  = <owner-supplied monitored, access-controlled inbox>
+  CONTACT_EMAIL_FROM    = <verified Resend sender, e.g.
+                           "Zenward Website <noreply@mail.zenwardmobility.com>">
+  CONTACT_EMAIL_API_KEY = <owner-supplied Resend production API key, re_...>
+  (Also confirm NEXT_PUBLIC_SITE_URL = https://www.zenwardmobility.com.)
+
+  All four are SERVER-ONLY. None are NEXT_PUBLIC_. Set them in the Vercel
+  dashboard, not in the repo. Values were NOT invented here.
+
+REQUEST TRANSPORTATION:
+  Leave REQUEST_INTAKE_MODE = stub. The `platform` mode and its
+  PLATFORM_INTAKE_URL / PLATFORM_INTAKE_TOKEN remain reserved for the future
+  trusted server-to-server intake (Zenward Mobility organisation inside
+  Nemryn) and are out of scope until that endpoint exists.
+
+NEVER ADD: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY / service-role key,
+DATABASE_URL, or any NEXT_PUBLIC_ variable holding a delivery endpoint,
+token, or address.
+
+
+================================================================================
+7. SECURITY CHECKS  (all preserved / re-verified)
+================================================================================
+
+  [OK] Delivery credentials are server-only — CONTACT_EMAIL_API_KEY and the
+       two address vars are read only inside the adapter (a Server Action
+       module). None are NEXT_PUBLIC_. Confirmed no secret appears in the
+       client bundle.
+  [OK] Fixed field whitelist — contact/actions.ts still rebuilds exactly
+       { name, email, phone?, organization?, topic, message } from a
+       whitelist; unknown client props dropped.
+  [OK] Payload size limit — 16 KB cap (isPayloadWithinLimit) unchanged, now
+       returning delivered:false on reject.
+  [OK] Honeypot — company_website check unchanged; reject now threads
+       delivered:false.
+  [OK] Fill-time guard — unchanged.
+  [OK] No PII in logs — verified: stub logs a fixed string; email adapter
+       logs only an HTTP status number or Error.name; the misconfig log
+       names only the missing env-var identifiers. The test submissions'
+       field values ("Audit Tester", "tester@example.com", the message
+       text) appeared in NO log line.
+  [OK] No PII in analytics — AnalyticsEvent union untouched; no new event
+       added; contact form fires only `contact_started { topic }`.
+  [OK] No secrets in NEXT_PUBLIC — unchanged; .env.example reiterates it.
+  [OK] Plain-text contact email — buildEnquiryText still emits plain text;
+       no HTML; reply_to uses the validated submitter address.
+  [OK] Safe error messages — the browser still receives only generic,
+       non-technical strings; no status body, adapter name, provider name,
+       or stack reaches the client.
+  [OK] Next.js Server Action origin/CSRF protection — intact (framework).
+  [OK] No HIPAA / compliance / certification claim introduced anywhere.
+  [OK] No Supabase, Nemryn, platform DB access, Blob storage, or other
+       persistence added. Nothing is stored anywhere by this change.
+  [OK] Request-transportation delivery path byte-for-byte unchanged
+       (adapter.ts, actions.ts, types.ts for request-intake untouched).
+
+
+================================================================================
+8. TYPESCRIPT / LINT / BUILD RESULTS
+================================================================================
+
+  npx tsc --noEmit ............. PASS (exit 0)
+  npm run lint ................ PASS (exit 0, no warnings)
+  npm run build .............. PASS (exit 0)
+      Compiled successfully; 12 routes, all prerendered as static
+      (/, /_not-found, /about, /contact, /healthcare-providers,
+       /opengraph-image.jpg, /privacy, /request-transportation,
+       /robots.txt, /services, /sitemap.xml, /terms).
+
+  Run twice — once after the code+doc changes, once after the success-panel
+  icon refinement (CheckCircle → Info on the non-delivered branch). PASS
+  both times.
+
+
+================================================================================
+9. LOCAL QA  (production build via `next start -p 3200`, headless Chrome)
+================================================================================
+
+  TEST 1 — Contact, STUB mode
+    Submitted a full valid enquiry.
+    RESULT: success panel —
+      "This message wasn't sent  We couldn't deliver your message online, so
+       no one at Zenward has received it. Please call our team to reach us.
+       Call 470-206-8005"
+    Phone CTA present. No reference id. Server logged the content-free
+    "STUB mode … NOT delivered" line; no field values in the log.
+    → PASS (truthfully NOT delivered + phone fallback).
+
+  TEST 2 — Contact, EMAIL mode, credentials intentionally missing
+    (CONTACT_INTAKE_MODE=email, no CONTACT_INTAKE_EMAIL / _FROM / _API_KEY)
+    RESULT: form stayed; inline role="alert" —
+      "We couldn't send your message just now. Please try again, or call
+       us."
+    No success panel, no "received" language, delivered never true.
+    Server logged (content-free):
+      [contact-intake] mode=email but CONTACT_INTAKE_EMAIL /
+      CONTACT_EMAIL_FROM / CONTACT_EMAIL_API_KEY are not all set.
+    The page's always-present "Prefer to call? / Call 470-206-8005" aside
+    remained visible.
+    → PASS (fails closed, never claims delivery).
+
+  TEST 3 — Request Transportation, STUB mode
+    Submitted a full valid request.
+    RESULT: unchanged honest screen —
+      "Request received  We have your details. So we can confirm this trip
+       with you directly, please also call our team … Call 470-206-8005
+       Reference: ZW-STUB-…"
+    Server logged the request stub warning.
+    → PASS (existing behaviour intact).
+
+  TEST 4 — New assistance wording
+    Read back the rendered helper text on /request-transportation:
+      "Tell us about any mobility or assistance needs for this trip. Zenward
+       will review the request and confirm what we can accommodate."
+    → PASS (exact requested string; still a textarea, not checkboxes).
+
+  TEST 5 — Desktop + 390 px mobile
+    Screenshots captured (deviceScaleFactor 2):
+      - /request-transportation @ 390 — full form, new helper text wraps
+        cleanly under the textarea, no horizontal overflow.
+      - /contact @ 390 and @ 1200 — blank form unchanged.
+      - /contact non-delivered success panel @ 390 and @ 1200 — neutral
+        bordered panel (not the green success style), navy Info icon,
+        "This message wasn't sent" heading, honest body, full-width navy
+        "Call 470-206-8005" button; sits correctly beside the "Prefer to
+        call?" aside on desktop; no overflow at either width.
+    → PASS (brand-consistent, responsive, premium visual identity preserved).
+
+  Dev servers and headless Chrome were terminated after testing.
+
+
+================================================================================
+10. PRODUCTION OWNER ACTIONS STILL REQUIRED
+================================================================================
+
+  O-1  RESEND ACCOUNT + PRODUCTION API KEY.  Confirm/create a Resend account
+       (resend.com); generate a Production API key (re_…). Provide it into
+       Vercel Production env as CONTACT_EMAIL_API_KEY (not into the repo or
+       a PR).
+
+  O-2  VERIFIED SENDER DOMAIN.  Choose a sending subdomain (recommended:
+       mail.zenwardmobility.com), add the SPF + DKIM DNS records Resend
+       generates, wait for "Verified", then set CONTACT_EMAIL_FROM
+       (e.g. "Zenward Website <noreply@mail.zenwardmobility.com>").
+
+  O-3  DESTINATION INBOX.  Provide the exact address for CONTACT_INTAKE_EMAIL
+       — a monitored, access-controlled shared mailbox / group, NOT a
+       personal address (enquiry text can, despite the on-form warning,
+       contain sensitive detail).
+
+  O-4  SET CONTACT_INTAKE_MODE=email in Vercel Production once O-1..O-3 are
+       in place, then redeploy and send one real test enquiry to confirm it
+       arrives and the success screen shows "Message received" + a
+       reference id.
+
+  O-5  CONFIRM NEXT_PUBLIC_SITE_URL = https://www.zenwardmobility.com in
+       Production (unrelated to this change but still outstanding per
+       launch-readiness).
+
+  O-6  DECISION for ZW-WEB-02C: whether the contact flow needs a durable
+       backup / retry (see §11), and how the transportation-request flow
+       should deliver in the interim before the trusted Nemryn intake
+       endpoint exists (keep stub + phone, or an owner-approved interim).
+
+  O-7  TRANSPORTATION-REQUEST INTAKE ENDPOINT (owned by the Nemryn/platform
+       side, informational): when the trusted server-to-server intake for
+       the Zenward Mobility organisation exists, issue PLATFORM_INTAKE_URL +
+       PLATFORM_INTAKE_TOKEN so REQUEST_INTAKE_MODE=platform can be set (no
+       Zenward-Web code change needed).
+
+  Nothing above blocks deploying the current change — it is safe and
+  strictly more honest than what is live today.
+
+
+================================================================================
+11. RECOMMENDED ZW-WEB-02C SCOPE
+================================================================================
+
+  C-1  CONTACT DELIVERY RESILIENCE (small)
+       - One automatic retry in EmailContactIntakeAdapter on a network
+         error / AbortError (not on a 4xx) before failing closed.
+       - On final failure, a CONTENT-FREE marker log with the reference id
+         so lost enquiries are at least countable.
+       - Optional: a lightweight per-IP rate limit on both Server Actions,
+         active only when a delivery mode is enabled (guards the inbox once
+         email is live; the honeypot + fill-time already stop drive-by
+         bots).
+
+  C-2  TRANSPORTATION-REQUEST INTERIM DELIVERY — OWNER DECISION (O-6)
+       The request form still delivers nowhere. Options, both respecting
+       "no request content by email":
+         (A) keep stub + phone fallback until the trusted Nemryn intake
+             endpoint exists (zero new infrastructure), OR
+         (B) an owner-approved interim: a CONTENT-FREE "new request"
+             alert (time + reference only, no name/address/notes) to a
+             Zenward inbox via the existing Resend integration, plus the
+             full validated payload written to a durable, access-controlled
+             store. NOTE: this needs a storage mechanism — 02B was told not
+             to add Vercel Blob, so 02C must either get that constraint
+             lifted or identify another owner-approved store, and define a
+             retention/access policy. Do NOT build (B) without explicit
+             sign-off.
+
+  C-3  TRUSTED INTAKE WIRING (only when O-7 lands)
+       Set PLATFORM_INTAKE_URL / PLATFORM_INTAKE_TOKEN +
+       REQUEST_INTAKE_MODE=platform. `PlatformRequestIntakeAdapter` already
+       exists and fails closed; no code change expected. Verify
+       delivered:true then flips the request success copy and re-enables the
+       `request_form_submitted` conversion.
+
+  C-4  MINOR
+       - Consider giving the contact stub reference a distinguishing prefix
+         (like the request stub's ZW-STUB-) if a reference is ever shown on
+         the non-delivered screen; today it is deliberately hidden there.
+       - `docs/product/launch-readiness.md` still uses "Zenward Platform"
+         phrasing in a couple of older rows; align with current
+         positioning when that doc is next revised.
+
+  OUT OF SCOPE for 02C as well: any form redesign, new form fields,
+  Supabase / platform DB coupling, Nemryn branding or links, HIPAA /
+  compliance claims.
+
+
+================================================================================
+END OF REPORT — ZW-WEB-02B
+Implemented and verified locally. tsc / lint / build all PASS. Nothing
+committed, pushed, or deployed.
+================================================================================

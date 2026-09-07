@@ -168,7 +168,7 @@ export function RequestTransportationForm() {
       <Textarea
         name="assistanceNotes"
         label="Assistance needed (optional)"
-        helpText="Wheelchair, walker, oxygen, companion, or other assistance."
+        helpText="Tell us about any mobility or assistance needs for this trip. Zenward will review the request and confirm what we can accommodate."
         maxLength={2000}
       />
       <Textarea name="additionalNotes" label="Anything else we should know? (optional)" maxLength={2000} />

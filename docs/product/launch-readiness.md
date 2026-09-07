@@ -1,8 +1,8 @@
 # Zenward-Web — Launch Readiness
 
-**Phase:** WEB-P1-E2 (Launch Hardening)
-**Last updated:** 2026-08-31
-**Deployment:** https://zenward-web.vercel.app
+**Phase:** WEB-P1-E2 (Launch Hardening) · updated by ZW-WEB-02B (Contact Delivery + Request Intake Safety)
+**Last updated:** 2026-09-07
+**Deployment:** https://www.zenwardmobility.com
 
 Classification: **READY** (done, verified) · **BLOCKED** (cannot be done here — depends on another team / external input) · **DEFERRED** (deliberately out of scope for launch; not a blocker).
 
@@ -19,8 +19,10 @@ Optional polish is never BLOCKED.
 | Request Server Action hardening | Whitelist rebuild of the payload (unknown props dropped), per-field normalisation + length caps, enum validation, honeypot + min-fill-time check, 16 KB payload cap, generic error messages (no stack traces / adapter names / secrets). |
 | Request "stub" honesty | Stub returns `delivered: false`; success screen says "we have your details — please also call to confirm" with a phone CTA, and `request_form_submitted` does **not** fire. Verified in-browser. |
 | Request phone fallback | `/request-transportation` shows a highlighted, accessible "Call 470-206-8005" CTA card ("calling isn't required — the form works too"). Also on the non-delivered success screen. |
+| Request assistance-field copy safety (ZW-WEB-02B) | Assistance-notes helper text changed from the equipment list ("Wheelchair, walker, oxygen, companion…") to "Tell us about any mobility or assistance needs for this trip. Zenward will review the request and confirm what we can accommodate." Collects the same information without implying any specific capability (wheelchair / oxygen / stretcher) is guaranteed. Still a single optional free-text field — not checkboxes. |
 | Contact adapter (email) implemented | `EmailContactIntakeAdapter` (Resend REST API, no SDK, provider-isolated). Sends a plain-text "New Zenward Website Enquiry" with only submitted fields. Server-only env vars. Fails closed with a "call us" message if misconfigured. |
-| Contact Server Action hardening | Same whitelist / normalise / cap / honeypot / timing / payload-cap / safe-error treatment; email-shape check. |
+| Contact "delivered" honesty (ZW-WEB-02B) | `ContactMessageResult` now carries `delivered: boolean` (mirrors the request result). Stub → `delivered: false`; `EmailContactIntakeAdapter` → `delivered: true` **only** after a Resend 2xx, `false` on every failure/misconfig path; every Server Action early-return → `false`. Success screen branches: delivered → "Message received. Thanks for reaching out. Our team will get back to you." + reference id; not delivered → "This message wasn't sent" + "no one at Zenward has received it" + **Call 470-206-8005**. The UI can no longer imply receipt when nothing was sent. Verified in-browser (stub + missing-credential email mode). |
+| Contact Server Action hardening | Same whitelist / normalise / cap / honeypot / timing / payload-cap / safe-error treatment; email-shape check. All early returns thread `delivered: false`. |
 | Contact data minimisation | Collects name, email, optional phone, optional organization, reason, message. Form + Privacy page tell users not to include medical detail and point them to `/request-transportation` or the phone number. |
 | Analytics privacy | No PII / addresses / appointment / assistance / message content sent to analytics — enforced by the typed `AnalyticsEvent` union (no generic escape hatch). `request_form_submitted` gated on `delivered === true`. |
 | Social / Open Graph image | `src/app/opengraph-image.jpg` (1200×630): logo, current hero photo, Care Navy → teal, "Care that gets you there.", subtitle "Clear coordination from request to arrival." (geography-neutral — no state). Alt text via `opengraph-image.alt.txt` + `ogImage.alt`. Auto-wired site-wide; `og:image` present on all 8 pages; URL derives from `NEXT_PUBLIC_SITE_URL`. |
@@ -57,7 +59,7 @@ This is the only hard launch blocker for the digital request flow. **The site ca
 
 | Item | Notes |
 |---|---|
-| Contact email delivery in production | `EmailContactIntakeAdapter` is ready. Needs a verified Resend sender domain + API key + destination inbox set in production env (`CONTACT_INTAKE_MODE=email`). Until then the contact form acknowledges but does not deliver. Low-effort to enable; not code-blocked. |
+| Contact email delivery in production | **Code complete and truthful (ZW-WEB-02B).** `EmailContactIntakeAdapter` + the `delivered` contract are done. To go live the owner sets, in Vercel Production env: `CONTACT_INTAKE_MODE=email`, `CONTACT_INTAKE_EMAIL` (monitored, access-controlled inbox), `CONTACT_EMAIL_FROM` (verified Resend sender, e.g. `noreply@mail.zenwardmobility.com` with SPF+DKIM), `CONTACT_EMAIL_API_KEY` (Resend `re_...`). Until then the form runs in `stub` and the success screen **truthfully** tells the visitor the message was not sent and to call. Config-only, not code-blocked. No retry / durable backup yet (see ZW-WEB-02C). |
 | Analytics vendor | `track()` abstraction + typed events are ready; no vendor wired. Wire one into `dispatch()` when chosen. |
 | Legal counsel review of `/privacy` and `/terms` | Drafts are honest and launch-usable; formal review still required and flagged on-page. |
 | Production domain | Custom domain is `https://www.zenwardmobility.com`. Set `NEXT_PUBLIC_SITE_URL` to it in production env (canonical URLs, OG, sitemap, robots, JSON-LD all derive from it). |
@@ -72,6 +74,6 @@ This is the only hard launch blocker for the digital request flow. **The site ca
 The public marketing site is a **launch candidate**. It can go live on the current Vercel URL or a custom domain today, with:
 
 - the transportation-request form in honest `stub` mode + phone fallback everywhere, and
-- the contact form in `stub` mode until Resend env values are set (a few minutes of config, not engineering).
+- the contact form either in `stub` mode (now honest: it says the message was not sent and to call) or, once the owner sets the four `CONTACT_*` vars, delivering by Resend with delivery-gated success copy — a few minutes of config, not engineering.
 
 The one true blocker (trusted Platform intake) blocks *automated request delivery*, not *launch* — and is owned by the Platform team.

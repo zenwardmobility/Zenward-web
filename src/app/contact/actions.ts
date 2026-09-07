@@ -28,10 +28,10 @@ export async function submitContactMessage(
   guard?: SubmissionGuard,
 ): Promise<ContactMessageResult> {
   const gate = checkSubmissionGuard(guard);
-  if (!gate.ok) return { ok: false, error: gate.reason };
+  if (!gate.ok) return { ok: false, delivered: false, error: gate.reason };
 
   if (!input || typeof input !== "object" || !isPayloadWithinLimit(input)) {
-    return { ok: false, error: GENERIC_ERROR };
+    return { ok: false, delivered: false, error: GENERIC_ERROR };
   }
 
   const src = input as Record<string, unknown>;
@@ -46,13 +46,13 @@ export async function submitContactMessage(
   };
 
   if (!clean.name || !looksLikeEmail(clean.email) || !clean.message) {
-    return { ok: false, error: "Please fill in your name, a valid email, and a message." };
+    return { ok: false, delivered: false, error: "Please fill in your name, a valid email, and a message." };
   }
 
   try {
     return await getContactIntakeAdapter().submit(clean);
   } catch (err) {
     console.error("[contact-intake] submit failed.", err instanceof Error ? err.name : "unknown");
-    return { ok: false, error: GENERIC_ERROR };
+    return { ok: false, delivered: false, error: GENERIC_ERROR };
   }
 }

@@ -1,0 +1,1005 @@
+================================================================================
+ZW-WEB-02A — REQUEST INTAKE ARCHITECTURE & PRODUCTION READINESS — AUDIT REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch / HEAD:     main / 7a11d96 ("Refine Zenward public transportation
+                       positioning")
+Framework:             Next.js 16.3.3 (App Router, Turbopack), React 19.2.8,
+                       TypeScript 5, deployed on Vercel
+Date:                  2026-09-07
+Phase type:            AUDIT + execution plan ONLY. No code changed. Nothing
+                       committed, pushed or deployed. Nemryn NOT introduced.
+                       Form NOT redesigned. No speculative infrastructure built.
+
+Local checks run for this audit (current working tree):
+  npx tsc --noEmit .............. PASS (exit 0)
+  npm run lint ................. PASS (exit 0)
+  npm run build ............... PASS (exit 0 — all 12 routes prerendered static)
+  Headless end-to-end submit test against `next start` (production build,
+  default env) — both forms submitted successfully; results quoted in §5.
+
+--------------------------------------------------------------------------------
+CONTENTS
+  1. Current Request Transportation architecture
+  2. Current Contact architecture
+  3. Exact form fields
+  4. Validation findings
+  5. Current real-delivery status: YES / NO (with evidence)
+  6. Security / privacy findings
+  7. Unsupported-claim findings
+  8. Recommended production architecture
+  9. Exact files that would need changing in ZW-WEB-02B
+ 10. Required environment variables
+ 11. REQUIRED FROM OWNER
+ 12. Risks / blockers
+ 13. Recommended ZW-WEB-02B implementation scope
+--------------------------------------------------------------------------------
+
+
+================================================================================
+1. CURRENT REQUEST TRANSPORTATION ARCHITECTURE
+================================================================================
+
+1.1 REQUEST FLOW (end to end)
+
+  Browser (client component)
+    src/components/public/RequestTransportationForm.tsx
+      - "use client"; native <form onSubmit>; builds a plain object from
+        FormData; captures two anti-abuse signals (honeypot value +
+        `startedAt` = Date.now() at mount).
+    → Server Action (the security boundary)
+      src/app/request-transportation/actions.ts  →  submitTransportationRequest(input, guard)
+        - "use server"; runs only on the server (Vercel serverless function).
+        - Step 1: checkSubmissionGuard(guard)  — honeypot + min fill-time.
+        - Step 2: reject if input is not an object, or JSON > 16 KB.
+        - Step 3: rebuild `clean` from a FIXED WHITELIST of 12 fields;
+          every string normalised + length-capped; the two enum fields
+          checked against their allowed literal sets.
+        - Step 4: required-field check → "Please fill in all required fields."
+        - Step 5: try { getRequestIntakeAdapter().submit(clean) } catch → GENERIC_ERROR.
+    → Adapter (the swappable delivery mechanism)
+      src/lib/request-intake/adapter.ts  →  getRequestIntakeAdapter()
+        - Reads process.env.REQUEST_INTAKE_MODE ?? "stub" (lower-cased),
+          module-level cached.
+        - "platform" → PlatformRequestIntakeAdapter
+        - anything else / unset → StubRequestIntakeAdapter   ← CURRENT DEFAULT
+    → Destination
+        - stub:     NOTHING. No persistence, no network call, no credential.
+        - platform: signed server-to-server POST (does not exist yet).
+
+1.2 THE TWO ADAPTERS
+
+  StubRequestIntakeAdapter (src/lib/request-intake/adapter.ts:41)
+    - Generates a local reference id: `ZW-STUB-<base36 timestamp, upper>`.
+    - In production: console.warn(
+        "[request-intake] running in STUB mode: a transportation request was
+         acknowledged but NOT delivered anywhere.")   — NO payload, NO fields.
+    - In dev: console.info with the reference id only ("nothing persisted or
+      delivered").
+    - Returns { ok: true, referenceId, delivered: false }.
+    - Persists nothing, sends nothing, stores nothing, touches no credential.
+
+  PlatformRequestIntakeAdapter (src/lib/request-intake/adapter.ts:64)
+    - Reads process.env.PLATFORM_INTAKE_URL and PLATFORM_INTAKE_TOKEN.
+    - If either missing → console.error + returns
+        { ok: false, delivered: false,
+          error: "Online requests are temporarily unavailable. Please call us
+                  to arrange transportation." }
+      (fails CLOSED — never fakes success).
+    - If set → fetch(url, { method: POST, headers: { content-type: json,
+        authorization: `Bearer <token>` }, body: JSON.stringify(input),
+        signal: AbortSignal.timeout(10_000) }).
+        - non-2xx  → console.error(`... responded <status>.`) + error
+          "We couldn't submit your request just now. Please try again
+           shortly, or call us."
+        - 2xx      → { ok: true, delivered: true,
+                       referenceId: data.referenceId ?? `ZW-<base36>` }
+        - throw / timeout → console.error(err.name only) + same error string.
+    - THIS ENDPOINT DOES NOT EXIST. No URL/token is issued. Mode is not
+      selectable in practice today.
+
+1.3 REQUEST_INTAKE_MODE BEHAVIOUR
+
+  Value        Adapter                        Delivered?  Notes
+  -----------  -----------------------------  ----------  ---------------------
+  (unset)      Stub                           NO          .env.example ships
+  "stub"       Stub                           NO          this as the default
+  "platform"   Platform                       (would be)  fails closed today —
+                                                          no URL/token exists
+
+1.4 SUCCESS / FAILURE STATES (what the visitor sees)
+
+  On result.ok === true:
+    Heading: "Request received"
+    - If delivered === true:
+        "Zenward will review the transportation details and contact you to
+         confirm availability and next steps."
+    - If delivered === false (CURRENT STATE in stub mode):
+        "We have your details. So we can confirm this trip with you directly,
+         please also call our team — it's the fastest way to lock in
+         availability."  +  a navy "Call 470-206-8005" button (tel: link).
+    - Always: "Reference: <referenceId>"  (ZW-STUB-… in stub mode).
+
+  On result.ok === false:
+    status = "error"; an inline role="alert" paragraph shows the returned
+    error string; the form stays filled in and re-submittable.
+
+  Persistent form footnote (always visible while filling):
+    "This submits a transportation request, not a confirmed booking — Zenward
+     will contact you to confirm availability and next steps."
+
+1.5 DUPLICATE-SUBMISSION PROTECTION
+
+  - Client only: the submit button is disabled while status === "submitting"
+    (Button loading={...}).
+  - NO idempotency key, NO server-side dedupe, NO throttle / rate limit,
+    NO per-session or per-IP guard. A determined double-tap after the network
+    round-trip, a retry after a transient error, or a scripted repeat all
+    produce independent submissions. (Low real-world impact in stub mode
+    because nothing is delivered; becomes relevant once delivery is wired.)
+
+1.6 LOGGING
+
+  - Stub production: one fixed-string console.warn, NO field content, NO
+    reference id.
+  - Platform errors: console.error with an HTTP status number or an
+    Error.name — never the payload, never a stack with values.
+  - Server Action catch: console.error("[request-intake] submit failed.",
+    err.name) — name only.
+  - On Vercel these lines land in the function logs (retained per the Vercel
+    plan's retention window). They contain no PII.
+
+1.7 ANALYTICS EVENTS (src/lib/analytics/events.ts)
+
+  - request_transportation_clicked { source }  — CTA clicks (no PII).
+  - request_form_started  — fired once on first field focus (no PII).
+  - request_form_submitted { hasReturnTrip: boolean }
+      → fired ONLY when result.delivered === true. In stub mode it NEVER
+        fires. `hasReturnTrip` is a single boolean, not the trip content.
+  - No analytics vendor is installed. dispatch() only console.debug in dev;
+    production is a no-op. The AnalyticsEvent union is a closed type with no
+    generic `track(name, props)` escape hatch — PII cannot be added without a
+    deliberate type edit.
+
+1.8 HANDLING OF PERSONAL INFORMATION
+
+  - Collected: requester name, requester phone, optional requester email,
+    passenger name, pickup location (free text — may be a home address),
+    destination (free text), optional date/time, optional assistance notes
+    (free text — may contain mobility/health detail), optional free-text
+    notes.
+  - In transit: HTTPS to the Vercel function (Server Action POST).
+  - At rest: NOWHERE. Stub persists nothing. No database, no file, no queue,
+    no browser storage (no localStorage / sessionStorage / cookie writes in
+    the form).
+  - Onward: NOWHERE in stub mode. (In platform mode: JSON body to the
+    signed endpoint only.)
+  - WHERE SUBMITTED INFO CURRENTLY GOES:  it is validated in memory inside
+    the Server Action invocation and then discarded when the function
+    returns. The visitor gets an acknowledgement + a local reference id.
+    No human at Zenward ever receives it.
+
+
+================================================================================
+2. CURRENT CONTACT ARCHITECTURE
+================================================================================
+
+2.1 CONTACT FLOW (end to end)
+
+  Browser
+    src/components/public/ContactForm.tsx
+      - Same pattern as the request form: "use client", FormData → object,
+        honeypot + startedAt captured.
+  → Server Action
+    src/app/contact/actions.ts  →  submitContactMessage(input, guard)
+      - checkSubmissionGuard → payload-size check → whitelist rebuild of 6
+        fields (name, email, phone?, organization?, topic, message) with
+        normalisation + length caps → validation
+        (!name || !looksLikeEmail(email) || !message
+         → "Please fill in your name, a valid email, and a message.")
+      - try { getContactIntakeAdapter().submit(clean) } catch → GENERIC_ERROR.
+  → Adapter
+    src/lib/contact-intake/adapter.ts  →  getContactIntakeAdapter()
+      - Reads process.env.CONTACT_INTAKE_MODE ?? "stub".
+      - "email" → EmailContactIntakeAdapter
+      - anything else / unset → StubContactIntakeAdapter   ← CURRENT DEFAULT
+  → Destination
+      - stub:  NOTHING.
+      - email: one plain-text email via Resend REST API.
+
+2.2 THE TWO ADAPTERS
+
+  StubContactIntakeAdapter (src/lib/contact-intake/adapter.ts:50)
+    - reference id `ZW-MSG-<base36>`.
+    - production: console.warn("[contact-intake] running in STUB mode: an
+      enquiry was acknowledged but NOT delivered.")  — no content.
+    - Returns { ok: true, referenceId }.
+
+  EmailContactIntakeAdapter (src/lib/contact-intake/adapter.ts:69)
+    - Reads CONTACT_INTAKE_EMAIL (to), CONTACT_EMAIL_FROM (from),
+      CONTACT_EMAIL_API_KEY (Resend key).
+    - If ANY of the three missing → console.error + returns
+        { ok: false, error: "We couldn't send your message just now. Please
+                             try again, or call us." }  (fails CLOSED).
+    - Else → fetch("https://api.resend.com/emails", { method: POST,
+        headers: { authorization: `Bearer <key>`, content-type: json },
+        body: JSON.stringify({
+          from: <CONTACT_EMAIL_FROM>,
+          to: [<CONTACT_INTAKE_EMAIL>],
+          reply_to: <the submitter's email>,
+          subject: `New Zenward Website Enquiry — <topic label>`,
+          text: buildEnquiryText(input, referenceId) }),
+        signal: AbortSignal.timeout(10_000) }).
+        - non-2xx → console.error(`... responded <status>.`) + error string.
+        - 2xx     → { ok: true, referenceId }.
+        - throw / timeout → console.error(err.name) + error string.
+    - buildEnquiryText embeds: Reference, Topic, Name, Email, Phone?,
+      Organization?, Message — plain text, no HTML.
+    - Uses raw `fetch` — NO SDK, no npm dependency (confirmed: nothing
+      email/HTTP-related in package.json or node_modules).
+
+2.3 CONTACT_INTAKE_MODE BEHAVIOUR
+
+  Value       Adapter   Delivered?  Provider expected
+  ----------  -------  ----------  ---------------------------------
+  (unset)     Stub     NO          —
+  "stub"      Stub     NO          —
+  "email"     Email    YES *       Resend (resend.com), REST API
+                                   * only if all 3 env vars are set;
+                                     otherwise fails closed.
+
+2.4 SUCCESS / FAILURE STATES
+
+  On result.ok === true (UNCONDITIONAL — see finding F-1):
+    Heading "Message received"
+    "Thanks for reaching out — our team will get back to you."
+    (NO reference id shown to the visitor; NO delivered/undelivered branch.)
+
+  On result.ok === false:
+    status = "error"; inline role="alert" with the returned error string.
+
+  Persistent footnote:
+    "For transportation, use Request Transportation instead — please don't
+     include medical details here."
+
+2.5 IS CONTACT DELIVERY PRODUCTION-READY?
+
+  Code:   YES — EmailContactIntakeAdapter is complete, provider-isolated,
+          fails closed, times out, logs no content.
+  Config: NO — it needs CONTACT_INTAKE_MODE=email plus three real values
+          (destination inbox, verified Resend sender, Resend API key) that
+          do not exist in the repo and (per the evidence in §5) are not set
+          in production.
+  Gaps:   no retry, no durable backup copy, and the success message is not
+          gated on actual delivery (F-1).
+
+
+================================================================================
+3. EXACT FORM FIELDS
+================================================================================
+
+3.1 /request-transportation  (RequestTransportationForm.tsx)
+    Rendered order; R = required, O = optional.
+
+  #   name                    control   label                                     R/O  cap    notes
+  --  ----------------------  --------  ----------------------------------------  ---  -----  ---------------------------
+  1   requesterName           text      "Your name"                               R    120    autoComplete="name"
+  2   requesterRelationship   select    "Your relationship to the passenger"      R    enum   options:
+                                                                                              self  "I am the passenger"
+                                                                                              family "Family member"
+                                                                                              caregiver "Caregiver"
+                                                                                              facility_coordinator
+                                                                                                "Healthcare facility coordinator"
+                                                                                              other "Other"
+                                                                                              placeholder "Select one"
+  3   requesterPhone          tel       "Phone number"                            R    40     autoComplete="tel"
+  4   requesterEmail          email     "Email (optional)"                        O    254    autoComplete="email"
+  5   passengerName           text      "Passenger's name"                        R    120    helpText "If different from you."
+  6   returnTripNeeded        select    "Return trip needed?"                     R    enum   options: yes "Yes" /
+                                                                                              no "No" / not_sure
+                                                                                              "Not sure yet"
+  7   pickupDescription       text      "Pickup location"                         R    400    helpText "Address, or the
+                                                                                              name of a facility."
+  8   destinationDescription  text      "Destination"                             R    400    helpText "Address, or the
+                                                                                              name of a facility."
+  9   preferredDate           date      "Preferred date"                          O    40     native <input type=date>
+  10  preferredTime           time      "Preferred time"                          O    40     native <input type=time>
+  11  assistanceNotes         textarea  "Assistance needed (optional)"            O    2000   helpText "Wheelchair,
+                                                                                              walker, oxygen, companion,
+                                                                                              or other assistance."
+                                                                                              → see finding F-4
+  12  additionalNotes         textarea  "Anything else we should know?            O    2000
+                                         (optional)"
+  --  company_website         text      honeypot (off-screen, aria-hidden,        —    —      FormHoneypot.tsx; server
+                                         tabIndex -1)                                          rejects if non-empty
+
+  Server-side enum sets:
+    RELATIONSHIPS = self | family | caregiver | facility_coordinator | other
+    RETURN_TRIP   = yes | no | not_sure
+
+3.2 /contact  (ContactForm.tsx)
+
+  #  name             control   label                          R/O  cap    notes
+  -- ---------------  --------  -----------------------------  ---  -----  -----------------------------
+  1  name             text      "Your name"                     R    120    autoComplete="name"
+  2  email            email     "Email"                         R    254    autoComplete="email"
+  3  phone            tel       "Phone (optional)"              O    40     autoComplete="tel"
+  4  organization     text      "Organization (optional)"       O    160    helpText "If you're reaching
+                                                                            out on behalf of a
+                                                                            healthcare provider."
+  5  topic            select    "What can we help with?"        R    enum   general "General question" /
+                                                                            provider "I'm a healthcare
+                                                                            provider" / support "Support
+                                                                            for an existing request"
+                                                                            placeholder "Select one"
+  6  message          textarea  "Message"                       R    2000   rows=5
+  -- company_website  text      honeypot                        —    —      as above
+
+  Server-side enum set: TOPICS = general | provider | support
+  (client value "provider" maps to server topic "provider"; an unknown value
+   defaults to "general").
+
+
+================================================================================
+4. VALIDATION FINDINGS
+================================================================================
+
+4.1 FRONTEND (client) VALIDATION
+
+  - Native HTML `required` on the required inputs/selects; native type
+    validation for type="email" and type="tel"/"date"/"time".
+  - `maxLength` attributes matching the server caps.
+  - No custom JS validation, no inline field-level error messaging beyond
+    the browser's own constraint UI, no format enforcement on phone.
+  - The frontend is a convenience layer only; it is NOT relied on.
+
+4.2 SERVER-SIDE VALIDATION (the authoritative layer)
+
+  Shared helpers — src/lib/forms/guard.ts:
+    - checkSubmissionGuard(guard):
+        * honeypot: guard.hp non-empty (after trim) → reject with a generic,
+          non-technical reason ("We couldn't accept this submission. Please
+          try again, or call us.") — never names the tripped check.
+        * timing: only enforced when guard.startedAt is a finite number > 0.
+          elapsed < 2500 ms  OR  elapsed > 6 h  → same generic reject.
+    - isPayloadWithinLimit: JSON-encoded size must be ≤ 16 KB.
+    - cleanString(value, max): coerce to string, strip C0/C1 control chars
+      (keeps \t and \n), collapse 4+ blank lines to 3, trim, truncate to
+      `max`; empty result → undefined (so optional fields stay optional).
+      TRUNCATES rather than rejecting over-length input.
+    - isAllowed(value, allowed): strict literal membership for enum fields.
+    - looksLikeEmail: length ≤ 254 and /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/ —
+      loose shape check, not RFC-complete.
+
+  Request action — src/app/request-transportation/actions.ts:
+    - Rebuilds the payload from a fixed 12-field whitelist. Unknown client
+      properties are silently dropped.
+    - requesterRelationship / returnTripNeeded: set to "" unless isAllowed(),
+      then the required check rejects "".
+    - Required: requesterName, requesterRelationship (in set), requesterPhone,
+      passengerName, pickupDescription, destinationDescription,
+      returnTripNeeded (in set) → "Please fill in all required fields."
+    - Adapter call wrapped in try/catch → GENERIC_ERROR.
+
+  Contact action — src/app/contact/actions.ts:
+    - Fixed 6-field whitelist; topic defaults to "general" if not in TOPICS.
+    - Required: name, valid-shape email, message
+      → "Please fill in your name, a valid email, and a message."
+
+4.3 SANITISATION / INJECTION POSTURE
+
+  - Control-character stripping + length caps + whitelist rebuild in every
+    path. No HTML is constructed from user input anywhere.
+  - Contact email is built as PLAIN TEXT (buildEnquiryText), not HTML — no
+    HTML-injection surface in the email body. `reply_to` is set to the
+    submitter's already shape-validated email.
+  - React escapes all rendered values (reference id, error strings) by
+    default; no dangerouslySetInnerHTML anywhere in the form paths.
+  - Next.js Server Actions carry built-in same-origin / Action-ID protection
+    against cross-site POSTs (framework-level CSRF mitigation).
+
+4.4 VALIDATION GAPS (findings)
+
+  V-1  No phone-format validation or normalisation (E.164 or otherwise) on
+       requesterPhone / phone. A malformed or junk phone passes. Acceptable
+       for a human-reviewed request, but worth a light server-side sanity
+       check (digit count) before delivery is wired.
+  V-2  No date/time sanity check on preferredDate / preferredTime — a past
+       date, or "9999-99-99" from a scripted client, is accepted (the native
+       picker prevents it only in a real browser). Capped at 40 chars and
+       treated as free text; low risk, but a coordinator could receive
+       nonsense.
+  V-3  looksLikeEmail accepts addresses with no TLD dot-check beyond
+       "something.xx" — deliberately loose; fine for reply-to but a hard
+       bounce is possible. No email verification / confirmation step.
+  V-4  Timing guard is bypassable: startedAt is client-supplied and simply
+       omitted disables the check (the code only enforces it "when the
+       client sent a plausible positive timestamp"). This is an intentional
+       trade-off (documented in guard.ts) — the honeypot still applies. Note
+       it, don't "fix" it in 02B unless spam is observed.
+  V-5  No CAPTCHA and no rate limiting (see S-4). Intentional per the
+       original brief's "restraint" instruction; revisit only if abused.
+
+
+================================================================================
+5. CURRENT REAL-DELIVERY STATUS: **NO** (for both forms)
+================================================================================
+
+QUESTION: "Does a real transportation request submitted in production
+currently reach a real Zenward recipient?"
+
+ANSWER: **NO.**  And a real contact message also does not.
+
+EVIDENCE:
+
+  E-1  Code defaults. getRequestIntakeAdapter() and getContactIntakeAdapter()
+       both default to the STUB adapter when their mode env var is unset
+       (`process.env.REQUEST_INTAKE_MODE ?? "stub"` /
+        `process.env.CONTACT_INTAKE_MODE ?? "stub"`).
+
+  E-2  Shipped config. .env.example ships:
+         REQUEST_INTAKE_MODE=stub
+         CONTACT_INTAKE_MODE=stub
+       and documents stub as "validates and acknowledges … delivers NOTHING,
+       stores nothing, logs no content."
+
+  E-3  No production secrets in the repo. There is NO .env, .env.local,
+       .env.production, or vercel.json on disk (only .env.example; .gitignore
+       excludes all .env* except the example). No destination email address,
+       Resend key, or platform URL/token exists anywhere in the codebase
+       (grep for @-addresses, `re_`, `noreply@`, platform URLs → none).
+
+  E-4  Both real destinations are unreachable even if a mode were flipped:
+         - REQUEST_INTAKE_MODE=platform → PlatformRequestIntakeAdapter needs
+           PLATFORM_INTAKE_URL + PLATFORM_INTAKE_TOKEN. The Zenward Platform's
+           trusted intake endpoint "does not exist yet"
+           (docs/product/launch-readiness.md:50). Without the vars it fails
+           closed with a "call us" message.
+         - CONTACT_INTAKE_MODE=email → needs three Resend values that are not
+           set (launch-readiness.md:60: "Until then the contact form
+           acknowledges but does not deliver.").
+
+  E-5  Live end-to-end test (this audit). Production build (`next build`
+       + `next start`), default env, headless Chrome submitting both forms
+       with dummy data:
+         /request-transportation → success screen text:
+           "Request received  We have your details. So we can confirm this
+            trip with you directly, please also call our team — it's the
+            fastest way to lock in availability.  Call 470-206-8005
+            Reference: ZW-STUB-MTQNLYS1"
+           → the ZW-STUB- prefix and the "please also call" copy are the
+             delivered:false branch. Nothing was delivered.
+         /contact → success screen text:
+           "Message received  Thanks for reaching out — our team will get
+            back to you."
+         Server logs during the test:
+           [request-intake] running in STUB mode: a transportation request
+             was acknowledged but NOT delivered anywhere.
+           [contact-intake] running in STUB mode: an enquiry was acknowledged
+             but NOT delivered.
+         The dummy field values ("Audit Tester", the fake address, the
+         assistance note, etc.) appeared in NO log line — confirming stub
+         logs no content.
+
+  E-6  docs/product/launch-readiness.md states plainly (lines 52, 74-77):
+       production runs the request form in "honest stub mode + phone
+       fallback" and the contact form in stub "until Resend env values are
+       set."
+
+CAVEAT (stated for completeness): this audit cannot read the live Vercel
+project's environment variables. The conclusion above is drawn from the
+repository, the documented contract, and a local production-parity test. If
+the owner has since set CONTACT_INTAKE_MODE=email + the three Resend values
+in the Vercel dashboard, the CONTACT form would be delivering; there is no
+evidence in the repo that this has happened, and the request form cannot be
+delivering under any configuration because its endpoint does not exist.
+→ ACTION FOR OWNER: confirm the current Vercel env for both vars (see §11).
+
+
+================================================================================
+6. SECURITY / PRIVACY FINDINGS
+================================================================================
+
+WHAT IS DONE WELL (no action needed):
+
+  + The Server Action is a true server-only boundary. The browser never
+    talks to a database or third party directly.
+  + No Supabase / DB credential anywhere. .env.example explicitly forbids
+    NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY / DATABASE_URL.
+  + No form collects or transmits an organization_id, trip state, driver,
+    or vehicle field — nothing for a client to forge.
+  + Fixed-whitelist payload rebuild on every submission; unknown props
+    dropped; every string normalised + capped; enums checked.
+  + 16 KB payload cap; control-character stripping; honeypot; fill-time
+    check.
+  + No secrets are exposed to the browser: all delivery config is
+    server-only (no NEXT_PUBLIC_ prefix on any intake var).
+  + Request content is NOT logged (stub logs a fixed string only; error
+    paths log an HTTP status or Error.name, never the payload).
+  + Request content is NOT sent to analytics — structurally prevented by a
+    closed AnalyticsEvent union with no generic escape hatch.
+  + request_form_submitted conversion is gated on delivered === true, so a
+    non-delivery cannot look like a conversion.
+  + No localStorage / sessionStorage / cookie writes in either form — the
+    payload never persists in the browser.
+  + Contact email is plain text (no HTML injection surface); reply_to uses
+    the validated submitter address; provider (Resend) isolated behind one
+    class.
+  + Error messages are generic and non-technical — they never leak the
+    tripped check, a stack trace, an internal identifier, or config state.
+  + Next.js Server Actions provide framework-level CSRF/origin protection.
+  + preferredDate / preferredTime are NOT in the browser URL — the form
+    POSTs (Server Action), it does not GET; no query-string PII.
+
+FINDINGS (ordered by priority):
+
+  F-1  [PRIVACY / TRUTHFULNESS — MEDIUM]  Contact success message is not
+       gated on delivery.  ContactMessageResult has NO `delivered` field
+       (unlike TransportationRequestResult). ContactForm.tsx shows
+       "our team will get back to you" unconditionally whenever ok === true.
+       In stub mode (current production state) that statement is untrue —
+       no one receives the message. This is the same honesty gap that was
+       already fixed for the request form via the `delivered` flag.
+       → Fix in 02B: add `delivered: boolean` to ContactMessageResult, set
+         it (stub=false, email success=true), branch the success copy the
+         same way the request form does, and gate any future contact
+         analytics conversion on it.
+
+  F-2  [PRIVACY — MEDIUM]  No durable backup record of either submission.
+       If the platform POST (future) or the Resend call fails after
+       validation, the submission is lost — the visitor sees a "try again
+       or call us" message but Zenward has no record it ever happened, and
+       no way to recover the details. There is currently no write-ahead
+       log, no fallback store, no dead-letter path.
+       → Addressed in §8 (recommended architecture) and §13.
+
+  F-3  [PRIVACY — LOW/MEDIUM]  Contact form free-text `message` can contain
+       whatever the visitor types, including health details, despite the
+       "please don't include medical details here" footnote. When
+       CONTACT_INTAKE_MODE=email is enabled, that text travels by ordinary
+       email to CONTACT_INTAKE_EMAIL. This is an accepted trade-off for a
+       general contact form (documented in adapter.ts and .env.example),
+       but the owner should choose a destination inbox that is access-
+       controlled and not a shared/personal mailbox, and should NOT enable
+       email mode for the transportation-request form (see F-6 / §8).
+
+  F-4  [UNSUPPORTED-CLAIM — see §7, cross-listed here]  assistanceNotes
+       helpText enumerates "Wheelchair, walker, oxygen, companion" — an
+       input prompt, not a Zenward promise, but it invites the visitor to
+       expect those accommodations. See §7 F-4 for the wording
+       recommendation.
+
+  F-5  [SECURITY — LOW]  No rate limiting / throttling on either Server
+       Action (no middleware.ts, no Upstash/Redis, no per-IP guard). The
+       honeypot + fill-time stop drive-by bots; a targeted script that
+       clears the honeypot and waits 2.5 s is unthrottled. In stub mode the
+       blast radius is nil; once email delivery is live, an abuser could
+       pump the destination inbox. Consider a lightweight per-IP limit in
+       02B, scoped to when delivery is enabled.
+
+  F-6  [ARCHITECTURE / PRIVACY — HIGH for 02B design]  The intake-boundary
+       doc (docs/architecture/request-intake-boundary.md) and the code
+       comments in adapter.ts explicitly state: "Detailed transportation-
+       request content (passenger identity, addresses, appointment /
+       assistance notes) must never be delivered by ordinary email."
+       Any 02B proposal that routes the transportation request through
+       Resend/email would violate the existing documented architecture. The
+       recommended path (§8) respects this.
+
+  F-7  [PRIVACY — LOW]  Minimum data set. The transportation request
+       currently collects passenger name AND requester name AND requester
+       phone AND (optional) requester email AND two free-text location
+       fields AND two free-text note fields. The MINIMUM needed to triage
+       and call back is: requester name, requester phone, passenger name (or
+       "same as requester"), pickup, destination, approximate date/time,
+       return-trip yes/no. Email and the two note fields are genuinely
+       optional and already marked so. No field is unnecessary, but 02B
+       should NOT add fields, and should keep assistanceNotes free-text and
+       optional rather than turning it into checkboxes that read as offered
+       services.
+
+  F-8  [INFO — LOW]  .env.example line 27 still says
+       "Current deployment: https://zenward-web.vercel.app" — stale vs the
+       production domain https://www.zenwardmobility.com. Cosmetic; fix
+       opportunistically in 02B when that file is touched.
+
+NO EVIDENCE OF: secrets in the client bundle, PII in URLs, PII in analytics,
+PII in browser storage, PII in logs, third-party beacons/pixels, or an
+over-broad platform access grant.
+
+
+================================================================================
+7. UNSUPPORTED-CLAIM FINDINGS  (service-capability wording audit)
+================================================================================
+
+Scope: every label, placeholder, helpText, option label, validation message,
+and success/footnote string on /request-transportation and /contact, plus the
+two page shells.
+
+  F-4  [FLAG — recommend wording change in 02B, NOT a same-phase hotfix]
+       Field: assistanceNotes (textarea) on /request-transportation.
+       Current helpText:
+         "Wheelchair, walker, oxygen, companion, or other assistance."
+       Concern: it enumerates specific accommodations (wheelchair transport,
+       oxygen accommodation) that Zenward has not been confirmed to
+       guarantee. It is phrased as an input prompt, not "we provide X", so
+       it is not a direct false claim — but listing "wheelchair" and
+       "oxygen" by name invites the visitor to assume those are standard
+       offerings.
+       Recommended replacement wording (neutral, still collects the info):
+         "Tell us about any mobility or assistance needs for this trip so we
+          can plan accordingly."
+       or, if a short prompt list is wanted without naming clinical
+       equipment:
+         "For example: help to and from the vehicle, a walker or wheelchair
+          to accommodate, or a companion travelling along."
+       → Decision left to owner/copy; DO NOT change in this audit phase (it
+         is not a clear-cut single-word safety correction and the current
+         text is arguably acceptable as an input prompt).
+
+  F-9  [ACCEPTABLE — no change]  Label "Your relationship to the passenger"
+       option "Healthcare facility coordinator" and topic "I'm a healthcare
+       provider" — these describe the SUBMITTER, not a Zenward capability or
+       a Medicaid/certification claim. Fine.
+
+  F-10 [ACCEPTABLE — no change]  /contact page shell:
+       "For medical emergencies, call 911. Zenward does not provide
+        emergency transportation."  — this is a correct, protective
+        disclaimer (a negative claim), not an unsupported positive claim.
+       /request-transportation shell: "This is a transportation request, not
+       a guaranteed ride" and the footnote "not a confirmed booking" —
+       correctly under-promising.
+
+  NOT PRESENT anywhere in the two forms or their page shells (searched and
+  confirmed absent): ambulance, stretcher, EMT/paramedic, emergency
+  response, Medicaid / Medicare / insurance billing, "accredited",
+  "certified", "licensed", "HIPAA", wheelchair-accessible-vehicle guarantee,
+  bariatric, "door-through-door", any guaranteed on-time / pickup-window
+  promise. The forms are conservative.
+
+  CONCLUSION: one wording flag (F-4), recommended for 02B, not urgent. No
+  false-capability claim, no compliance claim, no certification claim is
+  currently made by the intake UI.
+
+
+================================================================================
+8. RECOMMENDED PRODUCTION ARCHITECTURE
+================================================================================
+
+Constraint recap: use ONLY what the existing repo architecture already
+supports; do not couple Zenward-Web to Nemryn/the platform prematurely; do
+not deliver detailed transportation-request content by ordinary email
+(existing documented rule, F-6); do not connect to Supabase; do not claim
+HIPAA/compliance.
+
+Given those constraints there are two delivery channels with very different
+readiness, so treat them separately.
+
+8.1 CONTACT FORM — READY NOW, LOW EFFORT  (recommended: enable email mode)
+
+  Public form → Server Action (validates) → EmailContactIntakeAdapter
+    → Resend REST API → plain-text email to a controlled Zenward inbox
+    → honest acknowledgement (gated on real delivery — see F-1 fix).
+
+  - Provider support: ALREADY BUILT (EmailContactIntakeAdapter, no SDK,
+    fails closed, 10 s timeout, provider-isolated).
+  - Sender config required: a verified Resend sending domain (e.g.
+    mail.zenwardmobility.com or send.zenwardmobility.com) with SPF + DKIM
+    DNS records added, then a from-address like
+    "Zenward Website <noreply@mail.zenwardmobility.com>".
+  - Recipient config required: one monitored, access-controlled mailbox
+    (e.g. a Google Workspace group / shared inbox). Not a personal address.
+  - Env vars: CONTACT_INTAKE_MODE=email, CONTACT_INTAKE_EMAIL,
+    CONTACT_EMAIL_FROM, CONTACT_EMAIL_API_KEY (see §10).
+  - Retry / error behaviour today: NONE — a failed send returns "try again
+    or call us" and the message is lost (F-2). Minimum acceptable hardening
+    for 02B: (a) add the `delivered` flag + honest copy (F-1); (b) OPTIONAL
+    single retry on network error/timeout before failing; (c) log a
+    content-free failure marker with the reference id so a lost enquiry is
+    at least countable.
+  - Durable backup record available today: NO. See 8.3.
+
+8.2 TRANSPORTATION REQUEST — NOT EMAIL-ELIGIBLE; three options
+
+  The documented architecture reserves this flow for the platform's trusted
+  intake (assigns organization_id server-side) and forbids ordinary email
+  for its content. Options, safest first:
+
+  OPTION A (recommended interim): keep REQUEST_INTAKE_MODE=stub + phone
+    fallback, unchanged. This is honest (delivered:false copy + "please also
+    call 470-206-8005" on every request path). Zero delivery, zero new
+    infrastructure, zero new PII exposure. The site is launch-viable in this
+    state per launch-readiness.md. Downside: every online request depends on
+    the visitor also phoning; a request that is only submitted online is
+    lost.
+
+  OPTION B (interim WITH a record): add a THIRD adapter —
+    a minimal "notification" adapter that does NOT transmit the full
+    payload by email, but instead:
+      - sends a CONTENT-FREE alert ("A new transportation request was
+        submitted at <time>. Reference <id>. Log in to view details." — no
+        name, no address, no notes) to a Zenward inbox via the existing
+        Resend integration, AND
+      - writes the full validated payload to a durable, access-controlled
+        store that is NOT the platform DB and NOT the browser.
+    The only such store the current stack gives you without new vendors is
+    Vercel Blob (first-party, server-only token) — a per-request JSON
+    object under a non-guessable key, readable only with the server token.
+    This keeps detailed content out of email (satisfies F-6), gives Zenward
+    a real queue to work from, and needs no platform coupling.
+    Downside: it introduces one storage dependency (Vercel Blob) and a
+    retention/al access policy the owner must own. This is borderline
+    against "do not implement speculative infrastructure" — propose it to
+    the owner, build only if approved.
+
+  OPTION C (the documented end state, NOT this phase): platform mode.
+    Requires the platform team to ship the trusted intake endpoint + issue
+    PLATFORM_INTAKE_URL / PLATFORM_INTAKE_TOKEN. No Zenward-Web code change.
+    Out of scope for 02B unless the endpoint appears.
+
+  RECOMMENDATION: ship OPTION A now (no code change beyond the F-1 contact
+  fix), and put OPTION B to the owner as the first real delivery step for
+  the request flow, explicitly as a decision (§11) because it adds a
+  storage dependency and a data-retention responsibility.
+
+8.3 DURABLE BACKUP RECORD — current status
+
+  There is NO durable record of any submission today, for either form.
+  If the owner wants one without platform coupling, the only in-stack
+  option is Vercel Blob (server-only). Anything else (Postgres, KV, S3,
+  Airtable, a CRM) is a new external dependency and a new data-processing
+  surface — call that out as an owner decision, not a default.
+
+
+================================================================================
+9. EXACT FILES THAT WOULD NEED CHANGING IN ZW-WEB-02B
+================================================================================
+
+MINIMAL SCOPE (contact delivery + honesty fix only — recommended first PR):
+
+  src/lib/contact-intake/types.ts
+    - Add `delivered: boolean` to ContactMessageResult.
+
+  src/lib/contact-intake/adapter.ts
+    - StubContactIntakeAdapter.submit → return { ok:true, referenceId,
+      delivered:false }.
+    - EmailContactIntakeAdapter.submit → return delivered:true only on a
+      2xx Resend response; delivered:false on every failure path.
+    - (optional) one retry on network error / AbortError before failing.
+    - (optional) on failure, console.warn a content-free marker with the
+      reference id.
+
+  src/app/contact/actions.ts
+    - Thread `delivered` through the early-return objects (guard fail,
+      payload fail, validation fail → delivered:false).
+
+  src/components/public/ContactForm.tsx
+    - Read result.delivered; branch the success copy exactly like
+      RequestTransportationForm.tsx (delivered → "our team will get back to
+      you"; not delivered → "we have your message, please also call" + phone
+      CTA); show the reference id.
+
+  .env.example
+    - Clarify that CONTACT_INTAKE_MODE=email is the intended production
+      value; fix the stale "zenward-web.vercel.app" comment (F-8).
+
+  docs/product/launch-readiness.md  /  docs/architecture/request-intake-boundary.md
+    - Update the contact-delivery rows to "enabled in production" once done.
+
+IF OPTION B (request-flow interim delivery) IS APPROVED, additionally:
+
+  src/lib/request-intake/adapter.ts
+    - Add a third adapter (e.g. NotifyAndStoreRequestIntakeAdapter):
+      content-free Resend alert + full-payload write to Vercel Blob.
+    - Extend getRequestIntakeAdapter()'s switch with the new mode.
+
+  src/lib/request-intake/types.ts
+    - Only if a stored-record id or status field is added to the result.
+
+  .env.example
+    - New mode value + BLOB_READ_WRITE_TOKEN + a request-alert recipient var.
+
+  package.json
+    - @vercel/blob (server-only) IF Option B is chosen. (Resend still needs
+      no package — raw fetch.)
+
+  docs/architecture/request-intake-boundary.md
+    - Document the new adapter and its data-retention policy.
+
+NOT CHANGED IN 02B (explicitly): the form components' fields/layout/styling,
+the page shells, next.config.ts, the analytics union (unless a contact
+conversion event is added deliberately), any platform/Supabase wiring.
+
+
+================================================================================
+10. REQUIRED ENVIRONMENT VARIABLES
+================================================================================
+
+ALREADY DEFINED IN .env.example (server-only unless noted):
+
+  NEXT_PUBLIC_SITE_URL      public; canonical site URL (SEO/OG/sitemap).
+                            Should be https://www.zenwardmobility.com in prod.
+  NEXT_PUBLIC_APP_URL       public; reserved / currently UNUSED — leave unset.
+  REQUEST_INTAKE_MODE       "stub" (current) | "platform".
+  PLATFORM_INTAKE_URL       only for platform mode — endpoint does not exist.
+  PLATFORM_INTAKE_TOKEN     only for platform mode — not issued.
+  CONTACT_INTAKE_MODE       "stub" (current) | "email".
+  CONTACT_INTAKE_EMAIL      destination inbox for enquiries.
+  CONTACT_EMAIL_FROM        verified Resend sender, e.g.
+                            "Zenward Website <noreply@mail.zenwardmobility.com>".
+  CONTACT_EMAIL_API_KEY     Resend API key (re_...).
+
+TO TURN ON CONTACT DELIVERY IN PRODUCTION (Vercel → Project → Settings →
+Environment Variables, Production scope):
+
+  CONTACT_INTAKE_MODE   = email
+  CONTACT_INTAKE_EMAIL  = <the Zenward destination inbox>              (owner)
+  CONTACT_EMAIL_FROM    = <verified Resend from-address>               (owner)
+  CONTACT_EMAIL_API_KEY = <Resend production API key>                  (owner)
+
+NEW VARS ONLY IF OPTION B (request interim delivery) IS APPROVED:
+
+  REQUEST_INTAKE_MODE       = notify_store  (or similar new literal)
+  REQUEST_ALERT_EMAIL       = <inbox for the content-free "new request" alert>
+  BLOB_READ_WRITE_TOKEN     = <Vercel Blob server token>  (auto-provisioned by
+                              Vercel when a Blob store is added to the project)
+
+NEVER ADD (existing hard rule, restated): NEXT_PUBLIC_SUPABASE_URL,
+SUPABASE_SECRET_KEY / SERVICE_ROLE key, DATABASE_URL, or any NEXT_PUBLIC_
+variable holding a delivery endpoint, token, or address.
+
+
+================================================================================
+11. REQUIRED FROM OWNER
+================================================================================
+
+These cannot be determined from the repository:
+
+  R-1  CONTACT DESTINATION INBOX.  The exact email address that should
+       receive website enquiries (CONTACT_INTAKE_EMAIL). Recommend a
+       monitored, access-controlled shared mailbox / group, not a personal
+       address.
+
+  R-2  RESEND ACCOUNT + API KEY.  Confirm a Resend account exists (or create
+       one at resend.com), then provide a Production API key
+       (CONTACT_EMAIL_API_KEY, "re_..."). Do not paste it in the repo or a
+       PR — set it directly in Vercel's Production env.
+
+  R-3  VERIFIED SENDER DOMAIN.  Choose a subdomain to send from (e.g.
+       mail.zenwardmobility.com) and add the SPF + DKIM DNS records Resend
+       generates, so it verifies. Then confirm the exact from-string for
+       CONTACT_EMAIL_FROM.
+
+  R-4  CONFIRM CURRENT PRODUCTION ENV.  State what REQUEST_INTAKE_MODE and
+       CONTACT_INTAKE_MODE are currently set to in the Vercel Production
+       environment (this audit could not read them; all repo evidence says
+       both are unset/stub — see §5 caveat).
+
+  R-5  DECISION — REQUEST-FLOW INTERIM DELIVERY.  Choose one:
+         (A) keep the request form in stub + phone fallback until the
+             platform intake endpoint exists (no new infrastructure), or
+         (B) approve Option B (content-free email alert + full payload to
+             Vercel Blob) as an interim, which adds one storage dependency
+             and a data-retention/access policy you would own.
+
+  R-6  IF (B): DATA-RETENTION POLICY for stored request payloads — who may
+       read them, how long they are kept, and how a completed/duplicate
+       request is purged.
+
+  R-7  PLATFORM INTAKE (informational, owned by the Platform team, not
+       blocking 02B): when the trusted TransportationRequest intake endpoint
+       is ready, provide PLATFORM_INTAKE_URL + PLATFORM_INTAKE_TOKEN.
+
+  R-8  COPY DECISION on the assistanceNotes helpText (F-4) — approve neutral
+       replacement wording or confirm the current text is acceptable.
+
+Claude can determine WITHOUT the owner (do not ask): the full architecture,
+all field definitions, all validation logic, the delivery mode defaults, the
+stub/platform/email behaviours, the security posture, the file list for 02B,
+the variable names, and the fact that nothing is delivered today.
+
+
+================================================================================
+12. RISKS / BLOCKERS
+================================================================================
+
+  B-1  [BLOCKER for automated request delivery, NOT for launch]  The Zenward
+       Platform trusted-intake endpoint does not exist. Until it does, the
+       request form cannot reach the platform. Mitigation in place: honest
+       stub copy + phone number on every request path. Owned by the Platform
+       team.
+
+  B-2  [BLOCKER for contact delivery]  No Resend account/key/verified
+       sender/destination inbox (R-1..R-3). Purely configuration; a few
+       minutes once the owner supplies the values. Code is ready.
+
+  R-1  [RISK — truthfulness]  Contact form currently tells every visitor
+       "our team will get back to you" while delivering nothing (F-1). The
+       longer stub mode runs in production, the more real people are told
+       something untrue. Fix (F-1) is small and should be in the first 02B
+       PR regardless of when email is enabled.
+
+  R-2  [RISK — data loss]  No durable backup for either form (F-2). Any
+       post-validation delivery failure loses the submission silently
+       (visitor sees "call us"; Zenward gets nothing).
+
+  R-3  [RISK — privacy of destination]  If R-1 resolves to a personal or
+       broadly-shared mailbox, enquiry content (possibly including health
+       detail despite the footnote, F-3) lands somewhere poorly controlled.
+
+  R-4  [RISK — abuse once live]  No rate limiting (F-5). Fine in stub;
+       once email is on, a script that defeats the honeypot can flood the
+       inbox. Consider a lightweight per-IP cap in 02B.
+
+  R-5  [RISK — architecture drift]  A 02B implementer unaware of the
+       documented "no ordinary email for request content" rule (F-6) might
+       reach for the obvious "just email the request too" solution. §8 and
+       this report exist to prevent that.
+
+  R-6  [MINOR]  Client-supplied `startedAt` makes the timing guard
+       bypassable (V-4); no phone/date sanity checks (V-1, V-2). Low impact;
+       do not over-engineer.
+
+  NO BLOCKER of any kind prevents shipping the site in its current honest
+  stub state with the phone fallback.
+
+
+================================================================================
+13. RECOMMENDED ZW-WEB-02B IMPLEMENTATION SCOPE
+================================================================================
+
+PR 1 — "Contact delivery: honest acknowledgement + enable email"  (small)
+  1. Add `delivered: boolean` to ContactMessageResult; set it truthfully in
+     both contact adapters and thread it through contact/actions.ts. (F-1)
+  2. Branch ContactForm success copy on `delivered` exactly as the request
+     form does; show the reference id.
+  3. Optional: one retry on network/timeout in EmailContactIntakeAdapter;
+     content-free failure log line with the reference id. (F-2, partial)
+  4. .env.example: mark CONTACT_INTAKE_MODE=email as the prod value; fix the
+     stale vercel.app comment. (F-8)
+  5. Owner sets the 4 Vercel Production vars (R-1..R-3); verify a real test
+     enquiry arrives; update launch-readiness.md.
+  6. Copy: apply the agreed assistanceNotes helpText wording. (F-4 / R-8)
+  ACCEPTANCE: a real enquiry submitted on www.zenwardmobility.com arrives in
+  the Zenward inbox within seconds; a forced failure shows the honest
+  "please also call" screen; no enquiry content appears in logs or analytics.
+
+PR 2 — "Request delivery interim" — ONLY IF OWNER PICKS OPTION B (R-5)
+  1. New RequestIntakeAdapter (content-free Resend alert + full payload to
+     Vercel Blob under a non-guessable key, server token only).
+  2. New REQUEST_INTAKE_MODE literal + switch case; new env vars (§10).
+  3. Add @vercel/blob; provision the Blob store in Vercel.
+  4. Document the adapter + the owner's retention/access policy in
+     request-intake-boundary.md.
+  5. Keep delivered:true only when BOTH the store write and the alert
+     succeed; otherwise delivered:false + honest copy (already handled).
+  ACCEPTANCE: a submitted request produces a retrievable stored record and a
+  content-free alert; email contains no name/address/notes; stub remains the
+  default; no platform/Supabase coupling introduced.
+
+PR 3 — "Abuse hardening" — OPTIONAL, do only if spam is observed
+  - Lightweight per-IP rate limit on both Server Actions (e.g. a small
+    fixed-window counter), scoped to when delivery is enabled. (F-5)
+  - Light server-side phone digit-count and date sanity checks. (V-1, V-2)
+
+EXPLICITLY OUT OF SCOPE FOR 02B:
+  - Any Nemryn branding, links, renames, or app-link migration.
+  - Any redesign of the forms (fields, layout, styling, CTAs).
+  - Connecting to Supabase / the platform DB / auth.
+  - The platform `platform` mode wiring (blocked on B-1; no Zenward-Web code
+    change needed when it lands).
+  - Adding new form fields or converting assistanceNotes to checkboxes.
+  - Any HIPAA / compliance / certification claim or page.
+
+SEQUENCING: PR 1 is independent and should ship first — it removes a live
+truthfulness problem (R-1) and turns on the one channel that is genuinely
+ready. PR 2 depends on an owner decision. PR 3 is reactive.
+
+
+================================================================================
+END OF REPORT — ZW-WEB-02A
+No code changed. Nothing committed, pushed, or deployed. tsc / lint / build
+all PASS on the current working tree.
+================================================================================

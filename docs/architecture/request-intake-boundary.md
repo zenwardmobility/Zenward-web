@@ -39,7 +39,7 @@ When the Zenward Platform's trusted `TransportationRequest` intake path exists (
 
 **No page, form component, or Server Action needs to change** — the adapter interface is the seam specifically so the delivery destination can change without touching UI code. A successful platform response returns `delivered: true`, which flips the success copy and re-enables the `request_form_submitted` conversion automatically.
 
-The contact form follows the same pattern (`ContactIntakeAdapter`), but is allowed ordinary email delivery (`CONTACT_INTAKE_MODE=email`, Resend) because it collects no detailed passenger transportation information.
+The contact form follows the same pattern (`ContactIntakeAdapter`), but is allowed ordinary email delivery (`CONTACT_INTAKE_MODE=email`, Resend) because it collects no detailed passenger transportation information. `ContactMessageResult` also carries `delivered: boolean` (ZW-WEB-02B): the stub and every failure path return `false`, `EmailContactIntakeAdapter` returns `true` only after a Resend 2xx, and the success screen tells the visitor plainly when a message was **not** sent (and to call) rather than implying it was received.
 
 ## What must never happen, at any point
 
