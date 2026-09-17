@@ -1,0 +1,255 @@
+================================================================================
+ZW-WEB — OFFICIAL PHONE NUMBER UPDATE — COMPLETION REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Remote:                 https://github.com/zenwardmobility/Zenward-web
+Production site:        https://www.zenwardmobility.com
+Date:                  2026-09-17
+Task:                  Update the official Zenward Mobility public phone
+                       number from 470-206-8005 to 678-935-5489, repo-wide.
+
+
+================================================================================
+1. RECONSTRUCTED STARTING STATE
+================================================================================
+
+Fresh session — reconstructed from repo state (no prior chat context used).
+
+git status at session start:
+  Modified (7): .env.example, docs/architecture/request-intake-boundary.md,
+    src/app/request-transportation/actions.ts,
+    src/components/public/RequestTransportationForm.tsx,
+    src/lib/forms/guard.ts, src/lib/request-intake/adapter.ts,
+    src/lib/request-intake/types.ts
+  Untracked (3): docs/architecture/nemryn-trusted-request-intake-contract.md,
+    docs/reports/ZW-WEB-02B-deployment-report.txt,
+    docs/reports/ZW-WEB-02C1-trusted-intake-contract.txt
+
+These belonged to an UNRELATED prior phase, ZW-WEB-02C-1 ("trusted intake
+contract" — versioned envelope, idempotency, submissionId plumbing for the
+future Nemryn platform intake). Its own completion report stated explicitly:
+"Implemented + verified against a local mock. NOT committed, NOT pushed,
+NOT deployed." This was pre-existing, deliberate WIP, not something to fold
+into an unrelated phone-number task.
+
+Decision (confirmed with the user before touching anything): isolate the
+phone-number change. The ZW-WEB-02C-1 working-tree changes were stashed
+before starting, so this phase ran on a clean tree matching origin/main
+(commit ab28515), and the stash was restored afterward, unchanged and still
+uncommitted — exactly as it was before this session, for the owner to
+commit/push separately when ready.
+
+  git stash push -u -m "ZW-WEB-02C1 pending trusted-intake work
+    (pre-existing, not part of phone update)"
+
+Read for context: docs/product/launch-readiness.md,
+docs/reports/ZW-WEB-02C1-trusted-intake-contract.txt,
+docs/reports/ZW-WEB-02B-deployment-report.txt.
+
+
+================================================================================
+2. CENTRALIZED PHONE SOURCE
+================================================================================
+
+The number was already fully centralized (single source of truth), per the
+pattern documented in docs/design/brand-assets.md:
+
+  src/lib/business.ts
+    const PHONE_DIGITS = "..."
+    export const business = {
+      phoneDisplay: "...",
+      phoneHref: `tel:+1${PHONE_DIGITS}`,
+    }
+
+Every rendered/clickable phone number across the app imports
+`business.phoneDisplay` / `business.phoneHref` — no other file hardcodes a
+raw number. Confirmed by grep across src/ before editing: header, footer,
+homepage (incl. JSON-LD), /contact, /privacy, /terms,
+PhoneCtaButton.tsx all reference `business.*`, nothing else.
+
+This meant the functional fix was a one-file change.
+
+
+================================================================================
+3. FILES CHANGED (3)
+================================================================================
+
+  src/lib/business.ts
+    PHONE_DIGITS: "4702068005" -> "6789355489"
+    phoneDisplay: "470-206-8005" -> "678-935-5489"
+    phoneHref (derived): tel:+16789355489
+    Doc comment: removed the now-inaccurate "as printed on the approved
+    vehicle imagery" clause (see §6).
+
+  docs/design/brand-assets.md
+    "## Phone number" section: approved business line updated to
+    678-935-5489; tel: link updated to tel:+16789355489; added a note that
+    the vehicle photography still shows the prior number since the imagery
+    itself was not changed this phase (see §6).
+
+  docs/product/launch-readiness.md
+    3 rows in the READY table updated to the new number/tel: link
+    (Request phone fallback; Contact "delivered" honesty; CTA audit).
+
+No other source, config, or living-documentation file contained the old
+number (verified by full-repo grep, see §4).
+
+
+================================================================================
+4. OLD-NUMBER SEARCH RESULTS
+================================================================================
+
+Patterns searched repo-wide (excluding node_modules/.next/.git):
+  470-206-8005 | 4702068005 | 14702068005 | 470.206.8005
+
+Result AFTER the edit:
+
+  0 occurrences in: src/**, .env.example, public config, JSON-LD, SEO
+  metadata, structured data, header/footer/nav components, CTA buttons,
+  form fallback states, and both living docs
+  (docs/design/brand-assets.md / docs/product/launch-readiness.md).
+
+Remaining occurrences (deliberately left unchanged, not "relevant" per the
+task's own definition — see rationale):
+
+  a) 12 dated, historical completion reports under docs/reports/
+     (WEB-P1-E2, ZW-WEB-01B/01C/01E, ZW-WEB-02A, ZW-WEB-02B, WEB-HERO-*,
+     WEB-GEOGRAPHY-NEUTRAL-POSITIONING, zenward-public-nemt-positioning-
+     cleanup). These are point-in-time records of what was true when each
+     phase shipped, analogous to git commit history — rewriting them would
+     misrepresent history, not document current state. None of them are
+     "documentation that defines the current public phone number"; that
+     role belongs to docs/design/brand-assets.md and
+     docs/product/launch-readiness.md, both updated.
+
+  b) src/lib/images.ts (2 JSDoc lines) and
+     docs/design/brand-assets.md (2 table-row descriptions, both left as
+     originally written) — these are FACTUAL descriptions of what is
+     physically printed on the vans in the approved photography, which was
+     explicitly out of scope to alter (task instruction: "Do not change:
+     imagery"). See §6 for the resulting discrepancy and how it is now
+     documented.
+
+Both patterns are intentional exclusions, not misses. 0 occurrences remain
+in any live-rendered, configured, or "current state" surface.
+
+
+================================================================================
+5. NEW-NUMBER LOCATIONS / TEL: VERIFICATION
+================================================================================
+
+Verified via production build + `next start` on a local port, fetching
+rendered HTML for every public route:
+
+  Route                        old-number hits   new-number hits   tel: href hits
+  /                             0                 8                 6
+  /contact                      0                 6                 4
+  /request-transportation       0                 6                 4
+  /privacy                      0                 6                 4
+  /terms                        0                 4                 4
+  /healthcare-providers          0                 2                 n/a (no phone CTA on this page beyond nav/footer)
+
+  Homepage JSON-LD: "telephone":"+16789355489"   (was +14702068005)
+  aria-label sample: `aria-label="Call Zenward at 678-935-5489"`
+
+All clickable phone CTAs resolve to `tel:+16789355489`; all display text
+renders `678-935-5489`. No page in the build still emits the old number.
+
+
+================================================================================
+6. KNOWN DISCREPANCY — VEHICLE PHOTOGRAPHY (documented, not fixed)
+================================================================================
+
+The approved hero/brand photography (`zenward-hero-desktop-v3.jpg`,
+`zenward-hero-mobile-v3.jpg`, `zenward-van-walker-assist.jpg`) has the OLD
+number, 470-206-8005, physically printed on the vehicle in the photograph
+itself. Per task scope ("Do not change: imagery" / no redesign, no
+re-crop/re-shoot), this photography was left untouched.
+
+Effect: a close look at the hero image still shows the retired number on
+the van; every rendered/clickable phone number elsewhere on the site shows
+678-935-5489. This is now explicitly documented in
+docs/design/brand-assets.md ("## Phone number" section) as a flagged item
+for a future photography refresh. It is a pre-existing constraint of using
+real vehicle photography, not something introduced by this change, and it
+does not affect any interactive element (nothing on the photograph is
+clickable).
+
+
+================================================================================
+7. QA RESULTS
+================================================================================
+
+  npx tsc --noEmit        PASS (no output, 0 errors)
+  npm run lint             PASS (0 warnings/errors)
+  npm run build             PASS — 14 static routes generated, incl.
+                            /opengraph-image.jpg; Turbopack, Next.js 16.3.3
+
+Local verification (production build, `next start`, curl-fetched HTML —
+no interactive browser available in this environment, so DOM/viewport
+rendering was verified via the actual server-rendered markup rather than a
+live browser screenshot):
+
+  - Homepage: header phone CTA, homepage reassurance strip, final CTA
+    section, and JSON-LD `ContactPoint.telephone` all show the new number.
+  - Footer (rendered on every page via PublicFooter): new number confirmed
+    present, sourced from the same `business.phoneDisplay` import used in
+    the header — no separate hardcoded footer value existed to miss.
+  - Mobile menu: renders the same `business.phoneHref`/`phoneDisplay` via
+    PublicHeader.tsx — no separate mobile-only phone string exists in the
+    component tree (confirmed by source read, not a second hardcoded copy).
+  - /contact: delivered and not-delivered fallback screens both source
+    `business.phoneDisplay` (ContactForm.tsx) — confirmed via rendered HTML
+    fetch of the page shell; the not-delivered variant only renders after
+    a failed submission (stub/misconfigured provider), which is a runtime
+    state not exercised by a static HTML fetch, but the source is the same
+    single import used everywhere else, already verified clean.
+  - /request-transportation: same pattern (RequestTransportationForm.tsx),
+    same centralized import, confirmed via rendered HTML fetch.
+  - /healthcare-providers: confirmed via rendered HTML fetch (nav + footer
+    phone references only; no page-specific CTA).
+  - Desktop: default `next start` render (unconstrained viewport) — layout
+    unchanged, this was a text-only content change, no CSS/layout edited.
+  - Mobile 390px: not re-screenshotted (no interactive browser tool
+    available in this session); no layout-affecting change was made — only
+    the phone-number string was replaced, same length class
+    ("XXX-XXX-XXXX" -> "XXX-XXX-XXXX", 12 characters both ways), so no
+    wrapping/overflow risk was introduced. Existing mobile QA baseline from
+    the last shipped phase (docs/product/launch-readiness.md "Mobile QA"
+    row) is otherwise unaffected by this change.
+
+
+================================================================================
+8. PRODUCTION VERIFICATION
+================================================================================
+
+Pending — performed after push, see §10 for the outcome recorded at the
+time of writing this report. If this section says "not yet performed," the
+push had not completed when the report was drafted; consult git history /
+Vercel deployment log for final confirmation if so.
+
+
+================================================================================
+9. COMMIT
+================================================================================
+
+Scope of the commit: ONLY the 3 files listed in §3. The pre-existing
+ZW-WEB-02C-1 stash was restored after this commit, still uncommitted, and
+is not part of this commit or this push.
+
+  git add src/lib/business.ts docs/design/brand-assets.md \
+    docs/product/launch-readiness.md docs/reports/ZW-WEB-phone-number-update-2026-09-17.txt
+  git commit -m "Update Zenward Mobility phone number"
+
+Commit hash: see §10 (recorded immediately below the actual commit command
+in this workflow).
+
+
+================================================================================
+10. PUSH + DEPLOYMENT
+================================================================================
+
+  git push origin main
+
+Recorded below (filled in by the commit/push step of this same task run).

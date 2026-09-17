@@ -45,11 +45,12 @@ Image rules:
 
 ## Phone number
 
-**Approved business line:** `470-206-8005` — as printed on the approved vehicle imagery.
+**Approved business line:** `678-935-5489`.
 
 - Single source of truth: `src/lib/business.ts` (`business.phoneDisplay`, `business.phoneHref`).
-- Telephone links use `tel:+14702068005`.
+- Telephone links use `tel:+16789355489`.
 - Do not hardcode the number in components; import from `business`.
+- Note: the approved vehicle photography (see above) still shows the prior line, `470-206-8005`, printed on the van — the imagery is unchanged per policy (no re-crop / re-shoot in this pass), so the on-vehicle text and the live business line are no longer identical. Flagged for a future photography refresh.
 - Used on: header (mobile menu), footer, homepage reassurance strip, homepage final CTA, `/contact`, `/request-transportation`, and the `MedicalBusiness` JSON-LD on the homepage.
 
 ## Sign In / operations platform link

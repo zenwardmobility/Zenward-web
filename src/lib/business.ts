@@ -4,17 +4,17 @@
  * details so components never hardcode raw values (mirrors the pattern of
  * `src/lib/seo.ts` for the site URL).
  *
- * The phone number below is the approved Zenward Mobility business line as
- * printed on the approved vehicle imagery (see docs/design/brand-assets.md).
- * It is real — do not replace it with a placeholder.
+ * The phone number below is the approved Zenward Mobility business line
+ * (see docs/design/brand-assets.md). It is real — do not replace it with a
+ * placeholder.
  */
 
-const PHONE_DIGITS = "4702068005";
+const PHONE_DIGITS = "6789355489";
 
 export const business = {
   name: "Zenward Mobility",
   /** Display form for the phone number. */
-  phoneDisplay: "470-206-8005",
+  phoneDisplay: "678-935-5489",
   /** `tel:` href form (E.164). */
   phoneHref: `tel:+1${PHONE_DIGITS}`,
 } as const;
