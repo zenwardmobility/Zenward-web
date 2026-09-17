@@ -239,34 +239,73 @@ scope.
 7. COMMIT / PUSH
 ================================================================================
 
-  git add public/images/zenward-hero-desktop-v3.jpg \
-          public/images/zenward-hero-desktop-v3.png \
-          public/images/zenward-van-walker-assist.jpg \
-          public/images/zenward-van-walker-assist.png \
-          docs/design/source-assets/zenward-hero-desktop-v3.png \
-          docs/design/source-assets/zenward-van-walker-assist.png \
-          src/lib/images.ts docs/design/brand-assets.md \
-          docs/reports/ZW-WEB-van-image-phone-update.txt
+  git add .
   git commit -m "Update Zenward van image phone number"
   git push origin main
 
-(Recorded exactly as executed; see §8 for the resulting hashes and
-production verification, filled in immediately after the push in this
-same report file and pushed as a fast-follow if the report needed
-amending post-verification.)
+Working tree at commit time contained ONLY the 8 files listed in §4 plus
+this report (verified via `git status -s` immediately before staging —
+no other pending changes existed; the ZW-WEB-02C-1 WIP was already fully
+included in the pre-existing `5cc2b40` commit per the owner's "keep
+bundled" decision in §1, so `git add .` was safe/in-scope here).
+
+  Commit:  3793072d1ba81752f155c912854f4117059908c3  (short: 3793072)
+  Message: "Update Zenward van image phone number"
+  9 files changed, 284 insertions(+), 10 deletions(-)
+
+  git push origin main
+  Result: pushed 2 local commits that were ahead of origin —
+    03b851d..5cc2b40..3793072  main -> main
+  (5cc2b40 was the pre-existing "Update Zenward vehicle imagery phone
+  number" commit from §1, already sitting locally ahead of origin;
+  3793072 is this session's fix on top of it. Both went up in the same
+  push, per the owner's decision to keep them together.)
+
+  Push took several minutes (~4 MB of new PNG master objects to
+  compress/transfer); confirmed complete via `git status -sb` reading
+  "## main...origin/main" (0 ahead, 0 behind).
 
 
 ================================================================================
 8. PRODUCTION VERIFICATION
 ================================================================================
 
-Recorded after the push completed — see the addendum appended to this
-report / the git log for the exact commit hash, and the production
-`curl` checks performed against https://www.zenwardmobility.com for the
-homepage and /healthcare-providers confirming the new hashed image files
-are served and the Vercel deployment for that commit succeeded.
+Vercel deployment (GitHub Deployments API; no Vercel CLI/token used, no
+Vercel env vars touched):
+
+  Deployment id:   6513084303
+  Environment:      Production
+  Git ref:          3793072d1ba81752f155c912854f4117059908c3
+  Created:          2026-09-17T22:06:47Z
+  Status:            success
+  Build URL:         https://zenward-glu4lpzni-zenwardmobility-9199.vercel.app
+
+  DEPLOYMENT TRIGGERED: YES (automatically, on push to main)
+  DEPLOYMENT STATE:      success
+
+Live checks against https://www.zenwardmobility.com:
+
+  Route                    HTTP   old-number text hits   new hashed image files served
+  /                         200    0                       zenward-hero-desktop-v3.0zms0qgfj2x3y.jpg
+                                                            zenward-van-walker-assist.2t91y19dsf_0z.jpg
+  /healthcare-providers      200    0                       zenward-van-walker-assist.2t91y19dsf_0z.jpg
+
+  Fetched the actual production `/_next/image?...` bytes for both the
+  hero and the van image (not just the HTML references) and visually
+  confirmed "678-935-5489" is clearly legible on the van door in the
+  live, publicly served image.
+
+  - 678-935-5489 visible on the live van/hero image: CONFIRMED
+  - 470-206-8005 no longer visible anywhere on the checked pages
+    (text or the served image bytes): CONFIRMED
+  - /contact and /request-transportation: not re-checked this pass (no
+    image asset on either page changed this session — the ZW-WEB-02C1
+    §5 verification from the prior task already confirmed both load,
+    and neither route renders `heroDesktop` or `vanWalkerAssist`).
+
+Final commit hash: 3793072d1ba81752f155c912854f4117059908c3
+Deployment result: SUCCESS — production is serving the updated images.
 
 ================================================================================
-END OF REPORT (see end-of-file addendum for final commit hash / production
-verification, appended after push)
+END OF REPORT
 ================================================================================
