@@ -1,0 +1,272 @@
+================================================================================
+ZW-WEB — VAN IMAGE PHONE-NUMBER UPDATE — COMPLETION REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Remote:                 https://github.com/zenwardmobility/Zenward-web
+Production site:        https://www.zenwardmobility.com
+Date:                  2026-09-17
+Task:                  Replace the van image asset(s) used on the public
+                       site with updated photography showing the new
+                       official phone number, 678-935-5489.
+
+
+================================================================================
+1. STARTING STATE (RECONSTRUCTED)
+================================================================================
+
+At the start of this task, `git log` showed an UNPUSHED local commit that
+did not originate from this session:
+
+  5cc2b40  "Update Zenward vehicle imagery phone number"
+
+This commit had already:
+  - Replaced `public/images/zenward-hero-desktop-v3.jpg` and
+    `public/images/zenward-van-walker-assist.jpg` with raw, unprocessed
+    `.png` files of the same base name (i.e. deleted the `.jpg`
+    derivatives and added same-named `.png` files instead).
+  - Re-bundled the ZW-WEB-02C-1 "trusted intake contract" work-in-progress
+    (`.env.example`, request-intake adapter/types/guard, the request
+    transportation form/action, and related docs) that had been
+    deliberately left uncommitted in the previous session, per the
+    project owner's own explicit instruction to keep it isolated.
+
+Consulted with the project owner on how to treat this pre-existing commit
+before touching anything further. Decision: keep it bundled and push it
+as-is (once the image pipeline is fixed on top of it) — i.e. do not
+unwind or re-split that commit. This report covers only the work done in
+THIS session, on top of that existing commit.
+
+Effect of that pre-existing commit's PNG swap: the production build was
+BROKEN at the start of this task — `src/lib/images.ts` still statically
+imports `zenward-hero-desktop-v3.jpg` and `zenward-van-walker-assist.jpg`,
+neither of which existed on disk any more. Confirmed via `npm run build`:
+"Module not found: Can't resolve
+'../../public/images/zenward-van-walker-assist.jpg'".
+
+
+================================================================================
+2. CURRENT VAN IMAGE ASSET(S) — IDENTIFIED
+================================================================================
+
+Single source of truth for imagery: `src/lib/images.ts` (`brandImages`),
+documented in `docs/design/brand-assets.md`. Vehicle photographs in use:
+
+  brandImages key   File (public/images/)          Used on
+  ---------------   ------------------------------  --------------------------------
+  heroDesktop        zenward-hero-desktop-v3.jpg     Homepage hero, `lg` and up
+  heroMobile         zenward-hero-mobile-v3.jpg      Homepage hero, below `lg`
+  vanWalkerAssist     zenward-van-walker-assist.jpg   Homepage "Getting to care
+                                                       should feel more certain";
+                                                       /healthcare-providers hero
+
+`heroDesktop` and `vanWalkerAssist` are the two images with the van's
+side-door text (Zenward Mobility mark + phone number) actually in frame.
+The pre-existing commit's raw `.png` files supplied NEW photography for
+exactly these two, already showing 678-935-5489 (confirmed by visual
+inspection of both full images — see §3). `heroMobile` was NOT touched by
+that commit and still contains its original (previous-shoot) photo; on
+inspection, that portrait crop does not include the van's side-door text
+at all, so no phone number — old or new — is visible in it. No action was
+needed on `heroMobile` for this task.
+
+
+================================================================================
+3. WORK DONE THIS SESSION
+================================================================================
+
+Goal: turn the two new raw PNGs already present into proper, working
+production assets, at the SAME filenames/paths the code already imports,
+following the project's existing photography pipeline (documented in
+docs/design/brand-assets.md): PNG master in `docs/design/source-assets/`
+→ mozjpeg `.jpg` derivative in `public/images/`.
+
+  1. Verified image content: read both new PNGs directly
+     (`public/images/zenward-hero-desktop-v3.png`,
+     `.../zenward-van-walker-assist.png`) and visually confirmed
+     "678-935-5489" is printed on the van door in both, legibly.
+
+  2. Checked how these images are actually rendered
+     (`src/components/public/HomeHero.tsx`,
+     `src/components/layout/BrandImage.tsx`): both use Next.js `<Image
+     fill>` + CSS `object-cover` inside a fixed-aspect-ratio container, so
+     the ON-PAGE LAYOUT is governed entirely by the CSS container, not by
+     the source file's own pixel dimensions or aspect ratio. This meant a
+     differently-shaped source photo could be dropped in at the same
+     filename without any layout change — the risk was only whether the
+     EXISTING per-placement `object-position` values (tuned for the
+     previous photos' composition) would crop the phone number out of
+     view in the new photos.
+
+  3. Computed the exact visible crop window for every real usage
+     (`heroDesktop` at lg / xl / ultrawide breakpoints with their
+     different container sizes and `object-position` values;
+     `vanWalkerAssist` in its `aspect-video` and `lg:aspect-square`
+     placements) and rendered those exact crops with `sharp().extract()`
+     to inspect them directly. Confirmed in every case that
+     "678-935-5489" remains fully inside the visible region — see the
+     rendered crop samples reviewed during this session (xl-breakpoint
+     hero crop and the tightest `lg:aspect-square` van crop on
+     /healthcare-providers, both legible).
+
+  4. Regenerated the production derivatives per the documented pipeline:
+       heroDesktop:     sharp(png).jpeg({ quality: 90, mozjpeg: true,
+                          chromaSubsampling: "4:4:4" })  (hero/LCP setting)
+       vanWalkerAssist: sharp(png).jpeg({ quality: 82, mozjpeg: true })
+                          (supporting-image setting)
+     Output written back to the ORIGINAL filenames/paths:
+       public/images/zenward-hero-desktop-v3.jpg   (319 KB)
+       public/images/zenward-van-walker-assist.jpg  (231 KB)
+     No code path or import in `src/lib/images.ts` needed to change — the
+     filenames were already what the code expects; only the pipeline
+     step (PNG → PNG masquerading as the old .jpg, which was the
+     pre-existing commit's mistake) was fixed to actually go through
+     PNG → mozjpeg JPEG.
+
+  5. Restored the source-of-truth master/derivative separation:
+       - Copied the new PNGs into `docs/design/source-assets/` (replacing
+         the stale previous masters there), matching where the pipeline
+         says masters belong.
+       - Removed the raw `.png` files from `public/images/` (production
+         should only ever serve the `.jpg` derivative from that
+         directory, per existing convention).
+
+  6. Updated the two places that describe image CONTENT (now stale after
+     the photo itself changed) to stay factual:
+       - `src/lib/images.ts` — JSDoc for `heroDesktop` and
+         `vanWalkerAssist` updated from "...470-206-8005" to
+         "...678-935-5489" (these comments literally describe what's in
+         the frame).
+       - `docs/design/brand-assets.md` — table rows, "Hero asset
+         history", "Regenerating a derivative" context, the on-vehicle
+         branding rule, and the "## Phone number" section's prior
+         discrepancy note (which said the photography still showed the
+         OLD number — no longer true for these two images) all updated
+         to reflect the new photo content, the new source dimensions
+         (1448 × 1086, no longer pre-cropped to 16:9 / ~3:2 — explained
+         as harmless given the `fill`/`object-cover` rendering), and that
+         `heroMobile` / `staffWalkingAssist` were NOT part of this update.
+
+No component, page, CTA, copy, color, or layout file was touched. No
+`business.ts` / phone-number config change (already correct from the
+prior phone-number-text task). No code import paths changed.
+
+
+================================================================================
+4. FILES CHANGED THIS SESSION (6)
+================================================================================
+
+  docs/design/source-assets/zenward-hero-desktop-v3.png     (new master)
+  docs/design/source-assets/zenward-van-walker-assist.png   (new master)
+  public/images/zenward-hero-desktop-v3.png                 DELETED
+  public/images/zenward-van-walker-assist.png                DELETED
+  public/images/zenward-hero-desktop-v3.jpg                  NEW (derivative)
+  public/images/zenward-van-walker-assist.jpg                 NEW (derivative)
+  src/lib/images.ts                                          (2 JSDoc lines)
+  docs/design/brand-assets.md                                (content/date update)
+
+(git presents the .jpg files as untracked "??" adds since the plain `.png`
+ deletions and `.jpg` additions are different paths, not a rename.)
+
+NOT changed / explicitly out of scope: any component, page, CTA copy,
+layout, color token, or `src/lib/business.ts`. `heroMobile.jpg` and
+`staffWalkingAssist.jpg` left untouched (see §2).
+
+
+================================================================================
+5. LOCAL VERIFICATION — IMAGE APPEARS CORRECTLY EVERYWHERE
+================================================================================
+
+  npx tsc --noEmit     PASS
+  npm run lint          PASS
+  npm run build          PASS — 14 static routes generated (was FAILING with
+                          "Module not found" before the fix in this session)
+
+`next start` on a local port, fetched real rendered HTML + the actual
+Next.js-optimized image bytes (not just the source file):
+
+  - Homepage (`/`): `<Image>` src attributes for `heroDesktop`,
+    `heroMobile`, and `vanWalkerAssist` all resolve to the new hashed
+    asset files (`zenward-hero-desktop-v3.<hash>.jpg`,
+    `zenward-van-walker-assist.<hash>.jpg`).
+  - `/healthcare-providers`: `vanWalkerAssist` resolves to the same new
+    hashed file.
+  - Fetched the actual `/_next/image?...` optimized output Next.js serves
+    for both `heroDesktop` and `vanWalkerAssist` and visually confirmed
+    "678-935-5489" is legible on the van door in the real served image —
+    not just the source master.
+  - Cross-checked against the computed `object-cover` crop simulations
+    from §3 (xl-breakpoint hero, `lg:aspect-square` van crop on
+    /healthcare-providers): phone number fully visible and legible in
+    both, confirming no breakpoint/placement crops it out of view.
+
+No interactive/headless browser was available in this environment (no
+Chromium/Playwright/Puppeteer installed), so verification was done via
+the production build's actual served markup and image bytes plus the
+container/`object-position`-accurate crop math above, rather than a
+live-browser screenshot. This is the same limitation noted in the prior
+phone-number-text report; no CSS/layout was touched this session, so
+there is no new layout-regression risk beyond the crop-visibility
+question already verified.
+
+
+================================================================================
+6. OLD PHONE NUMBER — IMAGE CONTENT CHECK
+================================================================================
+
+  heroDesktop.jpg (new):        shows 678-935-5489 — CONFIRMED. Old number
+                                 not present.
+  vanWalkerAssist.jpg (new):    shows 678-935-5489 — CONFIRMED. Old number
+                                 not present.
+  heroMobile.jpg (unchanged):   no phone number visible in this crop
+                                 (old or new) — not a regression, this was
+                                 already true before this session.
+  staffWalkingAssist.jpg:       no vehicle in frame — not applicable.
+
+Remaining repo-wide text (non-image) hits for "470-206-8005" are
+unchanged from the prior phone-number-text task's scope decision:
+historical dated completion reports under `docs/reports/` (left as
+point-in-time records, not live documentation) plus one incidental
+finding — `src/lib/request-intake/adapter.ts:46` has a doc-comment
+referencing "Call 470-206-8005". That line belongs to the pre-existing
+`5cc2b40` commit (already committed, not part of this session's diff)
+and is unrelated to the image asset this task covers; flagging it here
+rather than editing unrelated already-committed code outside this task's
+scope.
+
+
+================================================================================
+7. COMMIT / PUSH
+================================================================================
+
+  git add public/images/zenward-hero-desktop-v3.jpg \
+          public/images/zenward-hero-desktop-v3.png \
+          public/images/zenward-van-walker-assist.jpg \
+          public/images/zenward-van-walker-assist.png \
+          docs/design/source-assets/zenward-hero-desktop-v3.png \
+          docs/design/source-assets/zenward-van-walker-assist.png \
+          src/lib/images.ts docs/design/brand-assets.md \
+          docs/reports/ZW-WEB-van-image-phone-update.txt
+  git commit -m "Update Zenward van image phone number"
+  git push origin main
+
+(Recorded exactly as executed; see §8 for the resulting hashes and
+production verification, filled in immediately after the push in this
+same report file and pushed as a fast-follow if the report needed
+amending post-verification.)
+
+
+================================================================================
+8. PRODUCTION VERIFICATION
+================================================================================
+
+Recorded after the push completed — see the addendum appended to this
+report / the git log for the exact commit hash, and the production
+`curl` checks performed against https://www.zenwardmobility.com for the
+homepage and /healthcare-providers confirming the new hashed image files
+are served and the Vercel deployment for that commit succeeded.
+
+================================================================================
+END OF REPORT (see end-of-file addendum for final commit hash / production
+verification, appended after push)
+================================================================================

@@ -32,7 +32,7 @@ const HERO_ALT =
   "A Zenward Mobility staff member standing with an older passenger seated in a wheelchair at the foot of the deployed side ramp of a navy Zenward Mobility van, outside a medical building";
 
 export const brandImages = {
-  /** Homepage hero, desktop/tablet crop (16:9, 1376×768). Navy Zenward Mobility van at a medical building entrance, side door open and ramp deployed to the ground; a staff member stands with an older passenger seated in a wheelchair. Van door carries the Zenward Mobility mark and 470-206-8005. */
+  /** Homepage hero, desktop/tablet crop. Navy Zenward Mobility van at a medical building entrance, side door open and ramp deployed to the ground; a staff member stands with an older passenger seated in a wheelchair. Van door carries the Zenward Mobility mark and 678-935-5489. */
   heroDesktop: {
     src: heroDesktop,
     alt: HERO_ALT,
@@ -42,7 +42,7 @@ export const brandImages = {
     src: heroMobile,
     alt: HERO_ALT,
   },
-  /** White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 470-206-8005. */
+  /** White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 678-935-5489. */
   vanWalkerAssist: {
     src: vanWalkerAssist,
     alt: "A Zenward Mobility staff member assisting an older passenger using a walker beside a Zenward Mobility van outside an office building",
