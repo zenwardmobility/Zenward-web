@@ -224,10 +224,33 @@ live browser screenshot):
 8. PRODUCTION VERIFICATION
 ================================================================================
 
-Pending — performed after push, see §10 for the outcome recorded at the
-time of writing this report. If this section says "not yet performed," the
-push had not completed when the report was drafted; consult git history /
-Vercel deployment log for final confirmation if so.
+Performed against https://www.zenwardmobility.com after the Vercel
+deployment for commit bd20b38 reported success (see §10).
+
+  Route                        HTTP   old-number   new-number   tel:+16789355489
+  /                             200    0             present      present
+  /contact                      200    0             present      present
+  /request-transportation       200    0             present      present
+  /healthcare-providers          200    0             present      present
+
+  Homepage JSON-LD: "telephone":"+16789355489"
+
+  - 678-935-5489 is live: CONFIRMED (all routes above)
+  - 470-206-8005 no longer visible: CONFIRMED (0 hits on every route checked;
+    the retired number remains only inside the approved vehicle photograph
+    on the homepage hero image itself — see §6 — which is not text on the
+    page and was out of scope to alter)
+  - Phone links use tel:+16789355489: CONFIRMED
+  - /contact loads successfully: CONFIRMED (HTTP 200)
+  - /request-transportation loads successfully: CONFIRMED (HTTP 200)
+  - Mobile menu / footer: render the same `business.phoneDisplay` import
+    already confirmed clean on every fetched route above (no separate
+    mobile-only or footer-only hardcoded value exists in the component
+    tree — confirmed by source read in §2)
+  - Phone fallback states: source the same centralized import; not
+    independently re-fetched in a failed/stub runtime state during this
+    verification pass (see §7 for why), but code-path identical to the
+    already-verified success-path import.
 
 
 ================================================================================
@@ -251,5 +274,38 @@ in this workflow).
 ================================================================================
 
   git push origin main
+  Result: ab28515..bd20b38  main -> main   (push succeeded)
 
-Recorded below (filled in by the commit/push step of this same task run).
+  Final commit hash: bd20b3805629335fe84902afc8616c5ffe200f05  (short: bd20b38)
+  Commit message:     "Update Zenward Mobility phone number"
+
+  git status -sb after push: "## main...origin/main" — 0 ahead, 0 behind,
+  in sync.
+
+Vercel deployment (observed via the GitHub Deployments API, same method as
+the prior ZW-WEB-02B deployment report; no Vercel CLI/token used, no
+Vercel env vars touched):
+
+  Deployment id:   6512506954
+  Environment:      Production
+  Git ref:          bd20b3805629335fe84902afc8616c5ffe200f05  (this commit)
+  Created:          2026-09-17T21:28:47Z
+  Status:            success
+  Build URL:         https://zenward-gbsfa6cbr-zenwardmobility-9199.vercel.app
+
+  DEPLOYMENT TRIGGERED: YES (automatically, on push to main)
+  DEPLOYMENT STATE:      success
+
+Production verification: see §8 — all checks passed.
+
+Post-commit housekeeping: the pre-existing ZW-WEB-02C-1 stash (§1) was
+restored (`git stash pop`) immediately after this push, exactly as it
+existed at the start of the session — still modified/untracked, still
+uncommitted, still unpushed, still owned by the operator for a separate
+future decision. It was not touched, reviewed, or altered by this task.
+
+No unrelated changes were made after the push.
+
+================================================================================
+END OF REPORT
+================================================================================
