@@ -16,6 +16,21 @@ import type { TransportationRequestInput } from "@/lib/request-intake/types";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
+/** A random UUID for this form session, used only for downstream idempotency.
+ *  `crypto.randomUUID` is available in every secure browser context (the site
+ *  is HTTPS); if it is somehow missing we return "" and the Server Action
+ *  mints one instead (a retry then just won't self-deduplicate). */
+function makeSubmissionId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // ignore — handled below
+  }
+  return "";
+}
+
 export function RequestTransportationForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | undefined>();
@@ -23,10 +38,14 @@ export function RequestTransportationForm() {
   const [delivered, setDelivered] = useState(false);
   const hasStarted = useRef(false);
   const startedAt = useRef<number>(0);
+  // One id per logical submission, deliberately NOT regenerated on a failed
+  // attempt so a retry de-duplicates downstream. Replaced only on a fresh mount.
+  const submissionId = useRef<string>("");
   const successRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     startedAt.current = Date.now();
+    submissionId.current = makeSubmissionId();
   }, []);
 
   useEffect(() => {
@@ -64,6 +83,7 @@ export function RequestTransportationForm() {
     const result = await submitTransportationRequest(input, {
       hp: String(formData.get("company_website") ?? ""),
       startedAt: startedAt.current || undefined,
+      submissionId: submissionId.current || undefined,
     });
 
     if (result.ok) {

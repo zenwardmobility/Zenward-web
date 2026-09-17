@@ -1,0 +1,187 @@
+================================================================================
+ZW-WEB-02B — COMMIT + DEPLOY — DEPLOYMENT REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Remote:                 https://github.com/zenwardmobility/Zenward-web
+Production site:        https://www.zenwardmobility.com
+Date:                  2026-09-07
+Action:                Commit the reviewed ZW-WEB-02B working tree and push to
+                       origin/main. No code or copy changes made in this step.
+                       No Vercel environment variables changed.
+
+
+================================================================================
+1. PRE-COMMIT STATE
+================================================================================
+
+git status (before):
+  On branch main — up to date with origin/main.
+  Modified (8):
+    .env.example
+    docs/architecture/request-intake-boundary.md
+    docs/product/launch-readiness.md
+    src/app/contact/actions.ts
+    src/components/public/ContactForm.tsx
+    src/components/public/RequestTransportationForm.tsx
+    src/lib/contact-intake/adapter.ts
+    src/lib/contact-intake/types.ts
+  Untracked (2):
+    docs/reports/ZW-WEB-02A-request-intake-production-audit.txt
+    docs/reports/ZW-WEB-02B-contact-delivery-intake-safety.txt
+
+Completion report confirmed present and included:
+  docs/reports/ZW-WEB-02B-contact-delivery-intake-safety.txt  ✔
+  (The ZW-WEB-02A audit report, previously untracked, was also picked up by
+   `git add .` per instruction — it is a legitimate prior-phase deliverable.)
+
+
+================================================================================
+2. COMMIT
+================================================================================
+
+Commands run (exactly as instructed):
+  git add .
+  git commit -m "Harden Zenward website intake handling"
+  (Co-Authored-By trailer appended per repo attribution policy.)
+
+Result:
+  [main ab28515] Harden Zenward website intake handling
+  10 files changed, 1606 insertions(+), 40 deletions(-)
+   create mode 100644 docs/reports/ZW-WEB-02A-request-intake-production-audit.txt
+   create mode 100644 docs/reports/ZW-WEB-02B-contact-delivery-intake-safety.txt
+
+  COMMIT HASH:  ab285154f3f32453a09c588ae26c320e920ae54b   (short: ab28515)
+  Message:      "Harden Zenward website intake handling"
+  Trailer:      Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
+Files in the commit:
+  M  .env.example                                        (+40 / -… doc only)
+  M  docs/architecture/request-intake-boundary.md        (1 line)
+  M  docs/product/launch-readiness.md                    (rows added/updated)
+  A  docs/reports/ZW-WEB-02A-request-intake-production-audit.txt   (new)
+  A  docs/reports/ZW-WEB-02B-contact-delivery-intake-safety.txt    (new)
+  M  src/app/contact/actions.ts                          (delivered:false threading)
+  M  src/components/public/ContactForm.tsx               (delivered branch + Info icon)
+  M  src/components/public/RequestTransportationForm.tsx (assistance helper text)
+  M  src/lib/contact-intake/adapter.ts                   (delivered flag, fail-closed)
+  M  src/lib/contact-intake/types.ts                     (+ delivered: boolean)
+
+git status (after commit):
+  On branch main — "Your branch is ahead of 'origin/main' by 1 commit."
+  nothing to commit, working tree clean   ✔
+
+
+================================================================================
+3. PUSH
+================================================================================
+
+Working tree was clean → proceeded to push.
+
+Command:
+  git push origin main
+
+Result:
+  To https://github.com/zenwardmobility/Zenward-web
+     7a11d96..ab28515  main -> main
+
+  PUSH SUCCEEDED:  YES
+
+Post-push verification:
+  git status -sb        → ## main...origin/main   (no ahead / no behind — in sync)
+  git rev-parse HEAD    → ab285154f3f32453a09c588ae26c320e920ae54b
+  git ls-remote origin refs/heads/main
+                        → ab285154f3f32453a09c588ae26c320e920ae54b  refs/heads/main
+
+  Local HEAD and remote main are identical.
+
+git log --oneline -3:
+  ab28515  Harden Zenward website intake handling      <-- new
+  7a11d96  Refine Zenward public transportation positioning
+  5f21443  Document responsive hero art direction
+
+
+================================================================================
+4. BRANCH STATE
+================================================================================
+
+  Branch:              main
+  Local HEAD:           ab28515
+  origin/main:          ab28515
+  Relationship:         up to date (0 ahead, 0 behind)
+  Working tree:         clean
+  Uncommitted changes:  none
+
+
+================================================================================
+5. VERCEL DEPLOYMENT
+================================================================================
+
+Observed via the GitHub Deployments API (repo → Deployments), which the
+Vercel GitHub integration writes to. No Vercel CLI or token was used; no
+Vercel settings or environment variables were touched.
+
+  Deployment id:   6307085599
+  Environment:     Production
+  Git ref:         ab285154f3f32453a09c588ae26c320e920ae54b  (this commit)
+  Created:         2026-09-07T10:50:36Z  (immediately after the push)
+  Status history:  2026-09-07T10:50:36Z  success — "Deployment has completed"
+  Build URL:       https://zenward-f3w7448ao-zenwardmobility-9199.vercel.app
+
+  DEPLOYMENT TRIGGERED:   YES (automatically, on push to main)
+  DEPLOYMENT STATE:       success
+
+Live production checks (https://www.zenwardmobility.com):
+  GET /contact                  → HTTP 200
+  GET /request-transportation   → HTTP 200
+  New assistance helper text is live on /request-transportation:
+    "Tell us about any mobility or assistance needs for this trip. Zenward
+     will review the request and confirm what we can accommodate."
+  → confirms the ZW-WEB-02B build is the one now serving production.
+
+Runtime behaviour unchanged by deployment (as intended):
+  - CONTACT_INTAKE_MODE and REQUEST_INTAKE_MODE were NOT changed. Both forms
+    continue to run in `stub` in production.
+  - The contact form now shows the truthful "This message wasn't sent —
+    no one at Zenward has received it. Please call our team. Call
+    470-206-8005" screen instead of the previous "our team will get back to
+    you" message. This is the intended, more-honest behaviour and needs no
+    env change to take effect.
+  - The transportation-request flow is byte-for-byte unchanged.
+
+
+================================================================================
+6. SUMMARY
+================================================================================
+
+  Completion report included:   YES (ZW-WEB-02B-contact-delivery-intake-safety.txt)
+  Commit hash:                  ab285154f3f32453a09c588ae26c320e920ae54b
+  Commit message:               "Harden Zenward website intake handling"
+  Working tree after commit:    clean
+  Push to origin/main:          SUCCEEDED (7a11d96..ab28515)
+  Branch state:                 main in sync with origin/main (0 ahead, 0 behind)
+  Vercel Production deploy:      TRIGGERED automatically, state = success
+  Production domain:             serving the new build (verified live)
+  Vercel env vars:              NOT changed (per instruction)
+  Additional code/copy changes: NONE
+
+
+================================================================================
+7. STILL OUTSTANDING (not part of this step — for the owner)
+================================================================================
+
+  - To actually deliver contact enquiries: set CONTACT_INTAKE_MODE=email +
+    CONTACT_INTAKE_EMAIL / CONTACT_EMAIL_FROM / CONTACT_EMAIL_API_KEY in
+    Vercel Production (Resend account, verified sender domain, monitored
+    inbox). Until then the contact form correctly tells visitors it did not
+    send and to call.
+  - Confirm NEXT_PUBLIC_SITE_URL = https://www.zenwardmobility.com in
+    Production env.
+  - ZW-WEB-02C decisions: contact retry / failure marker, and the interim
+    transportation-request delivery approach before the trusted intake
+    endpoint exists (see ZW-WEB-02B report §11).
+
+
+================================================================================
+END OF REPORT — ZW-WEB-02B COMMIT + DEPLOY
+================================================================================

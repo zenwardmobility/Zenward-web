@@ -1,7 +1,7 @@
 # Zenward Web — Request Intake Boundary
 
-**Status:** Foundation architecture. Stub implementation only — no production delivery destination is connected.
-**Last updated:** 2026-08-30
+**Status:** Foundation architecture. Stub implementation in production. The trusted `platform` path is fully specified and implemented on this side; the Nemryn endpoint it calls does not exist yet.
+**Last updated:** 2026-09-07 (ZW-WEB-02C-1: versioned envelope + idempotency + response contract)
 
 ## Why this exists
 
@@ -31,13 +31,34 @@ Because it reports `delivered: false`, the success screen tells the visitor to *
 
 ## The replacement point
 
-When the Zenward Platform's trusted `TransportationRequest` intake path exists (platform repo `docs/product/domain-model.md` §13, §L — a controlled server-side path that assigns `organization_id` itself, never trusting the client), replacing the stub is a matter of:
+When the trusted Nemryn transportation-request intake endpoint exists — a controlled server-side path that resolves the Zenward Mobility tenant from its **own** credentials and never trusts a client-supplied organization/tenant id — turning it on is a matter of:
 
-1. `PlatformRequestIntakeAdapter` already exists (`src/lib/request-intake/adapter.ts`): a `Bearer`-token, 10s-timeout, server-to-server `POST` of the validated payload. It currently has no URL/token to call.
-2. Set `PLATFORM_INTAKE_URL` and `PLATFORM_INTAKE_TOKEN` in **this site's server-only environment** (never `NEXT_PUBLIC_`, never sent to the browser).
-3. Set `REQUEST_INTAKE_MODE=platform`.
+1. Point `PLATFORM_INTAKE_URL` / `PLATFORM_INTAKE_TOKEN` at it (server-only, never `NEXT_PUBLIC_`, never sent to the browser).
+2. Set `REQUEST_INTAKE_MODE=platform`.
 
-**No page, form component, or Server Action needs to change** — the adapter interface is the seam specifically so the delivery destination can change without touching UI code. A successful platform response returns `delivered: true`, which flips the success copy and re-enables the `request_form_submitted` conversion automatically.
+**No page, form component, or Server Action needs to change** — the adapter interface is the seam. A positive acceptance returns `delivered: true`, which flips the success copy and re-enables the `request_form_submitted` conversion automatically. Every non-acceptance (any error status, malformed success body, timeout, or unreachable endpoint) returns `delivered: false` and a customer-safe "please call us" message.
+
+### What `PlatformRequestIntakeAdapter` sends (ZW-WEB-02C-1)
+
+`POST` (HTTPS only), `Authorization: Bearer <PLATFORM_INTAKE_TOKEN>`, `Idempotency-Key: <submissionId>`, 10s timeout, body:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "submissionId": "<uuid>",
+  "submittedAt": "<ISO-8601 UTC, server-generated>",
+  "source": "zenward_web",
+  "request": { "...": "the 12 validated transportation-request fields, unchanged" }
+}
+```
+
+- `submissionId` is a UUID generated in the browser (one per logical submission, held stable across retries) and **re-validated / regenerated server-side** in the Server Action. It is both the `Idempotency-Key` header and `envelope.submissionId`. It contains no personal information.
+- `submittedAt` and `source` are always generated server-side.
+- The envelope carries **no** `organization_id` / `tenant_id` / operator id — see the rule below.
+
+Expected response and the exact status-code handling, plus the full endpoint spec the Nemryn team must build to, live in **`docs/architecture/nemryn-trusted-request-intake-contract.md`**.
+
+`delivered: true` is returned **only** on `200`/`201` with `{ "accepted": true, "referenceId": "ZW-…" }`, or an idempotent `409` that echoes the original `referenceId`.
 
 The contact form follows the same pattern (`ContactIntakeAdapter`), but is allowed ordinary email delivery (`CONTACT_INTAKE_MODE=email`, Resend) because it collects no detailed passenger transportation information. `ContactMessageResult` also carries `delivered: boolean` (ZW-WEB-02B): the stub and every failure path return `false`, `EmailContactIntakeAdapter` returns `true` only after a Resend 2xx, and the success screen tells the visitor plainly when a message was **not** sent (and to call) rather than implying it was received.
 
@@ -45,8 +66,9 @@ The contact form follows the same pattern (`ContactIntakeAdapter`), but is allow
 
 - This site must never hold or use a Supabase (or equivalent) service-role credential for the platform's database.
 - This site must never grant itself, or be granted, anonymous SELECT access to any platform table.
-- No form on this site ever collects or transmits an `organization_id` — that determination belongs entirely to the trusted server-side path on whichever end ultimately receives the submission, exactly as the platform's own architecture requires of its intake boundary.
-- The browser must never receive, in any API response, more than a plain acknowledgement (success/failure + a human-readable reference id) — never a reflected copy of platform-internal identifiers, structure, or state.
+- No form on this site ever collects or transmits an `organization_id` / `tenant_id` / operator id, and neither does the server-to-server envelope — that determination belongs entirely to the trusted endpoint, which resolves it from its own server-side credentials and enforces tenant isolation with database RLS.
+- The browser must never receive, in any API response, more than a plain acknowledgement (success/failure + a human-readable reference id) — never a reflected copy of platform-internal identifiers, structure, or state, and never an HTTP status, provider name, or token.
+- Logs (server-side only) may contain the `submissionId`, a response status category, an error class, and a timeout flag — never request content, never the envelope, never the token.
 
 ## Security boundary summary
 

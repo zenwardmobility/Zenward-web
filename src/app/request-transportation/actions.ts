@@ -13,6 +13,7 @@ import {
   FIELD_LIMITS,
   isAllowed,
   isPayloadWithinLimit,
+  isUuid,
   type SubmissionGuard,
 } from "@/lib/forms/guard";
 
@@ -35,9 +36,14 @@ const GENERIC_ERROR =
  * normalised and length-capped, and enum fields are checked against their
  * allowed values — before anything reaches the configured adapter.
  *
- * There is no `organization_id`, trip state, driver, or vehicle field for a
- * client to supply or forge. Request content is never logged in full, never
- * persisted in the browser, and never sent to analytics.
+ * There is no `organization_id` / `tenant_id`, trip state, driver, or vehicle
+ * field for a client to supply or forge. Request content is never logged in
+ * full, never persisted in the browser, and never sent to analytics.
+ *
+ * The client also sends a `submissionId` (UUID) so a network-failure retry of
+ * the same submission is de-duplicated downstream. It is re-validated here and
+ * regenerated server-side if missing or malformed — `submittedAt` and
+ * `source` are always generated server-side (in the adapter).
  */
 export async function submitTransportationRequest(
   input: unknown,
@@ -45,6 +51,10 @@ export async function submitTransportationRequest(
 ): Promise<TransportationRequestResult> {
   const gate = checkSubmissionGuard(guard);
   if (!gate.ok) return { ok: false, delivered: false, error: gate.reason };
+
+  // Trust a well-formed client submissionId (stable across retries); otherwise
+  // mint one. Never derived from personal information.
+  const submissionId = isUuid(guard?.submissionId) ? guard.submissionId : crypto.randomUUID();
 
   if (!input || typeof input !== "object" || !isPayloadWithinLimit(input)) {
     return { ok: false, delivered: false, error: GENERIC_ERROR };
@@ -85,7 +95,7 @@ export async function submitTransportationRequest(
   }
 
   try {
-    return await getRequestIntakeAdapter().submit(clean);
+    return await getRequestIntakeAdapter().submit(clean, { submissionId });
   } catch (err) {
     console.error("[request-intake] submit failed.", err instanceof Error ? err.name : "unknown");
     return { ok: false, delivered: false, error: GENERIC_ERROR };

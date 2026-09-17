@@ -1,0 +1,574 @@
+================================================================================
+ZW-WEB-02C-1 — TRUSTED TRANSPORTATION REQUEST INTAKE CONTRACT — COMPLETION REPORT
+================================================================================
+
+Repository:            /Users/datamatics/Zenward-Web
+Production site:        https://www.zenwardmobility.com
+Git branch / HEAD:     main / ab28515 ("Harden Zenward website intake handling")
+                       — UNCHANGED (nothing committed this phase)
+Framework:             Next.js 16.3.3 (App Router), React 19.2.8, TypeScript 5
+Date:                  2026-09-07
+Status:                Implemented + verified against a local mock. NOT
+                       committed, NOT pushed, NOT deployed.
+
+Scope honoured:
+  - Nemryn NOT implemented (only the Zenward-Web side + a handoff spec).
+  - Supabase NOT connected. Vercel Blob NOT introduced.
+  - Transportation-request details NEVER emailed.
+  - No visual redesign. No new *form fields* (the idempotency id is a
+    JS-level value passed alongside the payload, not a rendered input).
+  - REQUEST_INTAKE_MODE stays `stub`; production env untouched.
+
+
+================================================================================
+1. CURRENT ADAPTER CONTRACT  (before this phase)
+================================================================================
+
+Files audited:
+  src/lib/request-intake/types.ts
+  src/lib/request-intake/adapter.ts
+  src/app/request-transportation/actions.ts
+  src/components/public/RequestTransportationForm.tsx
+  docs/architecture/request-intake-boundary.md
+
+Flow (unchanged in shape):
+  Browser form (client component)
+   → submitTransportationRequest(input, guard)   [Server Action, "use server"]
+       - checkSubmissionGuard (honeypot + fill-time)
+       - payload must be an object and ≤ 16 KB
+       - rebuild `clean` from a fixed 12-field whitelist; normalise +
+         length-cap every string; validate the 2 enum fields
+       - required-field check
+       - getRequestIntakeAdapter().submit(clean)   in try/catch
+   → StubRequestIntakeAdapter | PlatformRequestIntakeAdapter
+       selected by REQUEST_INTAKE_MODE ?? "stub"
+
+What PlatformRequestIntakeAdapter sent BEFORE 02C-1:
+  - `POST` to `PLATFORM_INTAKE_URL`
+  - headers: `content-type: application/json`,
+    `authorization: Bearer ${PLATFORM_INTAKE_TOKEN}`
+  - body: `JSON.stringify(input)` — the RAW validated TransportationRequestInput
+    (the 12 form fields), NO envelope, NO version, NO idempotency key, NO
+    server timestamp, NO source marker
+  - `signal: AbortSignal.timeout(10_000)`
+  - if `!this.url || !this.token` → fail closed, `delivered:false`,
+    "Online requests are temporarily unavailable. Please call us…"
+  - `!res.ok` → `console.error("… responded <status>.")`, fail closed,
+    "We couldn't submit your request just now…"
+  - `res.ok` → `{ ok:true, delivered:true,
+                  referenceId: data.referenceId ?? "ZW-<base36>" }`
+      ^ WEAKNESS: any 2xx was treated as success even if the body did not
+        confirm acceptance, and it fabricated a local reference if the body
+        had none.
+  - `catch` → `console.error("… call failed.", err.name)`, fail closed.
+
+Existing guarantees that were already correct and are preserved:
+  - Server Action is the security boundary; browser never calls the endpoint.
+  - No `organization_id` / tenant id anywhere in the form, payload, or code.
+  - Token is server-only, never `NEXT_PUBLIC_`, never returned to the browser.
+  - No request content in logs; nothing persisted in the browser; nothing to
+    analytics; `delivered` gates the success copy and the
+    `request_form_submitted` conversion.
+  - Stub mode acknowledges honestly with `delivered:false` + phone fallback.
+
+Validated fields (unchanged — no technical reason to change them):
+  requesterName*, requesterRelationship* (enum), requesterPhone*,
+  requesterEmail, passengerName*, pickupDescription*, destinationDescription*,
+  preferredDate, preferredTime, returnTripNeeded* (enum),
+  assistanceNotes, additionalNotes            (* = required)
+
+
+================================================================================
+2. FINAL PROPOSED REQUEST ENVELOPE
+================================================================================
+
+`PlatformRequestIntakeAdapter` now POSTs an explicit, versioned envelope
+(type: `TrustedIntakeEnvelope` in src/lib/request-intake/types.ts):
+
+  {
+    "schemaVersion": "1.0",
+    "submissionId": "<uuid>",                 // == Idempotency-Key header
+    "submittedAt": "<ISO-8601 UTC>",          // server-generated (adapter)
+    "source": "zenward_web",                  // server-generated (constant)
+    "request": { ...the 12 validated fields, unchanged... }
+  }
+
+Rules enforced on the Zenward-Web side:
+  - `schemaVersion` is a literal `"1.0"`; bumped only on a breaking envelope
+    change. New optional `request` fields will NOT bump it.
+  - `submittedAt` = `new Date().toISOString()` at send time. Never client-set.
+  - `source` = `"zenward_web"` constant. Never client-set.
+  - `submissionId` — see §3.
+  - The envelope carries NO organization_id / tenant_id / operator id. The
+    endpoint must resolve the Zenward Mobility tenant from its own credentials.
+  - The envelope is internal: never exposed to the browser or the visitor.
+
+Verified on the wire (local mock captured every call):
+  envelopeKeys = ["schemaVersion","submissionId","submittedAt","source","request"]
+  schemaVersion="1.0", source="zenward_web", submittedAt=ISO
+  request keys = exactly the 12 whitelisted fields
+  forbiddenKeysFound (organization_id|tenant_id|operator|…) = false
+
+
+================================================================================
+3. IDEMPOTENCY DESIGN
+================================================================================
+
+Problem solved: a visitor who submits, hits a network failure, and submits
+again must not create two operational requests.
+
+Mechanism (smallest robust approach for this architecture):
+  - ONE `submissionId` (UUID v4) per *logical* form submission.
+  - Generated in the browser on form mount
+    (`crypto.randomUUID()`; if unavailable in a non-secure context it sends
+    nothing and the server mints one).
+  - Held in a `useRef` and deliberately NOT regenerated on a failed attempt —
+    so a user-initiated retry reuses the same id. It is only replaced on a
+    fresh page load / component mount (a genuinely new submission).
+  - Passed to the Server Action in the `guard` object (`SubmissionGuard`
+    gained an optional `submissionId`).
+  - The Server Action RE-VALIDATES it (`isUuid()` in src/lib/forms/guard.ts):
+    a well-formed UUID is trusted; anything missing/malformed →
+    `crypto.randomUUID()` server-side.
+  - The adapter sends it BOTH as the HTTP header `Idempotency-Key: <uuid>`
+    AND as `envelope.submissionId` (identical values).
+  - It is a random UUID — never personal information, never derived from any
+    name/phone/email/address.
+
+Retry behaviour (documented and tested):
+  | Situation                                   | submissionId | Outcome |
+  |---------------------------------------------|--------------|---------|
+  | First submit succeeds                       | id-A         | request created; ref shown |
+  | Network fails, visitor resubmits (same page)| id-A (reused)| endpoint returns SAME ref; nothing new created |
+  | Endpoint accepted but response lost; resubmit| id-A (reused)| idempotent replay → same ref |
+  | Visitor reloads and starts over             | id-B (new)   | treated as a new request |
+  | Malformed/missing client id                 | server mints | processed normally; retry-dedupe not possible for that one case |
+
+Endpoint obligations (in the Nemryn spec, §7 there):
+  - first request for a key → create + persist `key → referenceId` durably
+  - same key again → return the SAME `referenceId`, `accepted:true`, HTTP 200
+    (or 409 that ECHOES the referenceId — Zenward-Web treats that as success)
+  - keep the mapping ≥ 7 days (30 preferred)
+  - serialise concurrent duplicates (unique constraint on the key)
+
+Local mock verification (scenario B): two `submit()` calls with the same
+submissionId → both `delivered:true`, `referenceId` identical
+(`sameReferenceOnRetry: true`).
+
+
+================================================================================
+4. AUTHENTICATION DESIGN
+================================================================================
+
+Preserved: server-to-server Bearer, unchanged in principle.
+
+  Authorization: Bearer <PLATFORM_INTAKE_TOKEN>
+
+Zenward-Web guarantees (verified in code + mock):
+  - token read only from `process.env.PLATFORM_INTAKE_TOKEN` inside the
+    adapter (a server module); never `NEXT_PUBLIC_`
+  - never logged (log fields are submissionId / outcome / status / errorClass
+    / timeout only)
+  - never returned to the browser (results carry only ok/delivered/error/
+    referenceId)
+  - never embedded in client code (the form imports only the Server Action)
+  - HTTPS enforced: if `PLATFORM_INTAKE_URL` does not start with `https://`
+    the adapter fails closed BEFORE making any call and BEFORE attaching the
+    token (mock scenario L: `outcome=insecure_url`, no network call, no token
+    sent)
+  - missing URL or token → fail closed (`outcome=not_configured`)
+
+Added to the Nemryn spec (their obligations): verify the bearer first;
+support two valid tokens for zero-downtime rotation; bind the token to the
+Zenward Mobility tenant server-side; 401 on missing/blank/unknown/expired.
+
+No real token was created or invented. Provisioned operationally at go-live.
+
+
+================================================================================
+5. RESPONSE / STATUS CONTRACT
+================================================================================
+
+`delivered: true` is returned ONLY on a positive acceptance:
+  - HTTP 200 or 201 AND body `{ "accepted": true, "referenceId": "<non-empty string>" }`
+  - OR HTTP 409 that ECHOES a non-empty `referenceId` (idempotent duplicate)
+
+Everything else → `delivered: false` (fails closed) + a customer-safe message.
+
+  | Endpoint response                     | adapter outcome     | delivered | visitor message |
+  |---------------------------------------|---------------------|-----------|-----------------|
+  | 200/201 + accepted:true + referenceId | accepted / duplicate| TRUE      | "Request received…" + reference |
+  | 409 + referenceId                     | duplicate           | TRUE      | "Request received…" + reference |
+  | 200/201 without accepted+referenceId  | malformed_success   | false     | RETRY message   |
+  | 400 / 401 / 403 / 409-no-ref / 4xx    | rejected            | false     | RETRY message   |
+  | 429                                   | rate_limited        | false     | UNAVAILABLE message |
+  | 5xx                                   | server_error        | false     | UNAVAILABLE message |
+  | no response in 10 s                   | timeout             | false     | UNAVAILABLE message |
+  | connection refused / DNS / TLS        | unreachable         | false     | UNAVAILABLE message |
+  | URL/token missing                     | not_configured      | false     | UNAVAILABLE message |
+  | URL not https://                      | insecure_url        | false     | UNAVAILABLE message |
+
+  RETRY message:
+    "We couldn't submit your request just now. Please try again shortly, or call us."
+  UNAVAILABLE message:
+    "Online requests are temporarily unavailable right now. Please call us to arrange transportation."
+
+Neither message contains an HTTP status, a provider/Nemryn name, API
+terminology, a token, or tenant information.
+
+`referenceId` requirements imposed on the endpoint (Nemryn spec §8.1):
+  - short, human-quotable, safe to display publicly and to log
+  - MUST NOT be / contain / be derived from a database key, an organisation
+    or tenant id, or a sequential internal id
+  - the same idempotency key must always yield the same referenceId
+Zenward-Web no longer fabricates a reference: a 2xx with no usable
+`referenceId` is now a failure, not a fake success.
+
+
+================================================================================
+6. PUBLIC SUCCESS / FAILURE BEHAVIOUR
+================================================================================
+
+Preserved exactly.
+
+delivered:true (only then):
+  Heading:  "Request received"
+  Body:     "Zenward will review the transportation details and contact you
+             to confirm availability and next steps."
+  Plus:     "Reference: <referenceId from the endpoint>"
+  Analytics: `request_form_submitted` fires (gated on delivered===true).
+  NEVER says: booking confirmed, ride confirmed, driver assigned.
+
+delivered:false / ok:false:
+  - the form stays mounted and re-submittable (status="error")
+  - an inline `role="alert"` shows the generic RETRY or UNAVAILABLE message
+  - the page's highlighted "Prefer to arrange by phone? — Call 470-206-8005"
+    card is always present above the form
+  - no HTTP status, no Nemryn, no API terms, no tokens, no internal errors
+
+Verified in-browser (headless, production build):
+  - platform mode + mock "accept"  → "Request received / Zenward will review
+    the transportation details and contact you to confirm availability and
+    next steps. / Reference: ZW-RS"
+  - platform mode + mock "500"      → form retained, alert:
+    "Online requests are temporarily unavailable right now. Please call us to
+    arrange transportation.", phone CTA present
+  - stub mode                       → unchanged honest "We have your details…
+    please also call… Reference: ZW-STUB-…"
+
+
+================================================================================
+7. PRIVACY / LOGGING GUARANTEES
+================================================================================
+
+All preserved and re-verified:
+  - NO request payloads in logs. NO passenger/requester names, phone, email,
+    pickup/destination, assistance notes, or additional notes in logs.
+    (Mock harness seeded 8 realistic PII needles and asserted 0 appeared in
+     any captured log line across all 13 scenarios; the live Server Action
+     server log was grepped for the same and found clean.)
+  - NO PII in analytics (closed `AnalyticsEvent` union; only
+    `request_form_started` and `request_form_submitted { hasReturnTrip }`).
+  - NO request data in URLs (the Server Action POSTs; nothing in query strings).
+  - NO localStorage / sessionStorage / cookie writes by the form. The
+    `submissionId` lives only in a React ref for the page's lifetime.
+  - Server-only credentials; fixed whitelist validation; 16 KB payload cap;
+    honeypot + fill-time guard — all unchanged.
+  - Neutral assistance wording (from ZW-WEB-02B) unchanged.
+
+Adapter log line — the ONLY thing it logs — is:
+  `[request-intake] platform { submissionId, outcome[, status][, errorClass][, timeout] }`
+  submissionId is a random UUID (no PII); outcome is a fixed category;
+  status is an HTTP number; errorClass is an Error.name; timeout is a bool.
+
+No HIPAA / compliance / health-data-pipeline claim anywhere.
+
+
+================================================================================
+8. FILES CHANGED
+================================================================================
+
+CODE (5 modified):
+
+  src/lib/request-intake/types.ts
+    + `RequestSubmissionMeta { submissionId: string }`
+    + `TrustedIntakeEnvelope { schemaVersion:"1.0"; submissionId; submittedAt;
+        source:"zenward_web"; request: TransportationRequestInput }`
+    ~ `TransportationRequestResult.delivered` doc clarified (positive
+      acceptance only; fails closed otherwise).
+
+  src/lib/request-intake/adapter.ts   (rewritten PlatformRequestIntakeAdapter)
+    ~ `RequestIntakeAdapter.submit(input, meta)` — signature gains `meta`.
+    + builds and sends the versioned envelope.
+    + `Idempotency-Key` header = meta.submissionId.
+    + `accept: application/json` header.
+    + HTTPS-only guard (fails closed before any call / before attaching token).
+    + explicit status handling: 200/201+accepted, 409+ref, malformed 2xx,
+      429, 5xx, 4xx, timeout (TimeoutError/AbortError), unreachable.
+    + `logOutcome()` — structured, PII-free operational log only.
+    ~ no longer fabricates a referenceId on a contentless 2xx (now a failure).
+    - StubRequestIntakeAdapter behaviour byte-for-byte unchanged.
+
+  src/lib/forms/guard.ts
+    + `SubmissionGuard.submissionId?: string` (optional; contact form ignores it).
+    + `isUuid(value)` helper (canonical UUID regex).
+
+  src/app/request-transportation/actions.ts
+    + derive `submissionId`: trust a well-formed client UUID, else
+      `crypto.randomUUID()` server-side.
+    ~ `getRequestIntakeAdapter().submit(clean, { submissionId })`.
+    ~ doc comment updated (tenant_id, submissionId, server-generated fields).
+
+  src/components/public/RequestTransportationForm.tsx
+    + `makeSubmissionId()` (crypto.randomUUID with a safe "" fallback).
+    + `submissionId` ref set on mount; NOT reset on error (retry stability).
+    ~ passes `submissionId` in the guard object to the Server Action.
+    - No JSX / field / layout / styling change. (Verified: 390px + desktop
+      screenshots identical to ZW-WEB-02B.)
+
+DOCUMENTATION (2 modified, 1 new):
+
+  .env.example
+    ~ REQUEST_INTAKE_MODE / PLATFORM_INTAKE_* comments: envelope, idempotency,
+      https-only, "never logged / never to browser", points at the contract
+      doc. REQUEST_INTAKE_MODE stays `stub`.
+
+  docs/architecture/request-intake-boundary.md
+    ~ status/date; replacement-point section rewritten with the envelope,
+      the idempotency model, and the acceptance rule; "what must never
+      happen" tightened (tenant id in envelope, no HTTP status/provider/token
+      to browser, allowed log fields).
+
+  docs/architecture/nemryn-trusted-request-intake-contract.md   (NEW)
+    Full implementation handoff spec for the Nemryn team — see §11 below.
+
+REPORTS (this file; the ZW-WEB-02B deployment report remains untracked):
+  docs/reports/ZW-WEB-02C1-trusted-intake-contract.txt
+
+Diff stat (code + 2 docs): 7 files changed, +271 / -70. Plus the new
+contract doc (~330 lines) and this report.
+
+NO production code path changes behaviour today: REQUEST_INTAKE_MODE=stub, so
+`PlatformRequestIntakeAdapter` is not instantiated in production.
+
+
+================================================================================
+9. LOCAL MOCK-TEST RESULTS
+================================================================================
+
+Test rig (scratchpad only — NOT added to the repo):
+  - `mock-nemryn.mjs`: a local HTTPS server (self-signed cert) that returns a
+    chosen response per request (`?s=<scenario>`), records the exact envelope
+    + headers it received, and implements idempotency (same Idempotency-Key →
+    same reference).
+  - `harness.mjs`: imports the REAL `getRequestIntakeAdapter` from
+    `src/lib/request-intake/adapter.ts` (Node 24 runs the TS directly),
+    captures ALL console output, calls `submit()` with a PII-laden sample
+    input, asserts no needle leaks to logs.
+  - Also driven end-to-end through `next start` + headless Chrome for the
+    browser-facing copy.
+
+Results — every scenario PASS:
+
+  #  Scenario                        Endpoint         delivered  Reference        Log outcome        PII in logs
+  -  ------------------------------  ---------------  ---------  ---------------  -----------------  -----------
+  A  accepted success              201 accepted     TRUE       ZW-RS (endpoint) accepted status=201  none
+  B  idempotent retry (same id x2) 201 then 200     TRUE x2    SAME ref (ZW-RT) accepted 201/200     none
+  C  HTTP 400                      400              false      —                rejected status=400  none
+  D  HTTP 401                      401              false      —                rejected status=401  none
+  E  HTTP 429                      429              false      —                rate_limited 429     none
+  F  HTTP 500                      500              false      —                server_error 500     none
+  G  timeout (no response)         (hang > 10s)     false      —                timeout TimeoutError none
+  H  unreachable (closed port)     ECONNREFUSED     false      —                unreachable TypeError none
+  I  missing URL/token             (no call)        false      —                not_configured       none
+  J  409 echoing referenceId       409 + ref        TRUE       ZW-DUP1002       duplicate status=409 none
+  K  malformed 2xx (no accepted)   200 {hello}      false      —                malformed_success    none
+  L  insecure http:// URL          (no call, no token sent)   false  —          insecure_url         none
+  M  stub mode (regression)        n/a              false      ZW-STUB-…        stub info line       none
+
+  Envelope/header assertions (from the mock's own capture, every call):
+    - method POST, Authorization: Bearer present
+    - Idempotency-Key present AND == envelope.submissionId
+    - envelope keys exactly [schemaVersion, submissionId, submittedAt, source, request]
+    - schemaVersion "1.0", source "zenward_web", submittedAt ISO-8601
+    - request = exactly the 12 validated fields
+    - forbiddenKeysFound (organization_id|tenant_id|operator|…) = FALSE
+
+  End-to-end (headless browser, production build):
+    - platform + accept → "Request received / Zenward will review the
+      transportation details and contact you… / Reference: ZW-RS";
+      server log: one `[request-intake] platform {…}` line, no PII
+    - platform + 500 → form retained, generic UNAVAILABLE alert, phone CTA
+    - stub → unchanged; contact form → unchanged (ZW-WEB-02B behaviour intact)
+
+  delivered:true ONLY on accepted success / idempotent echo — CONFIRMED.
+  Every failure → delivered:false — CONFIRMED.
+  No request content printed in any log — CONFIRMED.
+  Stub mode available and unchanged — CONFIRMED.
+
+
+================================================================================
+10. ENVIRONMENT VARIABLES
+================================================================================
+
+Now (unchanged, and must stay this way):
+  REQUEST_INTAKE_MODE = stub          (repo default; live production value)
+
+When the Nemryn endpoint exists (set in Vercel Production, server-only):
+  REQUEST_INTAKE_MODE = platform
+  PLATFORM_INTAKE_URL = <https:// URL from the Nemryn team>
+  PLATFORM_INTAKE_TOKEN = <bearer secret from the Nemryn team>
+
+Rules baked into the adapter:
+  - both vars required; missing either → fail closed (`not_configured`)
+  - URL must be `https://` → else fail closed (`insecure_url`), no token sent
+  - never `NEXT_PUBLIC_`, never logged, never returned to the browser
+
+NOT invented here. No URL, no token, no account created. The live production
+value was NOT touched.
+
+Never add: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY / service-role key,
+DATABASE_URL, or any NEXT_PUBLIC_ var holding an endpoint / token / address.
+
+
+================================================================================
+11. EXACT NEMRYN IMPLEMENTATION REQUIREMENTS
+================================================================================
+
+Full spec: docs/architecture/nemryn-trusted-request-intake-contract.md
+Summary of what the Nemryn team must build:
+
+  Transport:      POST, HTTPS only, application/json, respond within ~5 s
+                  (hard client abort at 10 s), reject > 64 KB with 413.
+  Auth:           Authorization: Bearer <token>; verify first; support 2
+                  valid tokens for rotation; 401 on missing/unknown/expired.
+  TENANT RULE:    Resolve the Zenward Mobility organisation SERVER-SIDE from
+                  the token/config. NEVER read an organization_id / tenant_id
+                  / operator id from the request (Zenward-Web never sends
+                  one; ignore it if ever present). Enforce tenant isolation
+                  at the DB layer with RLS on the created row.
+  Body:           the versioned envelope (schemaVersion "1.0", submissionId
+                  UUID, submittedAt ISO, source "zenward_web", request{12
+                  fields}). Ignore unknown `request` fields; reject unknown
+                  major schemaVersion with 400.
+  Validation:     defensively re-validate envelope + required fields + enums
+                  + own business rules → 400 on failure (don't echo values
+                  for public display).
+  Idempotency:    Idempotency-Key header (== envelope.submissionId) → create
+                  exactly one request; same key returns the SAME referenceId
+                  (200), or a 409 that echoes it; persist key→ref ≥ 7 days
+                  (30 preferred); serialise concurrent duplicates.
+  Success:        201 (new) / 200 (replay): { "accepted": true,
+                  "referenceId": "ZW-…" }.
+  referenceId:    opaque, short, display-safe, log-safe, NON-sequential,
+                  leaks no DB/org/tenant id; stable per idempotency key.
+  Errors:         400 invalid · 401 auth · 403 forbidden · 409 duplicate
+                  (with ref) · 413 too large · 422 semantic · 429 rate limit
+                  (Retry-After welcome) · 5xx server. Bodies may carry a
+                  machine `error` string for logs; not displayed by Zenward.
+  Logging:        do NOT log the bearer token; treat request names/phone/
+                  email and the 4 free-text fields as sensitive PII (redact/
+                  hash, minimal). No HIPAA claims.
+  Handoff:        provide Zenward-Web ops the URL, the token(s), and a
+                  staging instance for an end-to-end test BEFORE
+                  REQUEST_INTAKE_MODE=platform is set in production.
+
+
+================================================================================
+12. RISKS / BLOCKERS
+================================================================================
+
+  B-1  [BLOCKER — external]  The Nemryn endpoint does not exist. Automated
+       request delivery cannot be enabled until the Nemryn team builds it to
+       the contract in §11. Owned by the Nemryn team. NOT a launch blocker —
+       stub mode + phone fallback remains live and honest.
+
+  R-1  [RISK — low]  Client-supplied `submissionId`. A malicious client could
+       reuse one id across different submissions; the only effect is the
+       endpoint de-duplicating that client's own requests (self-harm). It is
+       re-validated as a UUID server-side; a malformed one is replaced. No
+       PII, no injection surface (it is only ever a header value + a JSON
+       string the endpoint treats as an opaque key).
+
+  R-2  [RISK — low]  `crypto.randomUUID()` needs a secure context. Production
+       is HTTPS so this is fine; the documented fallback (server mints one)
+       only loses cross-retry dedup in an already-degraded environment.
+
+  R-3  [RISK — low]  No client/server auto-retry on 429 or 5xx. By design
+       (keep it simple, fail closed, phone fallback). A future ZW-WEB phase
+       may add one bounded retry. Not a blocker.
+
+  R-4  [RISK — none/operational]  When the endpoint goes live, the referenceId
+       shown to the visitor comes straight from Nemryn. If Nemryn violates
+       the "no DB/tenant id" rule, an internal id could surface publicly. The
+       contract states this explicitly and it must be checked during the
+       staging end-to-end test before production cutover.
+
+  R-5  [RISK — low]  `docs/architecture/request-intake-boundary.md` and older
+       launch docs still reference "Zenward Platform" / platform-repo section
+       numbers in a few places not touched this phase. Cosmetic; align on a
+       later docs pass. No functional impact.
+
+  No Supabase, Blob, email-of-request-content, Nemryn code, or new public
+  terminology was introduced. tsc / lint / build all PASS.
+
+
+================================================================================
+13. IS ZENWARD-WEB READY FOR NEMRYN ENDPOINT INTEGRATION?
+================================================================================
+
+  YES — the Zenward-Web side is READY and integration is config-only.
+
+  When the Nemryn team delivers a conforming endpoint + token:
+    1. Point PLATFORM_INTAKE_URL / PLATFORM_INTAKE_TOKEN at the STAGING
+       instance in a preview/staging environment.
+    2. Set REQUEST_INTAKE_MODE=platform there.
+    3. Run the end-to-end acceptance test (submit → accepted + reference;
+       retry same submission → same reference; force 500 → honest failure).
+    4. Repeat against the PRODUCTION endpoint in Vercel Production env.
+  No Zenward-Web code change is expected for cutover.
+
+  The one hard dependency is external (B-1): the endpoint itself.
+
+  What is NOT yet built on the Zenward-Web side and is deliberately deferred:
+    - a bounded auto-retry on transient failure (R-3)
+    - a durable local backup of a failed submission (still out of scope —
+      needs a storage decision; see ZW-WEB-02B report §11 / ZW-WEB-02C-2)
+
+
+================================================================================
+14. EXACT NEXT STEP FOR ZW-WEB-02C-2
+================================================================================
+
+Recommended ZW-WEB-02C-2 = "Trusted intake staging integration + failure
+resilience", to run WHEN the Nemryn team has a staging endpoint:
+
+  1. Wire PLATFORM_INTAKE_URL / PLATFORM_INTAKE_TOKEN to the Nemryn STAGING
+     endpoint in a Vercel preview/staging environment; set
+     REQUEST_INTAKE_MODE=platform there only (production stays stub).
+  2. Run the full acceptance matrix against the real staging endpoint
+     (accepted / idempotent retry / 400 / 401 / 409 / 429 / 5xx / timeout),
+     confirming the public copy and that the referenceId is opaque and
+     leaks no internal id.
+  3. Add ONE bounded retry in PlatformRequestIntakeAdapter for network
+     errors / timeouts / 429 (respecting Retry-After), still failing closed
+     after the retry. (R-3)
+  4. Decide + implement the durable-backup question for a post-validation
+     delivery failure (owner decision carried over from ZW-WEB-02B §11 —
+     needs a storage mechanism; Blob was excluded, so either lift that
+     constraint or choose another store, and define a retention/access
+     policy). Keep it content-safe.
+  5. Only after staging passes: set the PRODUCTION endpoint + token, flip
+     REQUEST_INTAKE_MODE=platform in Vercel Production, redeploy, and run one
+     real end-to-end confirmation.
+
+If the Nemryn endpoint is NOT yet available, ZW-WEB-02C-2 should instead be
+step 3+4 above (retry + durable-backup decision) done against the local mock,
+so Zenward-Web is fully hardened and waiting.
+
+
+================================================================================
+END OF REPORT — ZW-WEB-02C-1
+Implemented + verified against a local mock. tsc / lint / build all PASS.
+Nothing committed, pushed, or deployed. REQUEST_INTAKE_MODE remains stub.
+================================================================================

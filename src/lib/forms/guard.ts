@@ -9,12 +9,27 @@
  * majority of drive-by bot spam without adding friction for real people.
  */
 
-/** Anti-abuse signals collected by the client and passed alongside the form payload. */
+/** Signals collected by the client and passed alongside the form payload. */
 export interface SubmissionGuard {
   /** Honeypot field value. A real user never fills it; a bot that auto-fills every input does. */
   hp?: string;
   /** `Date.now()` captured when the form first mounted, used for a minimum fill-time check. */
   startedAt?: number;
+  /**
+   * A UUID identifying one logical form submission, generated in the browser
+   * and kept stable across network-failure retries. Used only for downstream
+   * idempotency (the request-transportation flow); the Server Action
+   * re-validates it and regenerates it server-side if it is missing or
+   * malformed. Never used as, or derived from, personal information.
+   */
+  submissionId?: string;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True when `value` is a canonically-formatted UUID string. */
+export function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_RE.test(value);
 }
 
 /** Minimum time (ms) a genuine person needs to read and complete a form. Faster than this ⇒ almost certainly automated. */
