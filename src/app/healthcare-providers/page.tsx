@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 export const metadata: Metadata = pageMetadata({
   title: "Healthcare Providers",
   description:
-    "Zenward partners with clinics, dialysis centers, rehabilitation providers, senior care organizations, and hospital discharge teams to coordinate patient transportation.",
+    "Zenward works with clinics, dialysis centers, rehabilitation providers, senior care organizations, and hospital discharge teams to coordinate patient transportation.",
   path: "/healthcare-providers",
 });
 
@@ -111,7 +111,7 @@ export default function HealthcareProvidersPage() {
           ))}
         </div>
         <p className={cn(typography.bodySmall, "mx-auto mt-lg max-w-[42rem] text-center text-text-muted")}>
-          Zenward handles the scheduling and coordination behind the scenes. Talk to our team about how your
+          Your team coordinates care; Zenward coordinates the transportation. Talk to our team about how your
           organization arranges transportation today, and how Zenward can help.
         </p>
       </Section>

@@ -1,0 +1,352 @@
+ZW-WEB-03B — WHY SPECIALIZED MEDICAL TRANSPORTATION
+Date: 2026-09-19
+Repository: /Users/datamatics/Zenward-Web
+Status: IMPLEMENTED, UNCOMMITTED, NOT DEPLOYED (per instructions)
+
+======================================================================
+1. STARTING GIT STATE
+======================================================================
+Branch: main, up to date with origin/main. Working tree clean.
+git log --oneline -10:
+  cb615f5 Document ZW-WEB-03A production deployment
+  7ccf813 Add dedicated Zenward service pages
+  19ee3f0 Fill in production verification results in van image report
+  3793072 Update Zenward van image phone number
+  5cc2b40 Update Zenward vehicle imagery phone number
+  03b851d Fill in production verification results in phone number report
+  bd20b38 Update Zenward Mobility phone number
+  ab28515 Harden Zenward website intake handling
+  7a11d96 Refine Zenward public transportation positioning
+  5f21443 Document responsive hero art direction
+Read before editing: docs/product/marketing-scope.md, launch-readiness.md,
+docs/architecture/request-intake-boundary.md, the 03A reports, and the current
+homepage, /services, /healthcare-providers, /request-transportation and the six
+03A service pages (via src/lib/services.ts + ServicePage.tsx).
+
+======================================================================
+2. UX / CONTENT REASONING
+======================================================================
+Audit finding: the homepage explained "what you can count on" and "getting to
+care should feel more certain", but nowhere said what a medical trip involves
+beyond pickup-to-destination. /services only listed services. The 03A pages
+explain each service, so the missing piece was a short cross-service statement.
+
+Placement: homepage, between "Patients & Families" (white) and "For Healthcare
+Providers" (navy), as a MIST section. Reasons:
+  - It comes after the trust and audience content has established Zenward, and
+    before the provider section and the service list, so it frames both.
+  - It is audience-neutral (passengers, families, caregivers, care teams), so
+    sitting between the patient and provider sections suits it.
+  - Tone rhythm stays intact: mist > white > mist > white > navy > white > mist.
+  - No new page: there is no information-architecture reason for one, and the
+    concept is one idea, not a destination.
+
+Shape: an editorial ruled list, not a card grid. Left: eyebrow, headline,
+supporting paragraph. Right: four principles separated by hairlines, no icons,
+no boxes, no numbering (so it doesn't read as steps or product features).
+Below: one plain sentence ("Submitting a request is not a confirmed booking...")
+next to the Request Transportation + Call buttons.
+
+Tone: describes what a medical trip involves and what Zenward does about it. No
+competitor is named or compared; no superiority, capability or clinical claim.
+Headline "Transportation planned around care, not just a pickup" uses the brief's
+core idea; "not just a pickup" states what the service adds without comparing to
+anyone.
+
+Service pages: the concept is not duplicated. Each 03A page already has an
+"All services" link to /services in its hero, and the new homepage section links
+to the recurring-care page. /services gets one supporting sentence. No large
+block was added to any service page.
+
+======================================================================
+3. HOMEPAGE CHANGES
+======================================================================
+New section (id="why-medical-transportation"), src/app/page.tsx:
+  Eyebrow:  Why Medical Transportation
+  Headline: Transportation planned around care, not just a pickup
+  Body:     "A medical trip often involves more than getting from one address
+            to another. Appointment timing, recurring schedules, family
+            coordination and changing care plans can all affect the journey.
+            Zenward reviews each transportation request and confirms the next
+            steps with the person arranging the trip."
+  Principles:
+    - Built around the appointment — "Requests are considered in the context
+      of scheduled care, including the appointment time and whether a return
+      trip is needed."
+    - Reviewed before it is confirmed — "A submitted request is reviewed by
+      Zenward before transportation is confirmed. It is not a booking until we
+      say so."
+    - Clear about who is arranging the trip — "Family members, caregivers, and
+      care teams can help arrange the trip where appropriate, and Zenward
+      confirms details with the person making the request."
+    - Room for recurring care — "Repeated appointments, such as dialysis or
+      rehabilitation, can be discussed as part of the transportation
+      arrangement." + link "Recurring care transportation" -> the 03A page.
+  Note:     "Submitting a request is not a confirmed booking. Zenward contacts
+            the requester to confirm availability and next steps."
+  CTAs:     Request Transportation (primary, -> /request-transportation);
+            Call 678-935-5489 (secondary, tel:+16789355489).
+Analytics: request CTA uses a new page label, "why_medical_transportation", added
+to the request_transportation_clicked source union (no passenger data).
+
+Homepage order is otherwise unchanged. Homepage metadata was not changed (it
+accurately represents Zenward).
+
+/services: one sentence added to the intro: "Every request is reviewed, and
+Zenward confirms the next steps with the person arranging the trip."
+
+======================================================================
+4. HOMEPAGE SERVICE-LINK CHANGES
+======================================================================
+The six homepage service cards ("Transportation for essential care") are now
+links to the six 03A pages (paths read from src/lib/services.ts), each with a
+"Learn more" line pinned to the card bottom and a subtle hover state — the same
+treatment as /services. Titles, descriptions, grid, icon size and the
+disclaimer line beneath are unchanged, except for the wording fixes in section 6.
+Verified in browser: each card navigates to the right page (h1 checked).
+The Senior card icon changed from Wheelchair to HandHeart (the icon already used
+for that service on /services and its landing page).
+
+======================================================================
+5. HEALTHCARE-PROVIDER CONSISTENCY CHANGES
+======================================================================
+/healthcare-providers audited; kept as is except two small edits:
+  - Closing note: "Zenward handles the scheduling and coordination behind the
+    scenes." -> "Your team coordinates care; Zenward coordinates the
+    transportation." (the rest of the sentence unchanged)
+  - Meta description: "Zenward partners with clinics..." -> "Zenward works with
+    clinics..." ("partners" implies established partnerships the repo does not
+    document; the page body already says "works with").
+Provider value stays: appointment-led scheduling, discharge coordination, clear
+communication, one coordination contact. No software/product language added.
+The homepage provider section: only the "standing weekly schedule" fix (below).
+
+======================================================================
+6. UNSUPPORTED-CLAIM CLEANUP (homepage)
+======================================================================
+  - FAQ question "Can you accommodate a wheelchair, walker, or other
+    assistance?" -> "What if the passenger has mobility or assistance needs?"
+  - FAQ answer that listed "wheelchair accessibility, a walker, oxygen, or a
+    travel companion" -> "Tell us about any mobility or assistance needs when
+    you submit your request. Zenward will review the details and confirm what we
+    can accommodate."
+  - "one visit or a standing weekly schedule" -> "one visit or a recurring
+    schedule" (provider benefit)
+  - "for a one-time visit or a standing weekly schedule" -> "...or a regular
+    transportation schedule" (Dependability)
+  - "Standing transportation arranged around a recurring care schedule" ->
+    "Regular transportation arranged around a recurring care schedule" (service
+    card; matches the 03A /services wording)
+  - Wheelchair icon on the senior card removed (see 4).
+src/lib/request-intake/adapter.ts was NOT modified (stale 470-206-8005 comment
+remains for the later intake-adjacent commit).
+
+======================================================================
+7. FILES CHANGED
+======================================================================
+Modified:
+  src/app/page.tsx                       new section, card links, wording fixes
+  src/app/services/page.tsx              one intro sentence
+  src/app/healthcare-providers/page.tsx  closing note + meta description
+  src/lib/analytics/events.ts            new click-source label
+Created:
+  docs/reports/ZW-WEB-03B-why-specialized-medical-transportation.txt
+Not touched: request/contact actions, adapters, forms, Nemryn integration,
+REQUEST_INTAKE_MODE, env files, the six 03A pages/content, sitemap, canonicals.
+No new routes.
+
+======================================================================
+8. COPY ADDED / REMOVED
+======================================================================
+Added: the section copy in 3; the /services sentence; the providers closing line
+("Your team coordinates care; Zenward coordinates the transportation."); the
+neutral FAQ question/answer; "Learn more" on six cards.
+Removed: "wheelchair", "walker", "oxygen", "wheelchair accessibility" (FAQ);
+"standing weekly schedule" (x2); "Standing transportation"; "behind the
+scenes"; "partners with" (meta description).
+
+======================================================================
+9. TYPESCRIPT RESULT
+======================================================================
+npx tsc --noEmit: PASS (no output).
+
+======================================================================
+10. LINT RESULT
+======================================================================
+npm run lint: PASS (no output).
+
+======================================================================
+11. BUILD RESULT
+======================================================================
+npm run build: PASS. 20 static pages generated (same route set as 03A; no new
+routes).
+
+======================================================================
+12. RESPONSIVE QA
+======================================================================
+Production build served locally; headless Chrome; 390, 430, 768, 1024, 1440 px;
+12 routes per width (/, /services, /healthcare-providers, /request-transportation,
+/contact, /about, and the six 03A pages) = 60 checks: no horizontal overflow, one
+<h1> on every page, no uncaught page errors.
+Screenshots reviewed at 390, 768 and 1440 for the new section, and full homepage
+at 1440: the section reads as an editorial two-column layout on desktop, a single
+column on tablet and phone; buttons stack full width on phones and sit in a row
+from sm; homepage hierarchy (hero > banner > principles > image sections > new
+section > providers > services > process) remains strong. It does not resemble
+a SaaS feature grid (no cards, icons or numbering). At 1440 the left column has
+open space under the paragraph; this is intentional whitespace, not a defect.
+Screenshots at 430 and 1024 were checked for overflow only.
+
+======================================================================
+13. REGRESSION TESTING
+======================================================================
+  - Why-section Request Transportation CTA -> /request-transportation. OK.
+  - Why-section phone link: tel:+16789355489, "Call 678-935-5489". OK.
+  - Homepage service cards -> all six 03A pages. OK. Recurring link in the
+    section -> recurring-care page. OK.
+  - All six 03A pages load and are unchanged in content (h1s verified).
+  - /healthcare-providers and /request-transportation render; the request form
+    and its code are untouched.
+  - Rendered pages scanned (homepage, /services, /healthcare-providers,
+    /request-transportation, six 03A pages): old number 470-206-8005: 0; every
+    tel: link is tel:+16789355489.
+  - Claim-term scan (better than / safer than / Uber / taxi / rideshare /
+    guaranteed / wheelchair / walker / stretcher / oxygen / Medicaid / insurance /
+    licensed / certified / platform / software / Nemryn / AI-powered /
+    intelligent / seamless / cutting-edge / revolutionary / "standing weekly"):
+    only existing disclaimers matched ("does not provide emergency, ambulance,
+    or stretcher transportation"; the discharge FAQ "ambulance or stretcher" ->
+    No; "not a guaranteed ride" on the request page). No wheelchair/walker/oxygen
+    text remains in the homepage's visible copy.
+  - Homepage <title> unchanged.
+
+======================================================================
+14. KNOWN ISSUES (pre-existing, deliberately NOT changed — outside the scoped cleanup)
+======================================================================
+  1. Homepage "Trained, dedicated drivers — ...safely and on time." (trust
+     card). "Trained" and "on time" are unsupported claims under the current
+     language rules. Recommend rewording, e.g. "Drivers focused on getting people
+     to their appointments" (needs owner confirmation of driver training claims).
+  2. Homepage providers section footnote: "Zenward uses modern operational tools
+     to support scheduling, coordination, and communication..." This is close to
+     the software/operations language the site avoids. Recommend removing it or
+     rewriting it as plain service language.
+  3. Homepage process steps: "Ride — A driver is assigned, arrives, assists as
+     needed" and "Arrival — ...ready for care"; also "Passengers who need extra
+     time or assistance get it" and Dependability "Patience and assistance for
+     passengers who need a little more time or support." These imply assistance
+     levels not confirmed in the repo.
+  4. Hero and OG image alt text describe a passenger seated in a wheelchair
+     (src/lib/images.ts, src/lib/seo.ts, opengraph-image.alt.txt) — accurate to
+     the photograph, but the image itself implies wheelchair transport. Owner
+     decision needed on whether wheelchair transport is an approved service.
+  5. Service-card copy "Dependable, recurring transportation for ongoing
+     treatment" (dialysis) is not a punctuality guarantee but may be softened.
+  6. src/lib/request-intake/adapter.ts:46 comment still names 470-206-8005
+     (not rendered; belongs to the intake-adjacent commit).
+  7. Request intake is still in stub mode (REQUEST_INTAKE_MODE untouched); the
+     form's success screen asks visitors to call.
+  8. The new section has an anchor (#why-medical-transportation) but is not in
+     the header nav or linked from the six 03A pages (by design; see section 2).
+  Nothing was committed, pushed or deployed.
+
+======================================================================
+15. RECOMMENDATION FOR ZW-WEB-03C (recurring transportation funnel)
+======================================================================
+Do not start in this phase. Suggested scope:
+  a) Build the funnel on /services/recurring-care-transportation, which the new
+     homepage section and the dialysis/rehabilitation pages already point to.
+  b) Decide whether the request form gets a structured, optional "recurring
+     schedule" block (days, times, start date, expected duration) or a
+     non-sensitive, allow-listed service/source hint. Either is an intake-contract
+     change to coordinate with Nemryn before code.
+  c) Add "what Zenward will confirm with you" content for recurring requests and
+     a recurring-specific closing CTA; keep "not a booking / no automatic
+     scheduling" language.
+  d) Before driving traffic, clear the homepage items in section 14 (1-3) in a
+     small copy-only commit, and fix the stale phone comment with intake work.
+Location SEO remains ZW-WEB-03H.
+
+======================================================================
+16. ZW-WEB-03B1 — FINAL HOMEPAGE CLAIM-SAFETY CLEANUP
+======================================================================
+Scope: copy-only, src/app/page.tsx. No layout, component, intake, Nemryn,
+REQUEST_INTAKE_MODE, Vercel env, image, or 03A service-page change. Resolves
+Known Issues 1, 2 and 3 above. Not committed, pushed or deployed.
+
+A. DRIVER CLAIM (trust card, "What you can count on")
+   Before: "Trained, dedicated drivers" /
+           "Drivers focused on one thing: getting people to care safely and on time."
+   After:  "Drivers focused on the trip" /
+           "Transportation coordinated around the passenger's scheduled care and
+            confirmed trip details."
+   Removed: training claim, "safely", "on time".
+
+B. OPERATIONAL TOOLS COPY (homepage providers footnote)
+   Before: "Zenward uses modern operational tools to support scheduling,
+            coordination, and communication — so working with us stays simple.
+            Talk to us about what your patients need."
+   After:  "Zenward keeps scheduling, trip details and communication coordinated
+            with the people arranging the transportation. Talk to us about what
+            your patients need."
+   Removed: software/technology emphasis.
+
+C. ASSISTANCE-LEVEL CLAIMS
+   Process / Ride
+     Before: "A driver is assigned, arrives, assists as needed, and gets underway."
+     After:  "A driver is assigned and the transportation takes place according to
+              the confirmed trip details."
+   Process / Arrival
+     Before: "The passenger reaches their appointment or destination, ready for care."
+     After:  "The passenger reaches the confirmed destination."
+   Patients & Families paragraph (last sentence)
+     Before: "Passengers who need extra time or assistance get it."
+     After:  "Tell us about any mobility or assistance needs and Zenward will
+              review them before the trip is confirmed."
+   Dependability / "Respectful service" (title kept)
+     Before: "Patience and assistance for passengers who need a little more time
+              or support."
+     After:  "Trip details and mobility or assistance needs are reviewed before
+              transportation is confirmed."
+   Also removed: "ready for care" (a readiness/clinical-outcome implication).
+   Left unchanged on purpose: "Respect and dignity — Every passenger is treated
+   with the patience and care they deserve." (a tone statement, not an assistance
+   or capability claim).
+
+QA RESULT
+  npx tsc --noEmit  PASS
+  npm run lint      PASS
+  npm run build     PASS (20 static pages, no new routes)
+  Rendered homepage search (visible text), all 0 matches: "trained", "on time",
+  "on-time", "safely", "assists as needed", "assistance get it", "modern
+  operational tools", "operational tools", "ready for care", "patience and
+  assistance", "standing", "wheelchair", "walker", "oxygen", "guarantee",
+  "Nemryn", "platform", "software", and the old number 470-206-8005.
+  All seven replacement strings confirmed present in the rendered page.
+  03B "Why Medical Transportation" section: source unchanged (headline, four
+  principles and booking note all present exactly once).
+  Responsive (390 / 768 / 1440 px; 10 routes each = 30 checks): no horizontal
+  overflow, one <h1> per page, no failures. The process section was viewed at 390
+  and 1440: layout is identical, the copy wraps cleanly.
+  Function: all six homepage service cards reach their 03A pages; the 03B
+  section's Request Transportation CTA reaches /request-transportation; tel links
+  are tel:+16789355489 and 678-935-5489 is displayed.
+  Protected areas: git shows no changes to the six 03A page files,
+  src/lib/services.ts, src/components/*, request-intake, contact-intake,
+  /request-transportation, /contact, images, seo or OG alt files.
+  Files changed by 03B1: src/app/page.tsx (copy only) and this report.
+
+REMAINING OWNER DECISION — WHEELCHAIR IMAGERY (deliberately not touched)
+  The hero image, homepage supporting imagery, the OG image and their alt text
+  still depict/describe a passenger seated in a wheelchair at a deployed van ramp
+  (src/lib/images.ts, src/lib/seo.ts, src/app/opengraph-image.alt.txt; two
+  <img alt> attributes on the rendered homepage contain "wheelchair"). The alt
+  text is accurate to the photographs, but the imagery implies wheelchair
+  transport. The owner must decide whether wheelchair-accessible transportation
+  is an approved launch capability:
+    - If YES: document it as confirmed in docs/product/marketing-scope.md, then
+      the imagery stands and service copy may be extended accordingly.
+    - If NO / not yet: replace or re-crop the imagery and alt text in a
+      dedicated image phase, or keep the images with an explicit note that
+      assistance needs are reviewed per request (current copy does this).
+  No image, alt text, or OG asset was altered in 03B or 03B1.

@@ -7,7 +7,6 @@ import {
   Stethoscope,
   Heartbeat,
   CalendarCheck,
-  Wheelchair,
   Hospital,
   FirstAidKit,
   Phone,
@@ -15,6 +14,7 @@ import {
   CalendarDots,
   UsersThree,
   CheckCircle,
+  ArrowRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
 import { BrandImage } from "@/components/layout/BrandImage";
@@ -28,6 +28,7 @@ import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
 import { business } from "@/lib/business";
 import { absoluteUrl, siteName, siteUrl } from "@/lib/seo";
+import { SERVICES as SERVICE_PAGES } from "@/lib/services";
 
 const TRUST_PRINCIPLES = [
   {
@@ -37,8 +38,8 @@ const TRUST_PRINCIPLES = [
   },
   {
     icon: HandHeart,
-    title: "Trained, dedicated drivers",
-    description: "Drivers focused on one thing: getting people to care safely and on time.",
+    title: "Drivers focused on the trip",
+    description: "Transportation coordinated around the passenger's scheduled care and confirmed trip details.",
   },
   {
     icon: ClipboardText,
@@ -57,7 +58,7 @@ const PROVIDER_BENEFITS = [
     icon: CalendarCheck,
     title: "Appointment-led scheduling",
     description:
-      "Rides are arranged around when your patient needs to arrive — one visit or a standing weekly schedule.",
+      "Rides are arranged around when your patient needs to arrive — one visit or a recurring schedule.",
   },
   {
     icon: Hospital,
@@ -79,26 +80,50 @@ const PROVIDER_BENEFITS = [
 ];
 
 const SERVICES = [
-  { icon: Stethoscope, title: "Medical appointments", description: "Routine and specialist visits, on schedule." },
-  { icon: Heartbeat, title: "Dialysis visits", description: "Dependable, recurring transportation for ongoing treatment." },
-  { icon: FirstAidKit, title: "Rehabilitation appointments", description: "Consistent transportation for recovery and therapy visits." },
-  { icon: Hospital, title: "Hospital discharge transportation", description: "Coordinated transportation following a hospital stay." },
-  { icon: CalendarCheck, title: "Recurring scheduled care", description: "Standing transportation arranged around a recurring care schedule." },
-  { icon: Wheelchair, title: "Senior medical transportation", description: "Transportation for older adults attending medical care." },
+  { icon: Stethoscope, title: "Medical appointments", description: "Routine and specialist visits, on schedule.", href: SERVICE_PAGES["medical-appointments"].path },
+  { icon: Heartbeat, title: "Dialysis visits", description: "Dependable, recurring transportation for ongoing treatment.", href: SERVICE_PAGES["dialysis-transportation"].path },
+  { icon: FirstAidKit, title: "Rehabilitation appointments", description: "Consistent transportation for recovery and therapy visits.", href: SERVICE_PAGES["rehabilitation-transportation"].path },
+  { icon: Hospital, title: "Hospital discharge transportation", description: "Coordinated transportation following a hospital stay.", href: SERVICE_PAGES["hospital-discharge-transportation"].path },
+  { icon: CalendarCheck, title: "Recurring scheduled care", description: "Regular transportation arranged around a recurring care schedule.", href: SERVICE_PAGES["recurring-care-transportation"].path },
+  { icon: HandHeart, title: "Senior medical transportation", description: "Transportation for older adults attending medical care.", href: SERVICE_PAGES["senior-medical-transportation"].path },
+];
+
+const WHY_POINTS = [
+  {
+    title: "Built around the appointment",
+    description:
+      "Requests are considered in the context of scheduled care, including the appointment time and whether a return trip is needed.",
+  },
+  {
+    title: "Reviewed before it is confirmed",
+    description:
+      "A submitted request is reviewed by Zenward before transportation is confirmed. It is not a booking until we say so.",
+  },
+  {
+    title: "Clear about who is arranging the trip",
+    description:
+      "Family members, caregivers, and care teams can help arrange the trip where appropriate, and Zenward confirms details with the person making the request.",
+  },
+  {
+    title: "Room for recurring care",
+    description:
+      "Repeated appointments, such as dialysis or rehabilitation, can be discussed as part of the transportation arrangement.",
+    link: { href: SERVICE_PAGES["recurring-care-transportation"].path, label: "Recurring care transportation" },
+  },
 ];
 
 const PROCESS_STEPS = [
   { title: "Request", description: "Submit the passenger, pickup, destination, and timing — online or by phone." },
   { title: "Coordination", description: "Zenward reviews the details and confirms availability with you." },
-  { title: "Ride", description: "A driver is assigned, arrives, assists as needed, and gets underway." },
-  { title: "Arrival", description: "The passenger reaches their appointment or destination, ready for care." },
+  { title: "Ride", description: "A driver is assigned and the transportation takes place according to the confirmed trip details." },
+  { title: "Arrival", description: "The passenger reaches the confirmed destination." },
 ];
 
 const DEPENDABILITY = [
   { title: "Rider communication", description: "You get pickup information as it is confirmed, and a point of contact if plans change." },
   { title: "Appointment-led timing", description: "Trips are scheduled around when the passenger needs to arrive, not the other way around." },
-  { title: "Consistency", description: "The same dependable coordination for a one-time visit or a standing weekly schedule." },
-  { title: "Respectful service", description: "Patience and assistance for passengers who need a little more time or support." },
+  { title: "Consistency", description: "The same dependable coordination for a one-time visit or a regular transportation schedule." },
+  { title: "Respectful service", description: "Trip details and mobility or assistance needs are reviewed before transportation is confirmed." },
 ];
 
 const FAQ_ITEMS = [
@@ -118,9 +143,9 @@ const FAQ_ITEMS = [
       "No. A request tells Zenward what transportation you need. It is not a confirmed ride until our team follows up to confirm availability and next steps.",
   },
   {
-    question: "Can you accommodate a wheelchair, walker, or other assistance?",
+    question: "What if the passenger has mobility or assistance needs?",
     answer:
-      "Transportation needs — including wheelchair accessibility, a walker, oxygen, or a travel companion — can be reviewed during request coordination. Note what is needed on the request and our team will confirm what we can arrange.",
+      "Tell us about any mobility or assistance needs when you submit your request. Zenward will review the details and confirm what we can accommodate.",
   },
   {
     question: "Can a healthcare facility request transportation for a patient?",
@@ -259,7 +284,7 @@ export default function HomePage() {
             <p className={cn(typography.body, "mt-4 text-text-secondary")}>
               Whether you are arranging your own ride to a treatment or coordinating transportation for a parent
               or family member, Zenward keeps the request straightforward and keeps you informed along the way.
-              Passengers who need extra time or assistance get it.
+              Tell us about any mobility or assistance needs and Zenward will review them before the trip is confirmed.
             </p>
             <p className={cn(typography.bodySmall, "mt-4 text-text-muted")}>
               Zenward provides non-emergency medical transportation — not emergency or ambulance care.
@@ -279,6 +304,68 @@ export default function HomePage() {
             className="order-1 lg:order-2"
             objectPosition="center 38%"
           />
+        </div>
+      </Section>
+
+      {/* 5b. Why medical transportation (ZW-WEB-03B) — an editorial explanation of
+             what a medical trip involves beyond pickup and destination. Deliberately
+             a ruled list, not a card grid: these are service principles. */}
+      <Section tone="mist" id="why-medical-transportation">
+        <div className="grid grid-cols-1 gap-xl lg:grid-cols-[1fr_1.15fr] lg:gap-3xl">
+          <div>
+            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Why Medical Transportation</p>
+            <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
+              Transportation planned around care, not just a pickup
+            </h2>
+            <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
+              A medical trip often involves more than getting from one address to another. Appointment timing,
+              recurring schedules, family coordination and changing care plans can all affect the journey. Zenward
+              reviews each transportation request and confirms the next steps with the person arranging the trip.
+            </p>
+          </div>
+          <ul className="divide-y divide-brand-care-navy/15 border-y border-brand-care-navy/15">
+            {WHY_POINTS.map((point) => (
+              <li key={point.title} className="py-lg">
+                <p className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>{point.title}</p>
+                <p className={cn(typography.body, "mt-1 text-text-secondary")}>{point.description}</p>
+                {point.link && (
+                  <Link
+                    href={point.link.href}
+                    className={cn(
+                      typography.bodySmall,
+                      "mt-2 inline-flex items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline",
+                    )}
+                  >
+                    {point.link.label}
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-2xl flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
+          <p className={cn(typography.bodySmall, "max-w-[32rem] text-text-secondary")}>
+            Submitting a request is not a confirmed booking. Zenward contacts the requester to confirm availability
+            and next steps.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <TrackedLinkButton
+              href="/request-transportation"
+              size="lg"
+              event={{ name: "request_transportation_clicked", source: "why_medical_transportation" }}
+            >
+              Request Transportation
+            </TrackedLinkButton>
+            <a
+              href={business.phoneHref}
+              aria-label={`Call Zenward at ${business.phoneDisplay}`}
+              className={buttonClassNames("outline", "lg", false)}
+            >
+              <Phone className="size-4" weight="fill" aria-hidden />
+              Call {business.phoneDisplay}
+            </a>
+          </div>
         </div>
       </Section>
 
@@ -320,8 +407,8 @@ export default function HomePage() {
           </div>
         </div>
         <p className={cn(typography.metadata, "mt-xl text-white/50")}>
-          Zenward uses modern operational tools to support scheduling, coordination, and communication — so
-          working with us stays simple. Talk to us about what your patients need.
+          Zenward keeps scheduling, trip details and communication coordinated with the people arranging the
+          transportation. Talk to us about what your patients need.
         </p>
       </Section>
 
@@ -332,11 +419,24 @@ export default function HomePage() {
         </h2>
         <div className="mt-2xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map((service) => (
-            <div key={service.title} className="rounded-lg border border-border-subtle p-lg">
+            <Link
+              key={service.title}
+              href={service.href}
+              className="group flex flex-col rounded-lg border border-border-subtle p-lg transition-colors duration-base hover:bg-surface-hover"
+            >
               <service.icon className="size-7 text-brand-care-navy" weight="light" aria-hidden />
               <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{service.title}</p>
               <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{service.description}</p>
-            </div>
+              <span
+                className={cn(
+                  typography.bodySmall,
+                  "mt-auto inline-flex items-center gap-1.5 pt-4 font-medium text-brand-interactive-teal group-hover:underline",
+                )}
+              >
+                Learn more
+                <ArrowRight className="size-4" aria-hidden />
+              </span>
+            </Link>
           ))}
         </div>
         <p className={cn(typography.bodySmall, "mt-lg text-center text-text-muted")}>

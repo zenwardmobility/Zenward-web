@@ -29,6 +29,7 @@ export type AnalyticsEvent =
         | "final_cta"
         | "services_page"
         | "service_page"
+        | "why_medical_transportation"
         | "provider_page"
         | "other";
     }

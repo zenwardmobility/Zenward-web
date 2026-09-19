@@ -24,7 +24,8 @@ export default function ServicesPage() {
         </h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
           Zenward focuses on non-emergency medical transportation — not emergency response, ambulance service, or
-          stretcher transport. Here&rsquo;s what we currently coordinate.
+          stretcher transport. Here&rsquo;s what we currently coordinate. Every request is reviewed, and
+          Zenward confirms the next steps with the person arranging the trip.
         </p>
       </Section>
 
