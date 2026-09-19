@@ -1,0 +1,165 @@
+ZW-WEB-03A — DEDICATED SERVICE PAGES: DEPLOYMENT REPORT
+Verified: 2026-09-19 (production, https://www.zenwardmobility.com)
+Result: PASS — no issues found; no application code changed after the commit.
+
+======================================================================
+1. DEPLOYED COMMIT
+======================================================================
+Commit:        7ccf813 — "Add dedicated Zenward service pages"
+Parent:        19ee3f0
+Branch:        main; origin/main = 7ccf8135ad3de33120d16990467590dbae4725a6
+               (confirmed with git ls-remote; local main up to date)
+Push:          performed manually by the owner (the push from this session
+               was blocked by the permission classifier, and was not retried).
+Files in commit (12): the six route files, src/lib/services.ts,
+               src/components/public/ServicePage.tsx, the edited
+               src/app/services/page.tsx, src/app/sitemap.ts,
+               src/lib/analytics/events.ts, and the ZW-WEB-03A completion report.
+Not changed:   REQUEST_INTAKE_MODE, Vercel environment variables, intake /
+               contact code, Nemryn integration.
+
+======================================================================
+2. VERCEL DEPLOYMENT RESULT
+======================================================================
+GitHub commit status for 7ccf813 (context "Vercel"): success —
+  "Deployment has completed"
+GitHub deployment record: environment Production, sha 7ccf813,
+  id 6542895130, created 2026-09-19T16:07:00Z.
+  Vercel dashboard target:
+  https://vercel.com/zenwardmobility-9199/zenward-web/9iiZzx76uoBj4p1QXY388t7hGCRw
+Production responses carry x-vercel-id headers and serve the new routes,
+so the live alias points at this deployment.
+(The Vercel CLI is not installed here; deployment state was read through the
+GitHub API and by checking the live site.)
+
+======================================================================
+3. PRODUCTION ROUTE STATUS
+======================================================================
+Every URL returned HTTP 200 with no redirect (final URL = requested URL):
+  /services                                      200
+  /services/medical-appointments                 200
+  /services/dialysis-transportation              200
+  /services/rehabilitation-transportation        200
+  /services/hospital-discharge-transportation    200
+  /services/recurring-care-transportation        200
+  /services/senior-medical-transportation        200
+  /sitemap.xml                                   200
+
+Page-level checks on each of the six service pages:
+  - Exactly one <h1>.
+  - <title> and meta description match the approved values in
+    src/lib/services.ts exactly (title carries the "| Zenward Mobility"
+    suffix once).
+  - Canonical is https://www.zenwardmobility.com/services/<slug>.
+  - og:url, og:image and twitter:card are present.
+  - No banned marketing words (revolutionary, next-generation, seamless,
+    cutting-edge, intelligent, AI-powered) and no Nemryn / platform /
+    software / dashboard language.
+Responsive: 35 production loads (7 pages x 390 / 430 / 768 / 1024 / 1440 px)
+— zero horizontal overflow, zero uncaught page errors, zero console errors.
+
+======================================================================
+4. CTA AND LINK VERIFICATION
+======================================================================
+/services cards: all six link to the correct landing page (real browser
+click-through from /services to each page, h1 confirmed):
+  Medical Appointments                 -> /services/medical-appointments
+  Dialysis Visits                      -> /services/dialysis-transportation
+  Rehabilitation Appointments          -> /services/rehabilitation-transportation
+  Hospital Discharge Transportation    -> /services/hospital-discharge-transportation
+  Recurring Scheduled Care             -> /services/recurring-care-transportation
+  Senior Medical Transportation        -> /services/senior-medical-transportation
+/services shows "Regular transportation arranged around a recurring treatment
+or care schedule." (the approved wording); the earlier "Standing transportation"
+text is absent.
+
+Request Transportation CTAs: each service page has 4 links to
+/request-transportation. From each of the six pages the hero CTA was clicked;
+each landed on /request-transportation with no query string and the request
+form rendered. No passenger data or service parameter appears in any URL.
+
+Cross-links (all present and resolving):
+  Dialysis -> Recurring Care; Rehabilitation -> Recurring Care;
+  Hospital Discharge -> Senior Medical; Senior Medical -> Hospital Discharge;
+  Recurring Care -> Dialysis.
+FAQ accordion toggles (aria-expanded) on the pages checked.
+
+======================================================================
+5. PHONE VERIFICATION
+======================================================================
+Each of the six service pages: 3 tel: links (hero, closing CTA, footer), all
+exactly tel:+16789355489. The number displays as 678-935-5489 (3 times on
+five pages, 4 on medical-appointments where the FAQ also quotes it).
+/services: 1 tel: link (footer), tel:+16789355489, shown as 678-935-5489.
+Old number 470-206-8005 (any punctuation variant): 0 occurrences in the raw
+HTML of the seven pages above, and also 0 on /, /about, /contact,
+/healthcare-providers, /request-transportation, /privacy and /terms.
+Note: a code comment in src/lib/request-intake/adapter.ts:46 still names the
+old number. It is not shipped to browsers and was excluded from this phase
+(see Issues).
+
+======================================================================
+6. SITEMAP VERIFICATION
+======================================================================
+https://www.zenwardmobility.com/sitemap.xml lists 14 URLs, all on the
+production host (previously 8). All six new routes are present, directly
+after /services:
+  /services/medical-appointments
+  /services/dialysis-transportation
+  /services/rehabilitation-transportation
+  /services/hospital-discharge-transportation
+  /services/recurring-care-transportation
+  /services/senior-medical-transportation
+Existing routes (/, /request-transportation, /healthcare-providers,
+/services, /about, /contact, /privacy, /terms) are unchanged.
+
+======================================================================
+7. UNSUPPORTED-CLAIM CHECK (production)
+======================================================================
+Scanned visible text of the six service pages, with the shared header and
+footer excluded, for: wheelchair, stretcher, ambulance, oxygen, medicaid,
+medicare, insurance, licens*, certif*, same-day, guarantee, on-time,
+door-through / door-to-door, nationwide, 24/7, emergency, 911.
+Results: 24 matches across the six pages; every match is a disclaimer —
+"non-emergency", "In a medical emergency, call 911", or the Hospital
+Discharge FAQ that says Zenward does not arrange ambulance or stretcher
+transportation. Zero matches for wheelchair, oxygen, insurance, Medicaid,
+Medicare, licensing, certification, same-day, guarantee, on-time,
+door-through, nationwide, or 24/7. No statistics, testimonials, or
+location claims.
+
+======================================================================
+8. PRODUCTION vs APPROVED 03A IMPLEMENTATION
+======================================================================
+MATCHES. Titles, descriptions, canonicals, headings, card wording, CTA
+targets, phone links, cross-links, and sitemap entries on production are
+identical to what the local production build showed at review, including the
+two final pre-commit refinements (card "Learn more" alignment; "Regular"
+replacing "Standing" on the Recurring card). Homepage and other existing pages
+were not modified by this commit; none showed the old number or errors.
+
+======================================================================
+9. ISSUES FOUND
+======================================================================
+None blocking, and no production verification failure required a code change.
+Carried forward from the 03A completion report (unchanged, not regressions):
+  1. Stale "470-206-8005" in a comment at
+     src/lib/request-intake/adapter.ts:46 (not rendered). Fix in a later
+     intake-adjacent commit.
+  2. Request intake is still in stub mode (REQUEST_INTAKE_MODE untouched);
+     the form's success screen asks visitors to call. Pages inherit this.
+  3. No service preselection on the request form (deferred by design).
+  4. Homepage service cards are not yet linked to the new pages; homepage
+     copy (wheelchair/oxygen FAQ answer, "standing weekly schedule") not
+     audited in 03A.
+Method note: checks were run from this machine against the live site using
+curl/Python for HTML and headless Chrome (Playwright) for click-through and
+overflow. The Vercel build log itself was not read (no CLI); success was taken
+from the GitHub deployment status and confirmed by the live behaviour above.
+
+======================================================================
+10. REPOSITORY STATE AT TIME OF WRITING
+======================================================================
+This report file is new and UNCOMMITTED, pending owner approval. It was not
+amended into 7ccf813 because that commit had already been pushed and deployed.
+It remains for the next documentation commit.
