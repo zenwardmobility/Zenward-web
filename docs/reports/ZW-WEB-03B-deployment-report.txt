@@ -1,0 +1,163 @@
+ZW-WEB-03B / 03B1 — PRODUCTION DEPLOYMENT REPORT
+Verified: 2026-09-19 (production, https://www.zenwardmobility.com)
+Result: PASS — no issues found; no application code changed after the commit.
+
+======================================================================
+1. DEPLOYED COMMIT
+======================================================================
+Commit:  ac4a47f — "Strengthen Zenward medical transportation positioning"
+Parent:  cb615f5 (Document ZW-WEB-03A production deployment)
+Push:    git push origin main succeeded from this session
+         (cb615f5..ac4a47f  main -> main). No permission block occurred.
+Pre-commit checks (run immediately before the commit):
+  git diff --check      clean (no whitespace errors)
+  npx tsc --noEmit      PASS
+  npm run lint          PASS
+  npm run build         PASS (20 static pages)
+Commit contents (5 files, +478 / -24):
+  src/app/page.tsx                       (why section, service links, claim cleanup)
+  src/app/services/page.tsx              (one intro sentence)
+  src/app/healthcare-providers/page.tsx  (closing line, meta description)
+  src/lib/analytics/events.ts            (click-source label)
+  docs/reports/ZW-WEB-03B-why-specialized-medical-transportation.txt
+Confirmed NOT in the commit: request-intake, contact-intake, actions, env files,
+next.config, images/alt text/OG files, the six 03A service pages, services.ts.
+
+======================================================================
+2. VERCEL DEPLOYMENT RESULT
+======================================================================
+GitHub commit status for ac4a47f, context "Vercel": success —
+  "Deployment has completed" (was "pending: Vercel is deploying your app" for
+  the first two polls).
+GitHub deployment record: environment Production, sha ac4a47f,
+  id 6543184394, created 2026-09-19T16:36:12Z.
+  Dashboard: https://vercel.com/zenwardmobility-9199/zenward-web/DPGbhdyfXdPLdXErpGT8v1r3xNNu
+The live site serves the new copy, so the production alias points at this
+deployment. (Vercel CLI not installed; state read via the GitHub API and
+confirmed by live behaviour. The Vercel build log itself was not read.)
+Vercel environment variables were not viewed or changed.
+
+======================================================================
+3. HOMEPAGE VERIFICATION (https://www.zenwardmobility.com/)
+======================================================================
+HTTP 200, no redirect.
+  - "Why Medical Transportation" section live (id="why-medical-transportation"),
+    eyebrow present.
+  - Headline exactly: "Transportation planned around care, not just a pickup".
+  - Section visible and headline correct at 390, 768 and 1440 px.
+  - 03B1 replacement copy live: "Drivers focused on the trip"; providers
+    footnote "Zenward keeps scheduling, trip details and communication
+    coordinated with the people arranging the transportation."; Ride step
+    "A driver is assigned and the transportation takes place according to the
+    confirmed trip details."; Arrival "The passenger reaches the confirmed
+    destination."; Respectful-service card "Trip details and mobility or
+    assistance needs are reviewed before transportation is confirmed."
+  - FAQ: question "What if the passenger has mobility or assistance needs?";
+    answer "Tell us about any mobility or assistance needs when you submit your
+    request. Zenward will review the details and confirm what we can
+    accommodate." (confirmed by opening all six FAQ items in a browser; the
+    answer is not in static HTML until an item is expanded).
+  - Request Transportation CTAs work; the new section's CTA goes to
+    /request-transportation and the form renders.
+
+======================================================================
+4. SERVICE-CARD LINK VERIFICATION
+======================================================================
+All six homepage cards were clicked on production; each reached the right page
+(h1 checked):
+  Medical appointments               -> /services/medical-appointments
+  Dialysis visits                    -> /services/dialysis-transportation
+  Rehabilitation appointments        -> /services/rehabilitation-transportation
+  Hospital discharge transportation  -> /services/hospital-discharge-transportation
+  Recurring scheduled care           -> /services/recurring-care-transportation
+  Senior medical transportation      -> /services/senior-medical-transportation
+/services: 200, six card links present, new intro sentence live ("Every request
+is reviewed, and Zenward confirms the next steps with the person arranging the
+trip."). All six 03A pages return 200. Sitemap still lists 14 URLs.
+
+======================================================================
+5. PROVIDER-PAGE VERIFICATION (/healthcare-providers)
+======================================================================
+HTTP 200. Closing line live: "Your team coordinates care; Zenward coordinates
+the transportation." Meta description reads "Zenward works with clinics...".
+Talk to Zenward CTA -> /contact works. One <h1>, no overflow at 390/768/1440.
+
+======================================================================
+6. REQUEST-PAGE REGRESSION RESULT (/request-transportation)
+======================================================================
+HTTP 200. Headline "Tell us about the trip you need", "not a guaranteed ride"
+copy, phone CTA, and the form (requesterName, destinationDescription fields
+etc.) all present and unchanged. The request form, Server Action and intake
+code were not part of this commit. No test submission was made.
+REQUEST_INTAKE_MODE: not touched by this work (no env or intake file in the
+commit, and I did not view or change Vercel variables). Its value could not be
+independently read from production without dashboard access; its behaviour is
+unchanged because no intake code changed. Intake remains the stub mode
+described in docs/product/launch-readiness.md unless the owner changed it
+separately.
+
+======================================================================
+7. PHONE VERIFICATION
+======================================================================
+Checked on /, /services, /healthcare-providers, /request-transportation and all
+six 03A pages: every tel: link is exactly tel:+16789355489, and 678-935-5489
+displays (homepage 4x, services 1x, providers 1x, request page 2x, 03A pages
+3-4x). Old number 470-206-8005 (any punctuation): 0 occurrences on all ten pages.
+
+======================================================================
+8. CLAIM-SAFETY VERIFICATION (production visible text)
+======================================================================
+Searched all ten pages for: "Trained, dedicated drivers", "trained", "safely and
+on time", "on time", "modern operational tools", "operational tools", "assists
+as needed", "assistance get it", "ready for care", "standing weekly", "Standing
+transportation", "wheelchair", "walker", "oxygen", "Nemryn", "platform",
+"software", "behind the scenes", "partners with", "470-206-8005".
+Result: 0 matches on every page. After expanding all six homepage FAQ items in a
+browser: no wheelchair/walker/oxygen text. No Nemryn/platform/software
+positioning. (Existing disclaimers such as "does not provide emergency
+response, ambulance, or stretcher transportation" are intentional and were not
+in the search list.)
+
+======================================================================
+9. RESPONSIVE RESULT
+======================================================================
+Production, 390 / 768 / 1440 px, 10 routes each (/, /services,
+/healthcare-providers, /request-transportation, six 03A pages) = 30 checks:
+no horizontal overflow, exactly one <h1> per page, no uncaught page errors.
+Production screenshot of the new section at 390 px reviewed: single-column
+ruled list, readable, no clipping.
+430 and 1024 px were not re-run on production (both passed on the local build
+in the 03B QA).
+
+======================================================================
+10. REMAINING OWNER DECISION — WHEELCHAIR IMAGERY
+======================================================================
+Unchanged by design. The hero image, homepage supporting imagery, OG image and
+their alt text still show/describe a passenger seated in a wheelchair at a
+deployed van ramp (production HTML still contains "wheelchair" in two homepage
+image alt attributes and in the OG image alt; see src/lib/images.ts,
+src/lib/seo.ts, src/app/opengraph-image.alt.txt). The alt text is accurate to
+the photographs, but the imagery implies wheelchair transport.
+Decision needed from the owner: is wheelchair-accessible transportation an
+approved Zenward launch capability?
+  - YES: record it as confirmed in docs/product/marketing-scope.md; imagery
+    stands; copy may then be extended.
+  - NO / NOT YET: replace or re-crop the imagery, alt text and OG image in a
+    dedicated image phase, or keep them alongside the current "assistance needs
+    are reviewed per request" copy.
+
+======================================================================
+11. OTHER CARRIED-FORWARD ITEMS (unchanged, not regressions)
+======================================================================
+  - Stale "470-206-8005" in a code comment at
+    src/lib/request-intake/adapter.ts:46 (not rendered; belongs to the later
+    intake-adjacent commit).
+  - Request intake is in stub mode per docs; the form's success screen asks
+    visitors to call.
+  - 03C (recurring transportation funnel) has not been started.
+
+======================================================================
+12. REPOSITORY STATE AT TIME OF WRITING
+======================================================================
+This report is new and UNCOMMITTED, pending owner approval. It remains for the
+next documentation commit.
