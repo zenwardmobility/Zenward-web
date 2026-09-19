@@ -1,49 +1,18 @@
 import type { Metadata } from "next";
-import { Stethoscope, Heartbeat, FirstAidKit, Hospital, CalendarCheck, Wheelchair } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { SERVICES, SERVICE_ORDER } from "@/lib/services";
 
 export const metadata: Metadata = pageMetadata({
   title: "Services",
   description: "Non-emergency medical transportation for appointments, dialysis, rehabilitation, hospital discharge, and scheduled care.",
   path: "/services",
 });
-
-const SERVICES = [
-  {
-    icon: Stethoscope,
-    title: "Medical Appointments",
-    description: "Routine checkups, specialist visits, and follow-up appointments, on schedule.",
-  },
-  {
-    icon: Heartbeat,
-    title: "Dialysis Visits",
-    description: "Dependable, recurring transportation for ongoing dialysis treatment.",
-  },
-  {
-    icon: FirstAidKit,
-    title: "Rehabilitation Appointments",
-    description: "Consistent transportation for physical therapy and recovery-focused visits.",
-  },
-  {
-    icon: Hospital,
-    title: "Hospital Discharge Transportation",
-    description: "Coordinated transportation following a hospital stay.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Recurring Scheduled Care",
-    description: "Standing transportation arranged around a recurring treatment or care schedule.",
-  },
-  {
-    icon: Wheelchair,
-    title: "Senior Medical Transportation",
-    description: "Transportation for older adults attending medical appointments and care visits.",
-  },
-];
 
 export default function ServicesPage() {
   return (
@@ -61,13 +30,29 @@ export default function ServicesPage() {
 
       <Section tone="white">
         <div className="grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-3">
-          {SERVICES.map((service) => (
-            <div key={service.title} className="rounded-lg border border-border-subtle p-lg">
-              <service.icon className="size-8 text-brand-care-navy" weight="light" aria-hidden />
-              <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{service.title}</p>
-              <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{service.description}</p>
-            </div>
-          ))}
+          {SERVICE_ORDER.map((slug) => {
+            const service = SERVICES[slug];
+            return (
+              <Link
+                key={slug}
+                href={service.path}
+                className="group flex flex-col rounded-lg border border-border-subtle p-lg transition-colors duration-base hover:bg-surface-hover"
+              >
+                <service.icon className="size-8 text-brand-care-navy" weight="light" aria-hidden />
+                <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{service.cardTitle}</p>
+                <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{service.cardDescription}</p>
+                <span
+                  className={cn(
+                    typography.bodySmall,
+                    "mt-auto inline-flex items-center gap-1.5 pt-4 font-medium text-brand-interactive-teal group-hover:underline",
+                  )}
+                >
+                  Learn more
+                  <ArrowRight className="size-4" aria-hidden />
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </Section>
 

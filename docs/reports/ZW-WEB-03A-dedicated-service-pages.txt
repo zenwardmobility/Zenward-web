@@ -1,0 +1,351 @@
+ZW-WEB-03A — DEDICATED SERVICE LANDING PAGES
+Date: 2026-09-19
+Repository: /Users/datamatics/Zenward-Web
+Status: IMPLEMENTED, UNCOMMITTED, NOT DEPLOYED (per instructions)
+
+======================================================================
+1. STARTING GIT STATE
+======================================================================
+Branch: main (up to date with origin/main)
+Working tree: clean (no pending or untracked files).
+HEAD: 19ee3f0
+
+git log --oneline -8:
+  19ee3f0 Fill in production verification results in van image report
+  3793072 Update Zenward van image phone number
+  5cc2b40 Update Zenward vehicle imagery phone number
+  03b851d Fill in production verification results in phone number report
+  bd20b38 Update Zenward Mobility phone number
+  ab28515 Harden Zenward website intake handling
+  7a11d96 Refine Zenward public transportation positioning
+  5f21443 Document responsive hero art direction
+
+Note: the brief mentions "pending trusted-intake work". None exists in this
+working tree (it was clean), so there was nothing to avoid restoring. No
+intake, contact, Nemryn or env files were touched.
+
+Docs read before editing: docs/product/marketing-scope.md,
+docs/product/launch-readiness.md, docs/architecture/request-intake-boundary.md
+(plus the existing /services, /request-transportation and
+/healthcare-providers pages, SEO helpers, and shared components).
+
+======================================================================
+2. ROUTES CREATED
+======================================================================
+  /services/medical-appointments
+  /services/dialysis-transportation
+  /services/rehabilitation-transportation
+  /services/hospital-discharge-transportation
+  /services/recurring-care-transportation
+  /services/senior-medical-transportation
+
+All six are statically prerendered. No wheelchair, stretcher, ambulance,
+Medicaid, emergency or certification pages were created.
+
+Architecture: one typed content module (src/lib/services.ts) + one shared
+renderer (src/components/public/ServicePage.tsx) + six thin route files
+that only supply metadata. /services, the sitemap and the cross-links read
+the same config, so slugs/titles cannot drift.
+
+Shared page system (all six): service-specific navy hero with an
+"at a glance" card and its own icon -> content sections -> FAQ ->
+optional "Related" links -> closing CTA band. Each page has one <h1>.
+
+Variation between pages is deliberately restrained:
+  - Section order differs (see below).
+  - Different hero icon and glance-card content per service.
+  - Section components differ in shape (checklist rows / icon cards /
+    numbered step column / teal-edged scenario cards), tone alternates
+    white/mist automatically from the order.
+  - Copy hierarchy is service-specific.
+Section order (after hero):
+  medical-appointments        audience > coordinate > expect > scenarios
+  dialysis-transportation     coordinate > audience > expect > scenarios
+  rehabilitation-transportation audience > coordinate > expect > scenarios
+  hospital-discharge          audience > expect > coordinate > scenarios
+  recurring-care              audience > coordinate > scenarios > expect
+  senior-medical              audience > coordinate > expect > scenarios
+No stock imagery and no existing photography was used. The approved photos
+show a wheelchair and ramp, which would imply a capability that is not
+confirmed for these pages.
+
+======================================================================
+3. PAGE-BY-PAGE CONTENT SUMMARY
+======================================================================
+Every page: hero + Request Transportation CTA + secondary "Call
+678-935-5489"; audience; what Zenward coordinates (4 items); what to
+expect (4 steps: request > Zenward reviews > Zenward contacts requester >
+availability/next steps confirmed); 3 scenarios; 5-question FAQ; closing
+CTA with "non-emergency only / call 911 in an emergency" line.
+
+Medical Appointments
+  H1: "Transportation to your medical appointments". Routine, specialist,
+  follow-up and other scheduled care. Includes an FAQ that Zenward provides
+  transportation only, not medical care.
+
+Dialysis Transportation
+  H1: "Transportation for dialysis treatment schedules". Repeating
+  schedules, timing around treatment (notes that treatment length varies),
+  schedule changes. Explicitly says the form does not create automatic
+  repeat trips and a request is not a booking (no standing-order or
+  punctuality claim). Scenario links to Recurring Care.
+
+Rehabilitation Transportation
+  H1: "Transportation to rehabilitation and therapy appointments". Series of
+  visits, temporarily unable to drive, caregiver scheduling. FAQ states
+  Zenward provides no therapy or medical care. No clinical claims.
+
+Hospital Discharge Transportation
+  H1: "Planned transportation after a hospital discharge". Destination is
+  not assumed to be home (home / relative / another facility). Requesters
+  can be family, caregivers or the care team. FAQ states plainly that
+  ambulance/stretcher transport is not offered and must be arranged
+  separately. Discharge-time-change guidance. Scenario links to Senior
+  Medical.
+
+Recurring Care Transportation
+  H1: "Regular transportation for ongoing care". Foundation for the later
+  recurring-care funnel: pattern, same pickup/destination, return trips,
+  changes. Honest about the form having no dedicated recurring setting
+  (schedule goes in the notes) and no automatic booking. Scenario cards
+  link to Dialysis and Rehabilitation.
+
+Senior Medical Transportation
+  H1: "Medical transportation for older adults". Requester vs passenger,
+  family/caregiver involvement, optional assistance-notes field. Says
+  Zenward reviews and confirms what it can accommodate and asks readers not
+  to assume any level of assistance. No wheelchair, physical-assistance,
+  door-through-door or clinical-support claims. Related links: Recurring
+  Care, Hospital Discharge.
+
+Request flow: all CTAs are plain links to the existing
+/request-transportation. No new intake system. See Known Issues on why no
+service indicator is appended.
+
+======================================================================
+4. INTERNAL LINKING CHANGES
+======================================================================
+/services (src/app/services/page.tsx)
+  - Each of the six cards is now a link to its landing page with a
+    "Learn more" affordance (pinned to the card bottom). Layout, tone,
+    grid, hero and CTA band unchanged.
+  - Card data now comes from the shared config (same titles/descriptions).
+  - Recurring card copy: "Standing transportation..." -> "Regular
+    transportation..." (avoids implying standing-order automation).
+  - The Senior card previously used a Wheelchair icon. It now uses the
+    HandHeart icon from the senior landing page, so no wheelchair
+    implication remains on /services.
+
+Contextual links (not a link grid):
+  Dialysis        -> Recurring Care (scenario card + Related)
+  Rehabilitation  -> Recurring Care (scenario card + Related)
+  Hospital Discharge -> Senior Medical (scenario card + Related)
+  Senior Medical  -> Recurring Care, Hospital Discharge (scenario + Related)
+  Recurring Care  -> Dialysis, Rehabilitation (scenario cards)
+  Every page      -> "All services" back link in the hero
+  Medical Appointments has no cross-links (none contextually natural).
+
+Verified in browser: all six /services cards navigate to the right page;
+hero CTAs land on /request-transportation.
+
+======================================================================
+5. SEO METADATA
+======================================================================
+Built with the existing pageMetadata() helper: unique title, unique
+description, canonical, OpenGraph (title/description/url/site name/image),
+Twitter summary_large_image. The root layout appends " | Zenward Mobility".
+Verified in built HTML: exactly one canonical, og:title, og:url, og:image,
+twitter:card per page. No location-modified keywords (03H).
+
+  medical-appointments
+    Title: Transportation to Medical Appointments
+    Desc:  Request non-emergency transportation to routine, specialist, and
+           follow-up medical appointments. Zenward reviews each request and
+           contacts you to confirm next steps.
+  dialysis-transportation
+    Title: Dialysis Transportation
+    Desc:  Non-emergency transportation coordinated around dialysis
+           treatment schedules. Describe your repeating appointments and
+           Zenward reviews and confirms what it can arrange.
+  rehabilitation-transportation
+    Title: Rehabilitation Transportation
+    Desc:  Non-emergency transportation to rehabilitation, physical
+           therapy, and other scheduled therapy appointments. Send a
+           request and Zenward will contact you to confirm next steps.
+  hospital-discharge-transportation
+    Title: Hospital Discharge Transportation
+    Desc:  Planned non-emergency transportation after a hospital stay,
+           coordinated with family, caregivers, or the care team. Request
+           transportation to the passenger's next destination.
+  recurring-care-transportation
+    Title: Recurring Care Transportation
+    Desc:  Regular non-emergency transportation for ongoing medical
+           appointments such as dialysis or rehabilitation. Describe your
+           schedule and Zenward will review it with you.
+  senior-medical-transportation
+    Title: Senior Medical Transportation
+    Desc:  Non-emergency transportation for older adults travelling to
+           scheduled medical care, arranged with family members and
+           caregivers. Send a request and Zenward will contact you.
+
+Canonical/OG URLs derive from NEXT_PUBLIC_SITE_URL as elsewhere
+(localhost:3000 in local QA; production env value is unchanged).
+
+======================================================================
+6. SITEMAP CHANGES
+======================================================================
+src/app/sitemap.ts now spreads SERVICE_PATHS (from services.ts) directly
+after /services. Sitemap goes from 8 to 14 URLs. Verified at
+/sitemap.xml: all six new routes present, in order after /services.
+
+======================================================================
+7. UNSUPPORTED-CLAIM AUDIT
+======================================================================
+Method: rendered HTML of all six pages, scripts and shared header/footer
+stripped, searched for: wheelchair, stretcher, ambulance, oxygen, medicaid,
+medicare, insurance, licens*, certif*, same-day, guarantee, on-time,
+door-through/door-to-door, nationwide, 24/7, emergency, 911. Also searched
+for revolutionary, next-generation, seamless, cutting-edge, intelligent,
+AI-powered.
+
+Result:
+  - Banned marketing words: 0 hits.
+  - wheelchair, oxygen, medicaid/medicare, insurance, licens*, certif*,
+    same-day, guarantee, on-time, door-through, nationwide, 24/7: 0 hits.
+  - "emergency"/"911": only in disclaimers ("non-emergency", "Zenward
+    provides non-emergency medical transportation only. In a medical
+    emergency, call 911.").
+  - "ambulance"/"stretcher": one place only — the Hospital Discharge FAQ
+    "Can Zenward arrange ambulance or stretcher transportation?" answered
+    "No". This is a negative statement, not a capability claim.
+  - No statistics, testimonials, geography, or on-time/availability
+    promises. "Submitting a request is not a booking" appears on each page.
+
+======================================================================
+8. PHONE-NUMBER VERIFICATION
+======================================================================
+Each of the six pages: 3 tel: links (hero, closing CTA, footer), all
+href="tel:+16789355489", display "678-935-5489" from src/lib/business.ts.
+Old 470-206-8005: 0 occurrences in any rendered page or in public/.
+One stale mention remains in a code COMMENT in
+src/lib/request-intake/adapter.ts:46 (see Known Issues); it never renders
+and that file was deliberately not touched.
+Header/footer/nav: unchanged.
+
+======================================================================
+9. FILES CREATED
+======================================================================
+  src/lib/services.ts
+  src/components/public/ServicePage.tsx
+  src/app/services/medical-appointments/page.tsx
+  src/app/services/dialysis-transportation/page.tsx
+  src/app/services/rehabilitation-transportation/page.tsx
+  src/app/services/hospital-discharge-transportation/page.tsx
+  src/app/services/recurring-care-transportation/page.tsx
+  src/app/services/senior-medical-transportation/page.tsx
+  docs/reports/ZW-WEB-03A-dedicated-service-pages.txt
+
+======================================================================
+10. FILES MODIFIED
+======================================================================
+  src/app/services/page.tsx      cards link to landing pages; data from config
+  src/app/sitemap.ts             adds SERVICE_PATHS
+  src/lib/analytics/events.ts    adds "service_page" to the
+                                 request_transportation_clicked source union
+                                 (a page label only; no passenger data)
+Nothing else changed. Not touched: request/contact actions, adapters, forms,
+Nemryn integration, REQUEST_INTAKE_MODE, env files, homepage, layout,
+header/footer.
+
+======================================================================
+11. TYPESCRIPT / LINT / BUILD
+======================================================================
+  npx tsc --noEmit   PASS (no output)
+  npm run lint       PASS (no output)
+  npm run build      PASS. 20 static pages generated; all six new routes
+                     listed as static.
+Run twice: once after the initial implementation and once after the final
+edits (card alignment + Recurring card wording). Both clean.
+
+======================================================================
+12. RESPONSIVE QA
+======================================================================
+Method: production build served locally (next start), headless Chrome via
+Playwright, viewport widths 390, 430, 768, 1024, 1440. Routes: /, /services,
+the six new pages, /request-transportation (9 routes x 5 widths = 45 checks),
+run on the final build.
+
+  - Horizontal overflow (scrollWidth > clientWidth): none in any of 45.
+  - Exactly one <h1> on each route.
+  - Full-page screenshots reviewed at 390 and 1440 (hero, glance card,
+    section shapes, CTA stack on mobile, footer). Hero CTAs stack full
+    width on phones and sit side by side from the sm breakpoint.
+  - Click-through: six /services cards -> correct pages/titles; hero
+    Request Transportation -> /request-transportation (no query string);
+    FAQ accordion toggles (aria-expanded); "All services" back link; mobile
+    menu opens. Browser console errors: none.
+Screenshots at 768/1024 were not visually reviewed one by one; those widths
+were verified for overflow only.
+
+======================================================================
+13. HOMEPAGE REGRESSION
+======================================================================
+No homepage code changed (src/app/page.tsx, HomeHero, header, footer and
+layout are unmodified per git diff). Homepage screenshots at 1440 and 390
+reviewed: hero, need-transportation banner, sections and footer render as
+before; no overflow at any tested width. RESULT: no regression.
+
+======================================================================
+14. KNOWN ISSUES / NOTES
+======================================================================
+1. No service preselection. The request form has no source/service field
+   and adding one would need form + Server Action + intake type changes,
+   which this phase excludes. CTAs are plain /request-transportation links;
+   nothing is put in the URL. Analytics distinguishes these clicks via
+   source "service_page" (a page-level label, no per-service split).
+2. Recurring trips are described in the free-text notes. The form has no
+   recurring-trip field; the pages say so honestly.
+3. Stub-mode honesty. Pages describe the process as request > review >
+   Zenward contacts you > confirm, which matches /request-transportation.
+   While REQUEST_INTAKE_MODE=stub, requests are not actually delivered
+   (launch-readiness.md), and the form's success screen asks visitors to
+   call. The new pages inherit this the same way the existing pages do; the
+   phone number is the secondary action on every page. Reassess before
+   driving paid or organic traffic to these pages while intake is in stub.
+4. Stale phone number in a comment: src/lib/request-intake/adapter.ts:46
+   still reads "Call 470-206-8005". Comment only, not rendered. Left alone
+   because that file is trusted-intake territory. Recommend a one-line fix
+   in the next intake-adjacent commit.
+5. Homepage service cards ("Transportation for essential care") are not
+   linked to the new pages. Left as is: the brief was to update /services and
+   not regress the homepage. Homepage also carries pre-existing copy that
+   this phase did not audit, e.g. the wheelchair/walker/oxygen FAQ answer and
+   "standing weekly schedule" wording. Flagging for a copy pass.
+6. No FAQPage/BreadcrumbList structured data added (kept to metadata scope).
+7. Alt text of the site OG image mentions a wheelchair (pre-existing image;
+   shared across all pages).
+8. The Services card copy "Dependable, recurring transportation..." for
+   dialysis was kept unchanged; it is not a punctuality guarantee but may be
+   worth softening.
+9. Nothing committed, pushed or deployed.
+
+======================================================================
+15. RECOMMENDED ZW-WEB-03B SCOPE
+======================================================================
+Recurring-care conversion funnel, built on /services/recurring-care-transportation:
+  a) Decide whether to add a non-sensitive "service/source" hint to the
+     request form (enum only, allow-listed server-side, no free-text and no
+     passenger data in URLs). This is the architectural change deferred here.
+  b) Add a structured, optional "recurring schedule" block to the request
+     (days of week, times, start date, expected duration) instead of asking
+     for it in notes — with the matching intake-contract update
+     coordinated with the Nemryn team.
+  c) Tighten the recurring-care page around that flow: sample schedule
+     examples, and a clear "what Zenward will confirm with you" checklist.
+  d) Link the homepage services section to the new pages, with a homepage
+     visual check.
+  e) Copy pass for the homepage FAQ/services lines noted in Known Issue 5,
+     and fix the stale phone comment in the adapter.
+  f) Optional: FAQPage/BreadcrumbList JSON-LD; analytics event per service
+     if a vendor is chosen.
+Location SEO stays in ZW-WEB-03H.

@@ -28,6 +28,7 @@ export type AnalyticsEvent =
         | "patients_families"
         | "final_cta"
         | "services_page"
+        | "service_page"
         | "provider_page"
         | "other";
     }
