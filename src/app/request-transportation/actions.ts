@@ -1,6 +1,9 @@
 "use server";
 
 import { getRequestIntakeAdapter } from "@/lib/request-intake/adapter";
+import { isPublicServiceType } from "@/lib/request-intake/service-types";
+import { parseRecurringSchedule } from "@/lib/request-intake/recurring";
+import { findTenancyKeys } from "@/lib/request-intake/tenancy";
 import type {
   RequesterRelationship,
   ReturnTripPreference,
@@ -26,6 +29,9 @@ const RELATIONSHIPS: readonly RequesterRelationship[] = [
 ];
 const RETURN_TRIP: readonly ReturnTripPreference[] = ["yes", "no", "not_sure"];
 
+const RECURRING_ERROR =
+  "Please check the recurring schedule (days of the week and start date) and try again, or call us.";
+
 const GENERIC_ERROR =
   "We couldn't submit your request. Please check the form and try again, or call us to arrange transportation.";
 
@@ -37,7 +43,8 @@ const GENERIC_ERROR =
  * allowed values — before anything reaches the configured adapter.
  *
  * There is no `organization_id` / `tenant_id`, trip state, driver, or vehicle
- * field for a client to supply or forge. Request content is never logged in
+ * field for a client to supply or forge — and a submission that CONTAINS one
+ * (at any depth) is rejected outright, not silently trimmed. Request content is never logged in
  * full, never persisted in the browser, and never sent to analytics.
  *
  * The client also sends a `submissionId` (UUID) so a network-failure retry of
@@ -62,7 +69,29 @@ export async function submitTransportationRequest(
 
   const src = input as Record<string, unknown>;
 
+  // A caller-supplied tenancy identifier is never legitimate on this public
+  // form. Reject (don't just drop it) and log the fact only — no values, no
+  // request content.
+  if (findTenancyKeys(src).length > 0) {
+    console.warn("[request-intake] rejected submission: caller-supplied tenancy field.");
+    return { ok: false, delivered: false, error: GENERIC_ERROR };
+  }
+
+  // serviceType must be exactly one of the publicly offered values. A missing,
+  // unknown or not-yet-public value (Nemryn accepts more than Zenward offers) is
+  // rejected, never coerced to "other".
+  if (!isPublicServiceType(src.serviceType)) {
+    return { ok: false, delivered: false, error: "Please fill in all required fields." };
+  }
+
+  // recurringSchedule: absent → one-time; present → must validate strictly.
+  const schedule = parseRecurringSchedule(src.recurringSchedule);
+  if (!schedule.ok) {
+    return { ok: false, delivered: false, error: RECURRING_ERROR };
+  }
+
   const clean: TransportationRequestInput = {
+    serviceType: src.serviceType,
     requesterName: cleanString(src.requesterName, FIELD_LIMITS.name) ?? "",
     requesterRelationship: (isAllowed(src.requesterRelationship, RELATIONSHIPS)
       ? src.requesterRelationship
@@ -80,6 +109,7 @@ export async function submitTransportationRequest(
     assistanceNotes: cleanString(src.assistanceNotes, FIELD_LIMITS.longText),
     additionalNotes: cleanString(src.additionalNotes, FIELD_LIMITS.longText),
   };
+  if (schedule.value) clean.recurringSchedule = schedule.value;
 
   const missingRequired =
     !clean.requesterName ||

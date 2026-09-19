@@ -1,9 +1,8 @@
-import type {
-  RequestSubmissionMeta,
-  TransportationRequestInput,
-  TransportationRequestResult,
-  TrustedIntakeEnvelope,
-} from "./types";
+// Explicit .ts extensions: `node --test` resolves these directly (no bundler),
+// and `allowImportingTsExtensions` in tsconfig.json keeps them valid for tsc/Next.
+import { findTenancyKeys } from "./tenancy.ts";
+import { buildNemrynIntakeBody, interpretNemrynResponse, type NemrynFailure } from "./nemryn-mapping.ts";
+import type { RequestSubmissionMeta, TransportationRequestInput, TransportationRequestResult } from "./types";
 
 /**
  * The request-intake boundary. UI never talks to a database or an external
@@ -13,15 +12,26 @@ import type {
  * delivery destination can change later without touching the form or the
  * page.
  *
- * *** REPLACEMENT POINT ***
- * When the trusted Nemryn transportation-request intake exists (full spec:
- * docs/architecture/nemryn-trusted-request-intake-contract.md), set
+ * *** PRODUCTION PATH (CONNECTED, P1-PILOT-S4B-R3) ***
+ * Browser -> Server Action -> this adapter -> Nemryn HTTP endpoint. The
+ * Nemryn call is server-to-server, so browser CORS is not the security
+ * boundary for it (and Nemryn's CORS configuration is not loosened for it).
+ * Nemryn's production contract is a flat JSON body, no bearer token, no
+ * versioned envelope (see `nemryn-mapping.ts` and
+ * docs/architecture/nemryn-trusted-request-intake-contract.md). Set
  * `REQUEST_INTAKE_MODE=platform` and provide `PLATFORM_INTAKE_URL` /
- * `PLATFORM_INTAKE_TOKEN` (server-only, never `NEXT_PUBLIC_`). This app still
- * never reads or writes any database directly, and never gives the browser
- * an organization_id / tenant_id to choose — the endpoint resolves the
- * Zenward Mobility tenant from its own server-side credentials. See
+ * `PLATFORM_INTAKE_INTEGRATION_ID` (server-only, never `NEXT_PUBLIC_`). This
+ * app never reads or writes a database directly and never gives the browser
+ * an organization_id / tenant_id to choose -- Nemryn resolves the Zenward
+ * Mobility tenant from the opaque `integrationExternalId` server-side. See
  * docs/architecture/request-intake-boundary.md.
+ *
+ * `integrationExternalId` is an OPAQUE PER-INTEGRATION IDENTIFIER, not a
+ * privileged credential: it identifies which configured Nemryn integration a
+ * submission belongs to and carries no standing access to Nemryn's database
+ * or API. It stays server-only simply because there is no reason to expose
+ * backend configuration to the browser. Nemryn's own service-role key is
+ * never sent to, stored by, or reachable from this repository.
  *
  * Detailed transportation-request content (passenger identity, addresses,
  * appointment / assistance notes) must never be delivered by ordinary
@@ -34,22 +44,31 @@ export interface RequestIntakeAdapter {
   ): Promise<TransportationRequestResult>;
 }
 
-/** Envelope schema this adapter speaks. Bump only on a breaking envelope change. */
-const SCHEMA_VERSION = "1.0" as const;
-
 /** Server-to-server call budget. The browser is long gone by the time this runs. */
 const INTAKE_TIMEOUT_MS = 10_000;
 
 /**
  * Customer-safe copy. Never contains an HTTP status, a provider name, API
  * terminology, or an internal error. Every failure path ends by pointing at
- * the phone number (the form and page also surface a "Call 470-206-8005" CTA).
+ * the phone number (the form and page also surface a "Call 678-935-5489" CTA).
  */
 const MSG_UNAVAILABLE =
   "Online requests are temporarily unavailable right now. Please call us to arrange transportation.";
 const MSG_RETRY =
   "We couldn't submit your request just now. Please try again shortly, or call us.";
+const MSG_REJECTED =
+  "We couldn't submit your request. Please check the form and try again, or call us to arrange transportation.";
+const MSG_RATE_LIMITED =
+  "We're receiving a lot of requests right now. Please try again in a little while, or call us to arrange transportation.";
 
+const FAILURE_MESSAGE: Record<NemrynFailure, string> = {
+  rejected: MSG_REJECTED,
+  rate_limited: MSG_RATE_LIMITED,
+  unavailable: MSG_UNAVAILABLE,
+  unconfirmed: MSG_RETRY,
+};
+
+/** Stub-only display value; the platform path shows no reference (Nemryn returns none). */
 function newReference(prefix: string): string {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
 }
@@ -92,22 +111,27 @@ class StubRequestIntakeAdapter implements RequestIntakeAdapter {
 }
 
 /**
- * Calls the trusted Nemryn intake endpoint with a signed server-to-server
- * request carrying an explicit versioned envelope
- * (docs/architecture/nemryn-trusted-request-intake-contract.md). The endpoint
- * and token do not exist yet; when `REQUEST_INTAKE_MODE=platform` is selected
- * without them configured, this fails closed with an honest, non-technical
- * message rather than pretending the request was delivered.
+ * Calls Nemryn's production public intake endpoint
+ * (`POST https://app.nemryn.com/api/public-intake/website`) with a flat JSON
+ * body built by `buildNemrynIntakeBody`. When `REQUEST_INTAKE_MODE=platform`
+ * is selected without the two required env vars, this fails closed with an
+ * honest, non-technical message rather than pretending the request was
+ * delivered.
  *
- * `delivered: true` is returned ONLY when the endpoint positively accepts the
- * request (2xx with `{ accepted: true, referenceId }`, or an idempotent 409
- * that echoes the original `referenceId`). Every other outcome — any error
- * status, a malformed success body, a timeout, or an unreachable endpoint —
- * returns `delivered: false`.
+ * `delivered: true` is returned ONLY when Nemryn responds `200 {"ok": true}`.
+ * Nemryn returns no reference of its own, so none is returned here either:
+ * the visitor simply sees "Request received". Every other outcome -- an error
+ * status, a malformed or unexpected body, a timeout, an unreachable endpoint
+ * -- returns `delivered: false`.
+ *
+ * The idempotency key is `meta.submissionId`, which the Server Action fixes
+ * once per logical submission. This adapter makes exactly one HTTP attempt per
+ * `submit()` call and never mints an id of its own, so a visitor retrying the
+ * same submission re-sends the same key and a new submission sends a new one.
  */
 class PlatformRequestIntakeAdapter implements RequestIntakeAdapter {
   private readonly url = process.env.PLATFORM_INTAKE_URL;
-  private readonly token = process.env.PLATFORM_INTAKE_TOKEN;
+  private readonly integrationExternalId = process.env.PLATFORM_INTAKE_INTEGRATION_ID;
 
   async submit(
     input: TransportationRequestInput,
@@ -115,23 +139,28 @@ class PlatformRequestIntakeAdapter implements RequestIntakeAdapter {
   ): Promise<TransportationRequestResult> {
     const { submissionId } = meta;
 
-    if (!this.url || !this.token) {
+    if (!this.url || !this.integrationExternalId) {
       logOutcome("error", "not_configured", { submissionId });
       return { ok: false, delivered: false, error: MSG_UNAVAILABLE };
     }
-    // HTTPS-only (a misconfigured plaintext URL must never carry the token).
+    // HTTPS-only.
     if (!this.url.startsWith("https://")) {
       logOutcome("error", "insecure_url", { submissionId });
       return { ok: false, delivered: false, error: MSG_UNAVAILABLE };
     }
 
-    const envelope: TrustedIntakeEnvelope = {
-      schemaVersion: SCHEMA_VERSION,
-      submissionId,
-      submittedAt: new Date().toISOString(),
-      source: "zenward_web",
-      request: input,
-    };
+    const wireBody = buildNemrynIntakeBody(input, this.integrationExternalId, submissionId);
+
+    // Defence in depth: never transmit a tenancy identifier. The Server
+    // Action's whitelist rebuild, and `buildNemrynIntakeBody`'s own fixed
+    // output shape, already mean a legitimate body cannot contain one;
+    // if one ever somehow appeared, fail closed rather than send it.
+    // Logs the outcome only — never the key values or any request
+    // content.
+    if (findTenancyKeys(wireBody).length > 0) {
+      logOutcome("error", "forbidden_field", { submissionId });
+      return { ok: false, delivered: false, error: MSG_REJECTED };
+    }
 
     let res: Response;
     try {
@@ -140,10 +169,8 @@ class PlatformRequestIntakeAdapter implements RequestIntakeAdapter {
         headers: {
           "content-type": "application/json",
           accept: "application/json",
-          authorization: `Bearer ${this.token}`,
-          "idempotency-key": submissionId,
         },
-        body: JSON.stringify(envelope),
+        body: JSON.stringify(wireBody),
         signal: AbortSignal.timeout(INTAKE_TIMEOUT_MS),
       });
     } catch (err) {
@@ -153,65 +180,41 @@ class PlatformRequestIntakeAdapter implements RequestIntakeAdapter {
       return { ok: false, delivered: false, error: MSG_UNAVAILABLE };
     }
 
-    const body = (await res.json().catch(() => ({}))) as {
-      accepted?: boolean;
-      referenceId?: string;
-    };
-    const reference =
-      typeof body.referenceId === "string" && body.referenceId.trim() !== ""
-        ? body.referenceId.trim()
-        : undefined;
+    const body = await res.json().catch(() => undefined);
+    const outcome = interpretNemrynResponse(res.status, body);
 
-    // Positive acceptance.
-    if ((res.status === 200 || res.status === 201) && body.accepted === true && reference) {
+    if (outcome.delivered) {
       logOutcome("info", "accepted", { submissionId, status: res.status });
-      return { ok: true, delivered: true, referenceId: reference };
+      return { ok: true, delivered: true };
     }
 
-    // Idempotent replay the endpoint chose to signal with 409 — only trusted
-    // if it echoes the original public reference.
-    if (res.status === 409 && reference) {
-      logOutcome("info", "duplicate", { submissionId, status: 409 });
-      return { ok: true, delivered: true, referenceId: reference };
-    }
-
-    // 2xx but the body did not confirm acceptance — do NOT assume success.
-    if (res.ok) {
-      logOutcome("error", "malformed_success", { submissionId, status: res.status });
-      return { ok: false, delivered: false, error: MSG_RETRY };
-    }
-
-    // Explicit error statuses.
-    if (res.status === 429 || res.status >= 500) {
-      logOutcome("error", res.status === 429 ? "rate_limited" : "server_error", {
-        submissionId,
-        status: res.status,
-      });
-      return { ok: false, delivered: false, error: MSG_UNAVAILABLE };
-    }
-
-    // 400 / 401 / 403 / 409-without-reference / 4xx — recoverable from the
-    // visitor's side (retry or call); never surface which one.
-    logOutcome("error", "rejected", { submissionId, status: res.status });
-    return { ok: false, delivered: false, error: MSG_RETRY };
+    logOutcome("error", outcome.failure, { submissionId, status: res.status });
+    return { ok: false, delivered: false, error: FAILURE_MESSAGE[outcome.failure] };
   }
 }
 
 let cachedAdapter: RequestIntakeAdapter | undefined;
 
-/** Selects the configured adapter. Defaults to the stub — see REQUEST_INTAKE_MODE in .env.example. */
-export function getRequestIntakeAdapter(): RequestIntakeAdapter {
-  if (cachedAdapter) return cachedAdapter;
-
+/**
+ * Builds a fresh adapter from the current environment (`REQUEST_INTAKE_MODE`,
+ * `PLATFORM_INTAKE_URL`, `PLATFORM_INTAKE_INTEGRATION_ID`). Defaults to the
+ * stub — see REQUEST_INTAKE_MODE in .env.example. Exposed uncached so
+ * contract tests can exercise each configuration; the app itself uses
+ * `getRequestIntakeAdapter`.
+ */
+export function createRequestIntakeAdapter(): RequestIntakeAdapter {
   const mode = (process.env.REQUEST_INTAKE_MODE ?? "stub").toLowerCase();
   switch (mode) {
     case "platform":
-      cachedAdapter = new PlatformRequestIntakeAdapter();
-      break;
+      return new PlatformRequestIntakeAdapter();
     case "stub":
     default:
-      cachedAdapter = new StubRequestIntakeAdapter();
-      break;
+      return new StubRequestIntakeAdapter();
   }
+}
+
+/** The configured adapter, created once per server instance. */
+export function getRequestIntakeAdapter(): RequestIntakeAdapter {
+  cachedAdapter ??= createRequestIntakeAdapter();
   return cachedAdapter;
 }

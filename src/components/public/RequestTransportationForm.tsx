@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { SegmentedChoice } from "@/components/ui/SegmentedChoice";
+import { RecurringScheduleFields, RECURRING_FIELD_NAMES } from "@/components/public/RecurringScheduleFields";
 import { FormHoneypot } from "@/components/public/FormHoneypot";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
@@ -13,6 +15,13 @@ import { track } from "@/lib/analytics/events";
 import { business } from "@/lib/business";
 import { submitTransportationRequest } from "@/app/request-transportation/actions";
 import type { TransportationRequestInput } from "@/lib/request-intake/types";
+import {
+  SERVICE_TYPE_OPTIONS,
+  defaultFrequencyFor,
+  type ServiceType,
+  type TripFrequency,
+} from "@/lib/request-intake/service-types";
+import type { Weekday } from "@/lib/request-intake/recurring";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -31,7 +40,16 @@ function makeSubmissionId(): string {
   return "";
 }
 
-export function RequestTransportationForm() {
+/**
+ * `initialServiceType` comes from a validated, allow-listed `?service=` value
+ * resolved on the server (see `resolveServiceParam`); it is never derived from
+ * anything a visitor typed into the form. Arriving for `recurring_care` also
+ * defaults Trip frequency to Recurring.
+ */
+export function RequestTransportationForm({ initialServiceType }: { initialServiceType?: ServiceType }) {
+  const [frequency, setFrequency] = useState<TripFrequency>(() => defaultFrequencyFor(initialServiceType));
+  const [recurringStart, setRecurringStart] = useState("");
+  const [daysError, setDaysError] = useState<string | undefined>();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | undefined>();
   const [referenceId, setReferenceId] = useState<string | undefined>();
@@ -61,11 +79,27 @@ export function RequestTransportationForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus("submitting");
     setError(undefined);
+    setDaysError(undefined);
 
     const formData = new FormData(event.currentTarget);
+    const isRecurring = frequency === "recurring";
+    const days = isRecurring ? (formData.getAll(RECURRING_FIELD_NAMES.days) as Weekday[]) : [];
+    if (isRecurring && days.length === 0) {
+      // The server validates too; this just keeps the visitor on the form with
+      // a specific message instead of a round-trip.
+      setDaysError("Choose at least one day of the week.");
+      return;
+    }
+    setStatus("submitting");
+
+    // When recurring, the "Return transportation expected?" answer replaces the
+    // one-time "Return trip needed?" select (hidden), and the recurring start
+    // date / appointment time replace preferred date / time.
+    const returnExpected = isRecurring ? formData.get(RECURRING_FIELD_NAMES.returnExpected) === "yes" : undefined;
+
     const input: TransportationRequestInput = {
+      serviceType: formData.get("serviceType") as ServiceType,
       requesterName: String(formData.get("requesterName") ?? ""),
       requesterRelationship: formData.get("requesterRelationship") as TransportationRequestInput["requesterRelationship"],
       requesterPhone: String(formData.get("requesterPhone") ?? ""),
@@ -73,18 +107,41 @@ export function RequestTransportationForm() {
       passengerName: String(formData.get("passengerName") ?? ""),
       pickupDescription: String(formData.get("pickupDescription") ?? ""),
       destinationDescription: String(formData.get("destinationDescription") ?? ""),
-      preferredDate: String(formData.get("preferredDate") ?? "") || undefined,
-      preferredTime: String(formData.get("preferredTime") ?? "") || undefined,
-      returnTripNeeded: formData.get("returnTripNeeded") as TransportationRequestInput["returnTripNeeded"],
+      preferredDate: isRecurring ? undefined : String(formData.get("preferredDate") ?? "") || undefined,
+      preferredTime: isRecurring ? undefined : String(formData.get("preferredTime") ?? "") || undefined,
+      returnTripNeeded: isRecurring
+        ? returnExpected
+          ? "yes"
+          : "no"
+        : (formData.get("returnTripNeeded") as TransportationRequestInput["returnTripNeeded"]),
       assistanceNotes: String(formData.get("assistanceNotes") ?? "") || undefined,
       additionalNotes: String(formData.get("additionalNotes") ?? "") || undefined,
     };
+    if (isRecurring) {
+      input.recurringSchedule = {
+        daysOfWeek: days,
+        startDate: String(formData.get(RECURRING_FIELD_NAMES.startDate) ?? ""),
+        endDate: String(formData.get(RECURRING_FIELD_NAMES.endDate) ?? "") || undefined,
+        appointmentTime: String(formData.get(RECURRING_FIELD_NAMES.appointmentTime) ?? "") || undefined,
+        returnTripExpected: returnExpected,
+      };
+    }
 
-    const result = await submitTransportationRequest(input, {
-      hp: String(formData.get("company_website") ?? ""),
-      startedAt: startedAt.current || undefined,
-      submissionId: submissionId.current || undefined,
-    });
+    let result: Awaited<ReturnType<typeof submitTransportationRequest>>;
+    try {
+      result = await submitTransportationRequest(input, {
+        hp: String(formData.get("company_website") ?? ""),
+        startedAt: startedAt.current || undefined,
+        submissionId: submissionId.current || undefined,
+      });
+    } catch {
+      // The call itself failed (e.g. the connection dropped). Keep everything the
+      // visitor entered and the SAME submissionId, so a retry is de-duplicated
+      // downstream instead of leaving the form stuck in "submitting".
+      setStatus("error");
+      setError("We couldn't submit your request just now. Please try again shortly, or call us.");
+      return;
+    }
 
     if (result.ok) {
       setStatus("success");
@@ -143,6 +200,37 @@ export function RequestTransportationForm() {
   return (
     <form onSubmit={handleSubmit} onFocus={markStarted} className="relative flex flex-col gap-lg">
       <FormHoneypot />
+
+      <div className="flex flex-col gap-md">
+        <Select
+          name="serviceType"
+          label="Service needed"
+          required
+          placeholder="Select one"
+          // Only pass defaultValue when there is one: Select spreads its props after its own
+          // default, so an explicit `undefined` would skip the placeholder and silently
+          // preselect the first real option.
+          {...(initialServiceType ? { defaultValue: initialServiceType } : {})}
+          options={SERVICE_TYPE_OPTIONS}
+        />
+        <SegmentedChoice
+          label="Trip frequency"
+          name="tripFrequency"
+          value={frequency}
+          onChange={(value) => {
+            setFrequency(value as TripFrequency);
+            setDaysError(undefined);
+          }}
+          options={[
+            { value: "one_time", label: "One-time" },
+            { value: "recurring", label: "Recurring" },
+          ]}
+        />
+        {frequency === "recurring" && (
+          <RecurringScheduleFields startDate={recurringStart} onStartDateChange={setRecurringStart} daysError={daysError} />
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
         <Input name="requesterName" label="Your name" required autoComplete="name" maxLength={120} />
         <Select
@@ -164,26 +252,30 @@ export function RequestTransportationForm() {
 
       <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
         <Input name="passengerName" label="Passenger's name" required helpText="If different from you." maxLength={120} />
-        <Select
-          name="returnTripNeeded"
-          label="Return trip needed?"
-          required
-          placeholder="Select one"
-          options={[
-            { value: "yes", label: "Yes" },
-            { value: "no", label: "No" },
-            { value: "not_sure", label: "Not sure yet" },
-          ]}
-        />
+        {frequency === "one_time" && (
+          <Select
+            name="returnTripNeeded"
+            label="Return trip needed?"
+            required
+            placeholder="Select one"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+              { value: "not_sure", label: "Not sure yet" },
+            ]}
+          />
+        )}
       </div>
 
       <Input name="pickupDescription" label="Pickup location" required helpText="Address, or the name of a facility." maxLength={400} />
       <Input name="destinationDescription" label="Destination" required helpText="Address, or the name of a facility." maxLength={400} />
 
-      <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
-        <Input name="preferredDate" label="Preferred date" type="date" />
-        <Input name="preferredTime" label="Preferred time" type="time" />
-      </div>
+      {frequency === "one_time" && (
+        <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
+          <Input name="preferredDate" label="Preferred date" type="date" />
+          <Input name="preferredTime" label="Preferred time" type="time" />
+        </div>
+      )}
 
       <Textarea
         name="assistanceNotes"

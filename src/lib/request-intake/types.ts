@@ -6,10 +6,17 @@
  * connected to this project. These are the minimal fields this site's form
  * needs; field names may not match the eventual platform schema 1:1.
  */
+import type { ServiceType } from "./service-types";
+import type { RecurringSchedule } from "./recurring";
+
+export type { ServiceType, RecurringSchedule };
+
 export type RequesterRelationship = "self" | "family" | "caregiver" | "facility_coordinator" | "other";
 export type ReturnTripPreference = "yes" | "no" | "not_sure";
 
 export interface TransportationRequestInput {
+  /** Which approved service the request is for. Allow-listed (`SERVICE_TYPES`); required. */
+  serviceType: ServiceType;
   requesterName: string;
   requesterRelationship: RequesterRelationship;
   requesterPhone: string;
@@ -22,16 +29,30 @@ export interface TransportationRequestInput {
   returnTripNeeded: ReturnTripPreference;
   assistanceNotes?: string;
   additionalNotes?: string;
+  /**
+   * The REQUESTED recurring schedule, present only for a recurring request.
+   * It describes what the requester wants — it does not create trips or a
+   * booking. Absent = one-time request.
+   */
+  recurringSchedule?: RecurringSchedule;
 }
 
 export interface TransportationRequestResult {
   ok: boolean;
-  /** A reference the requester can quote in a follow-up call — not a booking/trip ID of any kind. */
+  /**
+   * A reference the requester can quote in a follow-up call — not a
+   * booking/trip ID of any kind. Nemryn's own trusted intake response
+   * never contains a reference of its own (deliberate — see that
+   * repository's "no existence oracle" design); when `delivered` is
+   * `true` via the platform adapter, this is a Zenward-Web-LOCAL,
+   * non-authoritative display value only, never Nemryn's internal
+   * Request id.
+   */
   referenceId?: string;
   error?: string;
   /**
    * True only when a **trusted delivery destination actually positively
-   * accepted** the request (the future trusted Nemryn intake — see
+   * accepted** the request (the trusted Nemryn intake — see
    * docs/architecture/nemryn-trusted-request-intake-contract.md). The stub
    * adapter returns `false`: it validated and acknowledged the form but
    * nothing was delivered or stored. Every non-acceptance (any error status,
@@ -53,28 +74,17 @@ export interface RequestSubmissionMeta {
    * network-failure retries of the same submission so the trusted endpoint
    * can deduplicate. Generated client-side; the Server Action regenerates it
    * server-side if it is missing or malformed. Contains no personal
-   * information.
+   * information. Sent to Nemryn unchanged as `idempotencyKey` — see
+   * `nemryn-mapping.ts`'s own `buildNemrynIntakeBody`.
    */
   submissionId: string;
 }
 
-/**
- * The exact JSON body `PlatformRequestIntakeAdapter` POSTs to the trusted
- * intake endpoint. An explicit, versioned envelope so the endpoint contract
- * can evolve without ambiguity. NEVER contains an organization_id / tenant_id
- * / operator id — the endpoint resolves the Zenward Mobility tenant from its
- * own server-side credentials. This envelope is internal; it is never exposed
- * to the browser or the visitor.
- */
-export interface TrustedIntakeEnvelope {
-  /** Envelope schema version. Bumped only on a breaking envelope change. */
-  schemaVersion: "1.0";
-  /** UUID — mirrors the `Idempotency-Key` header. See `RequestSubmissionMeta`. */
-  submissionId: string;
-  /** ISO-8601 UTC instant the Server Action forwarded the request. Server-generated. */
-  submittedAt: string;
-  /** Constant identifying this caller. Server-generated. */
-  source: "zenward_web";
-  /** The validated transportation-request fields, unchanged. */
-  request: TransportationRequestInput;
-}
+// The wire body actually sent to Nemryn's trusted intake endpoint is
+// `NemrynIntakeRequestBody` (see `nemryn-mapping.ts`) — a flat JSON object
+// with no envelope wrapper, no schema version, and no bearer credential.
+// The speculative versioned-envelope shape that used to live here
+// (`TrustedIntakeEnvelope`, written before Nemryn's endpoint existed) has
+// been retired now that the real contract is implemented and proven; see
+// docs/architecture/nemryn-trusted-request-intake-contract.md for the
+// current, accurate spec.

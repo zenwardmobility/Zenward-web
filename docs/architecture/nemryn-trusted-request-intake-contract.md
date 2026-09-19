@@ -1,318 +1,154 @@
-# Nemryn — Trusted Transportation-Request Intake Contract
+# Nemryn — Public Website Request Intake Contract
 
-**Audience:** the Nemryn engineering team who will build the endpoint.
 **Producer:** Zenward-Web (`https://www.zenwardmobility.com/request-transportation`), via
-`PlatformRequestIntakeAdapter` in `src/lib/request-intake/adapter.ts`.
-**Status:** Zenward-Web side implemented and verified against a local mock (ZW-WEB-02C-1). The Nemryn endpoint does **not** exist yet. This document is the spec it must satisfy so that turning it on is config-only on the Zenward-Web side (`REQUEST_INTAKE_MODE=platform` + `PLATFORM_INTAKE_URL` + `PLATFORM_INTAKE_TOKEN`).
-**Do not implement this endpoint in the Zenward-Web repository.**
+`PlatformRequestIntakeAdapter` in `src/lib/request-intake/adapter.ts` and the pure mapping in
+`src/lib/request-intake/nemryn-mapping.ts`.
+**Consumer:** Nemryn production, `POST https://app.nemryn.com/api/public-intake/website`.
+**Nemryn release:** `c275ec52ea1da6f300811a87849de86fd5225ef2` (contract frozen).
+**Status:** Implemented on the Zenward-Web side. Nemryn owns the endpoint; **do not change or re-implement it from this repository.** This document describes what Zenward-Web sends and how it interprets the reply. Where it disagrees with Nemryn's own route code, Nemryn's code wins.
+
+### History
+
+This file used to specify a *speculative* contract written before the endpoint existed: a Bearer token, a versioned
+envelope (`schemaVersion` 1.0 / 1.1), an `Idempotency-Key` header, a Nemryn-issued `referenceId` and `409`
+replay semantics. **None of that is the production contract and none of it is implemented.** The adapter sends a flat
+body with no token, and Nemryn returns `{"ok":true}` with no reference.
 
 ---
 
-## 1. Purpose
-
-Accept one public, unauthenticated-origin non-emergency medical transportation
-request that a visitor submitted on the Zenward Mobility marketing site,
-validated server-side by Zenward-Web, and create exactly one operational
-transportation request for the **Zenward Mobility** organisation inside Nemryn.
-
-Zenward-Web is a low-trust public surface. It has **no** database access, holds
-**no** tenant identifier, and must receive back **only** a public acknowledgement
-(accepted + a display-safe reference). Everything else — which organisation owns
-the request, how it is stored, who is notified — is Nemryn's responsibility and
-must be derived from Nemryn's own trusted server-side state.
-
----
-
-## 2. Transport
+## 1. Transport
 
 | Property | Value |
 |---|---|
-| Method | `POST` |
-| Scheme | `https://` **only** (Zenward-Web refuses to send over plaintext) |
-| Path | Nemryn's choice; supplied to Zenward-Web as `PLATFORM_INTAKE_URL` |
-| Content type | `application/json; charset=utf-8` |
-| Accept | `application/json` |
-| Request body encoding | UTF-8 JSON, one envelope object (see §5) |
-| Max body size | Envelope is small (< 16 KB in practice). Reject > 64 KB with `413`. |
-| Client timeout | Zenward-Web aborts the call at **10 seconds**. Respond well within that. |
-| Idle keep-alive / retries by client | None automatic. See §7 (idempotency) for how visitor-initiated retries behave. |
+| Method / scheme | `POST`, `https://` only (Zenward-Web refuses any other scheme) |
+| URL | `PLATFORM_INTAKE_URL` = `https://app.nemryn.com/api/public-intake/website` |
+| Headers | `content-type: application/json`, `accept: application/json`. **No `Authorization` header. No `Idempotency-Key` header.** |
+| Client timeout | 10 s (`AbortSignal.timeout`). One attempt per call; the adapter never retries internally. |
+| Call path | Browser → Zenward Server Action → adapter → Nemryn. The Nemryn call is **server-to-server**: the browser never calls Nemryn, so browser CORS is not the security boundary for it. Nemryn's CORS/rate-limit configuration is not weakened for this integration. |
 
----
+## 2. Identification — no secret
 
-## 3. Authentication
+`integrationExternalId` (env `PLATFORM_INTAKE_INTEGRATION_ID`) is an **opaque per-integration identifier**, not a
+credential. Nemryn looks it up in its own `request_intake_integrations` table to find the owning organization and to
+check the integration is active. It carries no standing access.
 
-```
-Authorization: Bearer <PLATFORM_INTAKE_TOKEN>
-```
+Zenward-Web must **not** hold, and this repository must never contain: a Supabase service-role or anon key for this
+integration, database credentials, an admin/bearer token, or a Vercel token. `PLATFORM_INTAKE_TOKEN` no longer exists.
 
-- The token is a single shared secret issued by Nemryn to Zenward-Web for this
-  one integration. It authenticates **the Zenward-Web server**, not a user.
-- It is stored only in Zenward-Web's server-side environment
-  (`PLATFORM_INTAKE_TOKEN`). It is never `NEXT_PUBLIC_`, never sent to the
-  browser, never logged, never embedded in client code.
-- Nemryn requirements:
-  - Verify the bearer token on every request before any other processing.
-  - Support **rotation** — ideally accept two valid tokens during an overlap
-    window so the secret can be rotated with zero downtime.
-  - Treat a missing/blank/malformed `Authorization` header as `401`.
-  - Treat a well-formed but unrecognised/expired token as `401`.
-  - Bind the token to the Zenward Mobility tenant server-side (see §4). The
-    token is what selects the tenant — **not** anything in the request body.
-  - Rate-limit per token (see §8, `429`).
-- Do **not** invent or hard-code a real token anywhere. It is provisioned
-  operationally when the endpoint goes live.
-
----
-
-## 4. Tenant isolation — CRITICAL, NON-NEGOTIABLE
-
-- The endpoint **must** resolve the destination organisation (the Zenward
-  Mobility tenant) **server-side**, from the authenticated credential /
-  configuration bound to that token.
-- The endpoint **must not** read, trust, or even accept an `organization_id`,
-  `tenant_id`, `operatorId`, or any equivalent from the request body, headers,
-  or query string. Zenward-Web never sends one. If a future payload somehow
-  contains such a field, the endpoint must ignore it (and may log a warning).
-- Persistence **must** enforce tenant isolation at the database layer with
-  Row-Level Security (RLS) — the created request row is owned by the
-  token-resolved organisation and is not reachable from any other tenant's
-  context.
-- A single compromised or misdirected token must never be able to write into a
-  different tenant's data.
-
----
-
-## 5. Request body — the versioned envelope
-
-Zenward-Web sends exactly this shape. Fields are ordered here for clarity only.
+## 3. Request body — flat, closed field set
 
 ```json
 {
-  "schemaVersion": "1.0",
-  "submissionId": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
-  "submittedAt": "2026-09-07T17:30:31.715Z",
-  "source": "zenward_web",
-  "request": {
-    "requesterName": "Dana Ellsworth",
-    "requesterRelationship": "family",
-    "requesterPhone": "404-555-0142",
-    "requesterEmail": "dana.ellsworth@example.com",
-    "passengerName": "Marion Ellsworth",
-    "pickupDescription": "418 Peachtree Manor, Apt 6B",
-    "destinationDescription": "Northside Dialysis Center",
-    "preferredDate": "2026-09-20",
-    "preferredTime": "09:15",
-    "returnTripNeeded": "yes",
-    "assistanceNotes": "Uses a walker; needs help to the vehicle.",
-    "additionalNotes": "Please call the daughter first."
+  "integrationExternalId": "<opaque id>",
+  "idempotencyKey": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+  "requesterName": "Dana Ellsworth",
+  "requesterRelationship": "family",
+  "requesterPhone": "404-555-0142",
+  "requesterEmail": "dana.ellsworth@example.com",
+  "passengerName": "Marion Ellsworth",
+  "pickupDescription": "418 Peachtree Manor, Apt 6B",
+  "destinationDescription": "Northside Dialysis Center",
+  "preferredDate": "2026-09-25",
+  "preferredTime": "09:15",
+  "returnTripNeeded": "yes",
+  "assistanceNotes": "Uses a walker.",
+  "additionalNotes": "Please call the daughter first.",
+  "serviceType": "dialysis"
+}
+```
+
+A recurring request replaces `preferredDate` / `preferredTime` with a structured object:
+
+```json
+{
+  "...": "same flat fields as above",
+  "serviceType": "dialysis",
+  "returnTripNeeded": "yes",
+  "recurringSchedule": {
+    "daysOfWeek": ["monday", "wednesday", "friday"],
+    "startDate": "2026-10-05",
+    "endDate": "2026-12-18",
+    "appointmentTime": "09:15",
+    "returnTripExpected": true
   }
 }
 ```
 
-### 5.1 Envelope fields
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `schemaVersion` | string enum | yes | Currently `"1.0"`. Nemryn must reject an unknown **major** version with `400`. New optional `request` fields will **not** bump this; a breaking envelope change will. |
-| `submissionId` | string, UUID | yes | Also sent as the `Idempotency-Key` header (identical value). Idempotency key for this logical submission. Contains no PII. |
-| `submittedAt` | string, ISO-8601 UTC (`Z`) | yes | Generated by the Zenward-Web server when it forwarded the request. Informational; do not use it for idempotency or dedupe windows. |
-| `source` | string enum | yes | Always `"zenward_web"` from this integration. Reject other values with `400` unless/until other sources are agreed. |
-| `request` | object | yes | The validated transportation-request fields. See §5.2. |
-
-### 5.2 `request` fields (from the public form)
-
-All strings are already server-side normalised by Zenward-Web: control
-characters stripped, trimmed, collapsed blank lines, length-capped.
-
-| Field | Type | Required | Cap | Notes |
-|---|---|---|---|---|
-| `requesterName` | string | yes | 120 | Person submitting the form. |
-| `requesterRelationship` | string enum | yes | — | One of: `self`, `family`, `caregiver`, `facility_coordinator`, `other`. |
-| `requesterPhone` | string | yes | 40 | Free-form; **not** format-validated or normalised by Zenward-Web. Nemryn should normalise/validate as needed but should not hard-reject a plausible number. |
-| `requesterEmail` | string | no | 254 | Loose shape check only on the Zenward side. Absent if the visitor left it blank. |
-| `passengerName` | string | yes | 120 | May equal `requesterName`. |
-| `pickupDescription` | string | yes | 400 | Free text — an address or a facility name. |
-| `destinationDescription` | string | yes | 400 | Free text — an address or a facility name. |
-| `preferredDate` | string | no | 40 | Typically `YYYY-MM-DD` from a date picker, but treat as free text; **not** range-validated by Zenward-Web. Absent if blank. |
-| `preferredTime` | string | no | 40 | Typically `HH:MM`; treat as free text. Absent if blank. |
-| `returnTripNeeded` | string enum | yes | — | One of: `yes`, `no`, `not_sure`. |
-| `assistanceNotes` | string | no | 2000 | Free text describing mobility/assistance needs. **A request for accommodation, not a guaranteed capability.** Absent if blank. |
-| `additionalNotes` | string | no | 2000 | Free text. Absent if blank. |
-
-- Optional fields are **omitted** (not sent as `null` / `""`) when empty.
-- Zenward-Web may **add** new optional `request` fields in future without a
-  `schemaVersion` bump. Nemryn must ignore unknown `request` fields, not reject
-  them.
-- This is **not** Nemryn's canonical TransportationRequest schema. Nemryn maps
-  these fields into its own model server-side.
-
----
-
-## 6. Validation expectations (Nemryn side)
-
-Zenward-Web has already: whitelisted fields, stripped unknown props, normalised
-and length-capped strings, checked the enum fields, run a honeypot + fill-time
-+ payload-size check. Nemryn should still defensively validate:
-
-- envelope well-formed, `schemaVersion` supported, `source` accepted,
-  `submissionId` is a UUID, `submittedAt` parseable;
-- required `request` fields present and non-empty;
-- enum fields within their allowed sets;
-- its own business rules (service area, capacity signalling, etc.).
-
-Any validation failure → `400` (see §8). Do not echo the offending value back
-in a way that would be surfaced publicly; Zenward-Web will not show it to the
-visitor anyway.
-
----
-
-## 7. Idempotency contract
-
-**Goal:** a visitor who submits once, hits a network failure, and submits again
-must create **one** operational request, not two.
-
-- Zenward-Web generates one `submissionId` (UUID) per logical form submission
-  in the browser and keeps it **stable across retries** of that submission. It
-  is re-validated and, if missing/malformed, regenerated on the Zenward-Web
-  server. It is sent both as the `Idempotency-Key` request header and as
-  `envelope.submissionId` (identical values).
-- Nemryn **must**:
-  1. Treat `Idempotency-Key` as the idempotency key (fall back to
-     `envelope.submissionId` if the header is ever absent — they are equal).
-  2. On the **first** request for a key: process it, create the request,
-     persist the mapping `key → referenceId` (and the created request id)
-     durably, and return the success response (§8, `200`/`201`).
-  3. On any **subsequent** request with the **same key**: do **not** create a
-     second request. Return the **same** `referenceId` that was returned the
-     first time, with `"accepted": true`, HTTP `200`.
-     - Returning `409` is also acceptable **only if** the body still includes
-       the original `referenceId` — Zenward-Web treats that as a success and
-       shows the same reference. A `409` without a `referenceId` is treated as
-       a failure ("please try again or call").
-  4. Keep the key→reference mapping for at least **7 days** (30 preferred).
-     After it expires, a repeat may create a new request — acceptable.
-  5. If two requests with the same key arrive concurrently, serialise them so
-     only one request is created (e.g. unique constraint on the key).
-- The idempotency key contains **no personal information** and must not be
-  derived from any (name, phone, email, address). It is a random UUID.
-- `submittedAt` must **not** be used for dedupe.
-
-### Retry behaviour, end to end
-
-| Situation | What Zenward-Web does | What Nemryn should do |
+| Field | Required | Notes |
 |---|---|---|
-| First submit succeeds | shows "Request received", reference from endpoint | create request, store key→ref |
-| Network fails before response; visitor resubmits (same browser session) | resends **same** `submissionId` | recognise key, return same reference, create nothing new |
-| Endpoint accepted but response was lost; visitor resubmits | resends **same** `submissionId` | return same reference (idempotent replay) |
-| Visitor reloads the page and starts over | **new** `submissionId` (new logical submission) | treat as a new request |
-| Malformed/missing client id | Zenward-Web server mints a fresh UUID | normal processing (retry dedupe not possible for that one case) |
+| `integrationExternalId` | yes | From server env. Never from the browser. |
+| `idempotencyKey` | yes | Zenward-Web's existing per-submission `submissionId` (UUID), unchanged. See §5. |
+| `requesterName`, `requesterRelationship`, `requesterPhone` | yes | `requesterRelationship` ∈ `self`, `family`, `caregiver`, `facility_coordinator`, `other`. |
+| `requesterEmail` | no | Omitted when blank. |
+| `passengerName` | yes (from the form) | **Structured.** Nemryn stores it as `requested_passenger_name` — a free-text snapshot. It does **not** create or link a Passenger. Never folded into notes. |
+| `pickupDescription`, `destinationDescription` | yes | Free text. |
+| `preferredDate`, `preferredTime` | no | One-time requests only; omitted when blank and always absent on recurring requests. |
+| `returnTripNeeded` | yes | `yes` / `no` / `not_sure`. On recurring requests the form derives `yes`/`no` from `recurringSchedule.returnTripExpected`. |
+| `assistanceNotes`, `additionalNotes` | no | The requester's own text, unchanged. `additionalNotes` is **never** used to carry passenger, service or schedule data. |
+| `serviceType` | yes (from the form) | **Structured**, sent directly. Closed enum, identical value-for-value on both sides: `medical_appointment`, `dialysis`, `rehabilitation`, `hospital_discharge`, `recurring_care`, `senior_medical`, `wheelchair_transportation`, `other`. |
+| `recurringSchedule` | no | **Structured object**, sent directly, only for a recurring request; the key is absent (never `null`) for a one-time request. Members: `daysOfWeek` (1–7 distinct lowercase weekday names, Mon→Sun), `startDate` (`YYYY-MM-DD`), optional `endDate` (`YYYY-MM-DD`, ≥ `startDate`), optional `appointmentTime` (`HH:MM`, 24 h), optional `returnTripExpected` (strict boolean). |
 
----
+- Optional fields are omitted, not sent as `null` / `""`.
+- Nemryn rejects any top-level key outside this set. There is deliberately **no** `organizationId`, `tenantId`,
+  `passengerId`, `driverId`, `vehicleId`, `tripId`, `state` or `source`; Zenward-Web builds the body field by field so
+  none can reach the wire, its Server Action rejects a submission that carries a tenancy identifier, and the adapter
+  refuses to transmit a body containing one.
+- **A supported `serviceType` is not a service offering.** Nemryn accepting a value does not mean Zenward Mobility
+  offers it publicly; what the site presents is governed by `docs/product/marketing-scope.md`. Zenward-Web keeps
+  the full enum in its internal/wire model (`SERVICE_TYPES`) but offers, and its Server Action accepts from visitors,
+  only `PUBLIC_SERVICE_TYPES`. In the S4B-R3 release that excludes `wheelchair_transportation` — Nemryn would accept
+  it, the public form does not send it; the ZW-WEB-03B2 release adds it back deliberately.
+- **A request expresses intent only.** `recurringSchedule` creates no recurring arrangement, and a website submission
+  creates no Passenger, Trip, Driver assignment or Vehicle assignment. It stops at a pending Request that an operator
+  reviews, reconciles to a Passenger and (optionally) turns into a Trip manually.
 
-## 8. Response contract
+## 4. Response
 
-### 8.1 Success
+| Status | Body | Zenward-Web result |
+|---|---|---|
+| `200` | exactly `{"ok": true}` | `delivered: true`. First acceptance and idempotent replay are indistinguishable by design. |
+| `400` (generic), other `4xx` | `{"ok": false, …}` — Nemryn collapses every rejection (validation, unknown/disabled integration, origin mismatch) into one generic code | `delivered: false`, "couldn't submit — check the form and try again, or call" |
+| `429` | — | `delivered: false`, "receiving a lot of requests — try again in a little while, or call" |
+| `5xx`, timeout, DNS/TLS/connection failure | — | `delivered: false`, "temporarily unavailable — please call" |
+| `2xx` with any body other than `{"ok":true}`, or a non-JSON body | — | `delivered: false` (acceptance is never inferred), "couldn't submit just now — try again shortly, or call" |
 
-`HTTP 200` (idempotent replay) or `HTTP 201` (first acceptance):
+- Nemryn returns **no** database Request id or reference. Zenward-Web therefore shows the plain "Request received"
+  confirmation and **no** reference number: it does not invent or display an identifier that support could not look up.
+- Customer copy never contains an HTTP status, a provider name, Postgres/Supabase/`ZW…`/`PGRST…` codes, the existence
+  of an integration, rate-limit thresholds, or a stack trace. Raw provider errors are never surfaced.
+- Zenward-Web logs (server-side) only `submissionId`, an outcome category, HTTP status, an error class and a timeout
+  flag — never request content or the integration id.
 
-```json
-{ "accepted": true, "referenceId": "ZW-7F3K9Q" }
-```
+## 5. Idempotency
 
-- `accepted` must be the boolean `true`. Zenward-Web treats a 2xx **without**
-  `accepted === true` **and** a non-empty string `referenceId` as a failure
-  (fails closed — it will not tell the visitor the request was received).
-- `referenceId`:
-  - a short, human-quotable string the visitor can read over the phone;
-  - **must** be safe to display publicly and to log;
-  - **must not** be, contain, or be trivially derived from: a database primary
-    key, an organisation/tenant id, a sequential/auto-increment internal id,
-    or anything that leaks tenant count or volume;
-  - recommended: a random or opaquely-encoded token, optionally prefixed
-    `ZW-` (e.g. `ZW-7F3K9Q`). Length ~6–16 chars.
-  - The **same** logical submission (same idempotency key) must always yield
-    the **same** `referenceId`.
-- Extra fields in the response body are ignored by Zenward-Web. Do **not**
-  return internal ids, tenant info, request echoes, or state.
+One logical form submission gets **one** stable `submissionId`:
 
-### 8.2 Errors — status codes and Zenward-Web handling
+1. The browser generates a UUID when the form mounts and keeps it across failed attempts (it is replaced only on a fresh
+   page load, i.e. a genuinely new submission).
+2. The Server Action re-validates it and mints one server-side only if it is missing or malformed.
+3. The adapter sends that exact value as `idempotencyKey` and never generates an id of its own, so a retry of the same
+   submission re-sends the same key and a new submission sends a new one.
 
-Zenward-Web maps every response to `delivered: true` **only** on a positive
-acceptance. Everything else is `delivered: false` (fails closed) and shows one
-of two customer-safe messages — it never surfaces the status code, a provider
-name, API terminology, tokens, or tenant info.
+Nemryn's database enforces uniqueness per integration + key: a replay preserves the **first** accepted submission and
+returns `{"ok": true}` again.
 
-| Status | Meaning | Zenward-Web result | Visitor sees |
-|---|---|---|---|
-| `200` + `accepted:true` + `referenceId` | idempotent replay accepted | `delivered:true` | "Request received…" + reference |
-| `201` + `accepted:true` + `referenceId` | newly accepted | `delivered:true` | "Request received…" + reference |
-| `200`/`201` without `accepted:true`+`referenceId` | ambiguous | `delivered:false` | "We couldn't submit your request just now. Please try again shortly, or call us." |
-| `400` | invalid request / unsupported `schemaVersion` / bad `source` | `delivered:false` | same "try again / call" message |
-| `401` | authentication failed (bad/missing token) | `delivered:false` | same "try again / call" message (Zenward-Web logs `outcome=rejected status=401` for operators) |
-| `403` | authenticated but not authorised | `delivered:false` | same "try again / call" message |
-| `409` **with** `referenceId` | idempotent duplicate | `delivered:true` | "Request received…" + the echoed reference |
-| `409` **without** `referenceId` | duplicate, no reference | `delivered:false` | "try again / call" message |
-| `413` | body too large | `delivered:false` | "try again / call" message |
-| `422` | semantic validation failure | `delivered:false` | "try again / call" message |
-| `429` | rate limited | `delivered:false` | "Online requests are temporarily unavailable right now. Please call us to arrange transportation." |
-| `5xx` | server failure | `delivered:false` | same "temporarily unavailable" message |
-| no response within 10 s | client timeout | `delivered:false` | same "temporarily unavailable" message |
-| connection refused / DNS / TLS failure | unreachable | `delivered:false` | same "temporarily unavailable" message |
+## 6. Modes and configuration
 
-- For `429`, a `Retry-After` header is welcome but Zenward-Web does **not**
-  currently auto-retry (a future ZW-WEB phase may add a single bounded retry).
-- Error response bodies may include a machine-readable `error` string for
-  operator logs; Zenward-Web does not display it.
+| Variable | Value | Notes |
+|---|---|---|
+| `REQUEST_INTAKE_MODE` | `stub` (default) or `platform` | `stub` validates and acknowledges but delivers nothing; the success screen tells the visitor to also call. |
+| `PLATFORM_INTAKE_URL` | `https://app.nemryn.com/api/public-intake/website` | https only. |
+| `PLATFORM_INTAKE_INTEGRATION_ID` | opaque id issued by Nemryn | Not printed in logs, docs or reports. |
 
----
+`platform` without both variables fails closed with a "please call us" message; it never fakes success.
 
-## 9. Logging restrictions (both sides)
+## 7. Kill switch
 
-- **Zenward-Web** logs, server-side only: `submissionId`, an `outcome`
-  category (`accepted` / `duplicate` / `rejected` / `rate_limited` /
-  `server_error` / `malformed_success` / `timeout` / `unreachable` /
-  `not_configured` / `insecure_url`), the HTTP `status` where relevant, an
-  `errorClass`, and a `timeout` flag. **Never** the envelope, the `request`
-  fields, or the token.
-- **Nemryn** must not log the bearer token. Treat `request` free-text fields
-  (`pickupDescription`, `destinationDescription`, `assistanceNotes`,
-  `additionalNotes`) and the names/phone/email as sensitive personal data —
-  log at most a redacted/hashed form, and only where operationally necessary.
-- Neither side may claim HIPAA compliance or represent this channel as a
-  compliant health-information pipeline.
+Setting `request_intake_integrations.is_active = false` in Nemryn immediately disables new website submissions for
+this integration: Nemryn answers the generic failure and Zenward-Web shows the calm "couldn't submit" copy. It
+requires no Zenward-Web deploy. It must not be left disabled after a successful release.
 
----
+## 8. Logging and privacy
 
-## 10. Versioning
-
-- `schemaVersion` is the envelope version. `"1.0"` today.
-- Additive, backward-compatible changes to the `request` object (new **optional**
-  fields) will ship **without** a version bump. Nemryn must ignore unknown
-  `request` fields.
-- A breaking envelope change (removing/renaming a field, changing a type,
-  changing idempotency semantics) bumps `schemaVersion`. Nemryn should accept a
-  known set of versions during any migration window and reject unknown major
-  versions with `400`.
-
----
-
-## 11. Checklist for the Nemryn implementer
-
-- [ ] `POST`, HTTPS only, `application/json`.
-- [ ] Verify `Authorization: Bearer` first; support 2 valid tokens for rotation.
-- [ ] Resolve the Zenward Mobility tenant **from the token**, server-side.
-- [ ] Never read an org/tenant id from the request; ignore it if present.
-- [ ] Enforce tenant isolation with database RLS on the created row.
-- [ ] Parse + validate the envelope (`schemaVersion` `1.0`, `source`
-      `zenward_web`, `submissionId` a UUID).
-- [ ] Validate required `request` fields + enums; ignore unknown `request` fields.
-- [ ] Idempotency: `Idempotency-Key` → one request; same key returns same
-      `referenceId`; persist mapping ≥ 7 days; serialise concurrent duplicates.
-- [ ] Success: `201` (new) / `200` (replay), `{ "accepted": true, "referenceId": "ZW-…" }`.
-- [ ] `referenceId` is opaque, display-safe, non-sequential, leaks no tenant/db id.
-- [ ] Errors: `400 / 401 / 403 / 409 / 413 / 422 / 429 / 5xx` per §8.
-- [ ] Respond within ~5 s (hard client abort at 10 s).
-- [ ] Do not log the token; treat request PII as sensitive.
-- [ ] Provide Zenward-Web ops with: the URL, the token(s), and a staging
-      instance for an end-to-end test before `REQUEST_INTAKE_MODE=platform`
-      is set in production.
+Request free text and names/phone/email are sensitive; neither side logs them. Neither side claims HIPAA
+compliance or presents this channel as a compliant health-information pipeline.

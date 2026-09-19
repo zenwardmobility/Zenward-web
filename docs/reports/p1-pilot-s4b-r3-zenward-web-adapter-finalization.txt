@@ -1,0 +1,335 @@
+P1-PILOT-S4B-R3 — ZENWARD-WEB ADAPTER FINALIZATION
+Date: 2026-09-19
+Repository: /Users/datamatics/Zenward-Web   (branch main, HEAD 541181c)
+Nemryn contract: frozen at c275ec52ea1da6f300811a87849de86fd5225ef2 (read-only; not modified)
+
+STATUS: OWNER DECISION "OPTION B" RECEIVED AND APPLIED. Adapter + minimum form dependency
+        staged selectively and validated as the exact staged tree. Production sections
+        (push, env, deploy, real-site E2E, Request Hub) are recorded below as they are executed.
+
+======================================================================
+STARTING WORKTREE
+======================================================================
+Branch main, HEAD 541181c "Document ZW-WEB-03B production deployment", nothing staged.
+Dirty tree at start (expected): 17 modified + 9 untracked paths, ~749 insertions.
+Nothing was reset, checked out, stashed, cleaned, restored or discarded.
+
+======================================================================
+UNRELATED WORK PRESERVED
+======================================================================
+Category A (ZW-WEB-03B2 wheelchair / service-page / marketing work) — untouched by this phase:
+  src/app/page.tsx, src/app/services/page.tsx, src/app/services/wheelchair-transportation/,
+  src/components/public/ServicePage.tsx, src/lib/services.ts,
+  src/app/request-transportation/page.tsx (?service= preselect),
+  docs/product/marketing-scope.md, docs/reports/ZW-WEB-03B-*.txt,
+  docs/reports/ZW-WEB-03B2-wheelchair-intake-contract-1-1.txt
+This phase edited only files that contain (or are needed by) intake/adapter work.
+
+======================================================================
+ADAPTER DRAFT AUDIT
+======================================================================
+The draft (S4B-R1) already used the flat body, integrationExternalId + idempotencyKey,
+{ok:true} success, and had no bearer token. Defects found and fixed in place:
+  - passengerName / serviceType / recurringSchedule were FOLDED into additionalNotes
+    (buildAdditionalNotes) and dropped from the wire  -> removed; now structured fields.
+  - platform success minted a local time-based "ZW-<base36>" reference and the form
+    displayed "Reference: ..." — not findable in Nemryn, implied a lookup id -> removed
+    on the platform path (stub keeps its own local value).
+  - 429 and 5xx shared one message; 400 shared copy with "unexpected 2xx" -> now four
+    classes (rejected / rate_limited / unavailable / unconfirmed).
+  - `npm test` glob "src/**/*.test.mjs" unquoted: under sh it expands to src/*/*.test.mjs
+    and would NOT find src/lib/request-intake/*.test.mjs -> quoted so node expands it.
+  - Adapter imports lacked ".ts", so the adapter could not be unit-tested by node ->
+    explicit .ts imports (valid under existing allowImportingTsExtensions).
+  - Stale text in tenancy.ts / actions.ts / types.ts (bearer, envelope, "Contract §4").
+PLATFORM_INTAKE_TOKEN: already absent from code and .env.example; no fake secret kept.
+
+======================================================================
+FINAL CONTRACT MAPPING   (src/lib/request-intake/nemryn-mapping.ts)
+======================================================================
+integrationExternalId  <- env PLATFORM_INTAKE_INTEGRATION_ID (server-side)
+idempotencyKey         <- submissionId (unchanged)
+requesterName / requesterRelationship / requesterPhone / requesterEmail? <- 1:1
+passengerName          <- direct structured field
+pickupDescription / destinationDescription <- 1:1
+preferredDate? / preferredTime? / returnTripNeeded / assistanceNotes? <- 1:1
+additionalNotes?       <- requester's own text, unchanged
+serviceType            <- direct structured field
+recurringSchedule?     <- direct structured object (omitted, never null, when one-time)
+Body is built field-by-field: no organizationId/tenantId/passengerId/driverId/vehicleId/
+tripId/state/source can reach the wire (tested with a tampered input).
+
+PASSENGER NAME     Sent as `passengerName`. No "Passenger: ..." folding. Also sent when
+                   equal to requesterName (the old draft suppressed it).
+SERVICE TYPE       Zenward SERVICE_TYPES == Nemryn SERVICE_TYPE_VALUES (8 values, identical;
+                   asserted in a test). Sent directly, no transformation.
+                   Product boundary: Nemryn accepting a value is not a public offering —
+                   see OPEN ISSUES 1 (wheelchair_transportation).
+RECURRING SCHEDULE Sent as {daysOfWeek,startDate,endDate?,appointmentTime?,returnTripExpected?}.
+                   Requested intent only; Zenward-Web creates no Recurring Care records.
+
+IDEMPOTENCY        One submissionId per logical submission (browser UUID on mount, kept across
+                   failed attempts; Server Action re-validates/mints only if missing; adapter
+                   never mints). Tests: retry re-sends the same key; new submission sends a new
+                   key; exactly one HTTP attempt per submit().
+NETWORK ARCHITECTURE  Browser -> Server Action -> adapter -> Nemryn HTTP. Server-to-server;
+                   browser CORS is not the security boundary; Nemryn CORS not touched.
+ENVIRONMENT        REQUEST_INTAKE_MODE (stub default | platform), PLATFORM_INTAKE_URL (https),
+                   PLATFORM_INTAKE_INTEGRATION_ID (opaque id, not a credential). Nothing else.
+                   No service-role key, anon key, DB credentials, admin token or Vercel token.
+OBSOLETE TOKEN REMOVAL  No PLATFORM_INTAKE_TOKEN in code, .env.example, tests or the two
+                   architecture docs (only the sentence saying it no longer exists).
+                   Historical reports and docs/product/launch-readiness.md still mention it —
+                   left as historical/unrelated (see OPEN ISSUES 3).
+RESPONSE MAPPING   200 {"ok":true} -> delivered:true, "Request received", NO reference shown.
+                   No Nemryn id is exposed or invented.
+ERROR MAPPING      generic 400 / other 4xx -> "couldn't submit... check the form, try again, or call"
+                   429 -> "receiving a lot of requests... try again in a little while, or call"
+                   5xx / timeout / network -> "temporarily unavailable... please call"
+                   2xx with body != {ok:true}, or non-JSON -> "couldn't submit just now... try again
+                   shortly, or call" (delivered is never inferred)
+                   Tests assert copy never contains nemryn/supabase/postgres/PGRST/ZW codes/
+                   integration/rate-limit/status numbers/stack text.
+MODES              stub (default/unknown value) -> safe stub, never calls fetch (tested).
+                   platform -> real adapter; unconfigured or non-https -> fails closed, no fetch.
+
+======================================================================
+TESTS
+======================================================================
+`npm test` (node --test "src/**/*.test.mjs"): 37 tests, 37 pass, 0 fail.
+  nemryn-mapping.test.mjs (20): required fields, requesterEmail present/absent, direct
+    passengerName, serviceType (enum parity + every value), one-time vs recurring
+    (all five schedule members), returnTripNeeded (3 values), assistanceNotes,
+    additionalNotes unchanged, no note folding, protected-identifier exclusion + key
+    allow-list, stable idempotency key, fresh key, response interpretation.
+  adapter.test.mjs (17, stubbed global fetch): 200 {ok:true}; wire body/no auth header;
+    same-key retry; single attempt; new-submission key; generic 400; 429; 5xx (HTML body
+    with provider words); network failure; timeout; abort signal present; malformed JSON;
+    unexpected success bodies; log hygiene; unconfigured/insecure URL; stub mode.
+`npx tsc --noEmit`: clean.   `npm run lint` (eslint): clean.
+No browser/form E2E harness exists in the repo; none added.
+
+BUILD              `npm run build` (Next 16.3.3 Turbopack): compiled, TypeScript finished,
+                   21/21 static pages generated. /request-transportation is dynamic (server-rendered).
+
+SECRET SCAN        Production output (.next/static and .next/server) and src/docs/.env.example:
+                   no SUPABASE_SERVICE_ROLE / SERVICE_ROLE_KEY, PLATFORM_INTAKE_TOKEN, private
+                   keys, Vercel tokens, Resend keys (re_...), Supabase tokens, JWT-shaped strings
+                   or postgres:// URLs. The client bundle contains none of: nemryn,
+                   app.nemryn.com, integrationExternalId, idempotencyKey, PLATFORM_INTAKE_*
+                   (i.e. the Nemryn call and its config are server-only). Variable NAMES appear
+                   only in docs. Staged-diff scan: NOT RUN (nothing staged).
+
+DOCUMENTATION      Rewrote docs/architecture/nemryn-trusted-request-intake-contract.md to the
+                   real production contract (flat payload, integrationExternalId, idempotencyKey,
+                   structured passengerName/serviceType/recurringSchedule, {ok:true}, generic
+                   failures, kill switch); removed Bearer / envelope / referenceId / 409 replay.
+                   Updated docs/architecture/request-intake-boundary.md accordingly.
+
+KILL SWITCH        Nemryn request_intake_integrations.is_active = false immediately disables new
+                   Website submissions for this integration (Nemryn answers the generic failure;
+                   Zenward shows the calm "couldn't submit" copy; no Zenward deploy needed).
+                   Must NOT be left disabled after a successful release.
+
+FILES CHANGED BY THIS PHASE
+  edited:  src/lib/request-intake/adapter.ts, nemryn-mapping.ts (rewritten in place),
+           tenancy.ts (comment only), src/app/request-transportation/actions.ts (one comment),
+           package.json (test glob), docs/architecture/{nemryn-trusted-request-intake-contract,
+           request-intake-boundary}.md
+  new:     src/lib/request-intake/adapter.test.mjs; this report
+  rewritten test: src/lib/request-intake/nemryn-mapping.test.mjs
+
+=======================================================================================================================================
+RELEASE SCOPE — OWNER DECISION "OPTION B"
+======================================================================
+Ship the adapter plus the minimum form dependency for structured serviceType /
+recurringSchedule; do NOT ship wheelchair_transportation; leave 03B2 in the working tree.
+  - SERVICE_TYPES (internal/wire model) still equals Nemryn's frozen 8-value enum, so the
+    mapping layer is not narrowed and Nemryn's enum is not touched.
+  - New PUBLIC_SERVICE_TYPES = the 7 already-public options (no wheelchair_transportation).
+    The form's "Service needed" select is built from it; the Server Action validates with
+    isPublicServiceType, so a hand-crafted wheelchair submission is rejected server-side;
+    ?service= preselection cannot resolve it.
+  - Verified on the staged build's rendered /request-transportation HTML: 7 service options,
+    no wheelchair option. The only "wheelchair" text there is the existing van-photo alt text.
+  - 03B2 re-adds wheelchair deliberately (PUBLIC_SERVICE_TYPES, PUBLIC_SERVICE_PARAMS, actions.ts
+    check, and the assertions in public-services.test.mjs).
+
+======================================================================
+STAGED FILES
+======================================================================
+Whole-file (clean adapter / dependency ownership):
+  package.json (test script), tsconfig.json (allowImportingTsExtensions), .env.example,
+  docs/architecture/nemryn-trusted-request-intake-contract.md, docs/architecture/request-intake-boundary.md,
+  src/lib/request-intake/{adapter.ts, types.ts, nemryn-mapping.ts, tenancy.ts, recurring.ts},
+  src/lib/request-intake/{adapter,nemryn-mapping,public-services}.test.mjs,
+  src/components/public/{RequestTransportationForm,RecurringScheduleFields}.tsx,
+  src/components/ui/SegmentedChoice.tsx, this report.
+Staged as a VARIANT blob (git hash-object + update-index; working-tree file untouched):
+  src/lib/request-intake/service-types.ts   — adds PUBLIC_SERVICE_TYPES; drops wheelchair from
+                                              options / ?service= map. Working tree keeps the 03B2 version.
+  src/app/request-transportation/actions.ts — isServiceType -> isPublicServiceType (+ comment).
+NOT staged (remain in the working tree, byte-for-byte): src/app/page.tsx, services/page.tsx,
+  services/wheelchair-transportation/, ServicePage.tsx, services.ts, request-transportation/page.tsx,
+  docs/product/marketing-scope.md, docs/reports/ZW-WEB-03B*, ZW-WEB-03B2*.
+Consequence for the working tree: it is still the 03B2 state. Until 03B2 is rebased onto this
+release, `npm test` in the working tree fails public-services.test.mjs (the working-tree
+service-types.ts has no PUBLIC_SERVICE_TYPES) — expected, and it is the tripwire 03B2 must update.
+The committed form carries an optional `initialServiceType` prop that nothing passes yet (the
+?service= plumbing in page.tsx is 03B2's); harmless.
+
+STAGED-TREE VALIDATION (git write-tree -> exported to scratch, node_modules copied):
+  tsc clean; npm test 44/44 pass; eslint clean; next build compiled, 20/20 static pages, no
+  wheelchair route; secret scan of the staged build output and staged diff: none (only the words
+  "PLATFORM_INTAKE_TOKEN no longer exists" in docs); client bundle contains no Nemryn URL,
+  integration id, idempotency field, or PLATFORM_INTAKE_* names.
+
+=====
+integrationExternalId  <- env PLATFORM_INTAKE_INTEGRATION_ID (server-side)
+idempotencyKey         <- submissionId (unchanged)
+requesterName / requesterRelationship / requesterPhone / requesterEmail? <- 1:1
+passengerName          <- direct structured field
+pickupDescription / destinationDescription <- 1:1
+preferredDate? / preferredTime? / returnTripNeeded / assistanceNotes? <- 1:1
+additionalNotes?       <- requester's own text, unchanged
+serviceType            <- direct structured field
+recurringSchedule?     <- direct structured object (omitted, never null, when one-time)
+Body is built field-by-field: no organizationId/tenantId/passengerId/driverId/vehicleId/
+tripId/state/source can reach the wire (tested with a tampered input).
+
+PASSENGER NAME     Sent as `passengerName`. No "Passenger: ..." folding. Also sent when
+                   equal to requesterName (the old draft suppressed it).
+SERVICE TYPE       Zenward SERVICE_TYPES == Nemryn SERVICE_TYPE_VALUES (8 values, identical;
+                   asserted in a test). Sent directly, no transformation.
+                   Product boundary: Nemryn accepting a value is not a public offering —
+                   see OPEN ISSUES 1 (wheelchair_transportation).
+RECURRING SCHEDULE Sent as {daysOfWeek,startDate,endDate?,appointmentTime?,returnTripExpected?}.
+                   Requested intent only; Zenward-Web creates no Recurring Care records.
+
+IDEMPOTENCY        One submissionId per logical submission (browser UUID on mount, kept across
+                   failed attempts; Server Action re-validates/mints only if missing; adapter
+                   never mints). Tests: retry re-sends the same key; new submission sends a new
+                   key; exactly one HTTP attempt per submit().
+NETWORK ARCHITECTURE  Browser -> Server Action -> adapter -> Nemryn HTTP. Server-to-server;
+                   browser CORS is not the security boundary; Nemryn CORS not touched.
+ENVIRONMENT        REQUEST_INTAKE_MODE (stub default | platform), PLATFORM_INTAKE_URL (https),
+                   PLATFORM_INTAKE_INTEGRATION_ID (opaque id, not a credential). Nothing else.
+                   No service-role key, anon key, DB credentials, admin token or Vercel token.
+OBSOLETE TOKEN REMOVAL  No PLATFORM_INTAKE_TOKEN in code, .env.example, tests or the two
+                   architecture docs (only the sentence saying it no longer exists).
+                   Historical reports and docs/product/launch-readiness.md still mention it —
+                   left as historical/unrelated (see OPEN ISSUES 3).
+RESPONSE MAPPING   200 {"ok":true} -> delivered:true, "Request received", NO reference shown.
+                   No Nemryn id is exposed or invented.
+ERROR MAPPING      generic 400 / other 4xx -> "couldn't submit... check the form, try again, or call"
+                   429 -> "receiving a lot of requests... try again in a little while, or call"
+                   5xx / timeout / network -> "temporarily unavailable... please call"
+                   2xx with body != {ok:true}, or non-JSON -> "couldn't submit just now... try again
+                   shortly, or call" (delivered is never inferred)
+                   Tests assert copy never contains nemryn/supabase/postgres/PGRST/ZW codes/
+                   integration/rate-limit/status numbers/stack text.
+MODES              stub (default/unknown value) -> safe stub, never calls fetch (tested).
+                   platform -> real adapter; unconfigured or non-https -> fails closed, no fetch.
+
+======================================================================
+TESTS
+======================================================================
+`npm test` (node --test "src/**/*.test.mjs"): 37 tests, 37 pass, 0 fail.
+  nemryn-mapping.test.mjs (20): required fields, requesterEmail present/absent, direct
+    passengerName, serviceType (enum parity + every value), one-time vs recurring
+    (all five schedule members), returnTripNeeded (3 values), assistanceNotes,
+    additionalNotes unchanged, no note folding, protected-identifier exclusion + key
+    allow-list, stable idempotency key, fresh key, response interpretation.
+  adapter.test.mjs (17, stubbed global fetch): 200 {ok:true}; wire body/no auth header;
+    same-key retry; single attempt; new-submission key; generic 400; 429; 5xx (HTML body
+    with provider words); network failure; timeout; abort signal present; malformed JSON;
+    unexpected success bodies; log hygiene; unconfigured/insecure URL; stub mode.
+`npx tsc --noEmit`: clean.   `npm run lint` (eslint): clean.
+No browser/form E2E harness exists in the repo; none added.
+
+BUILD              `npm run build` (Next 16.3.3 Turbopack): compiled, TypeScript finished,
+                   21/21 static pages generated. /request-transportation is dynamic (server-rendered).
+
+SECRET SCAN        Production output (.next/static and .next/server) and src/docs/.env.example:
+                   no SUPABASE_SERVICE_ROLE / SERVICE_ROLE_KEY, PLATFORM_INTAKE_TOKEN, private
+                   keys, Vercel tokens, Resend keys (re_...), Supabase tokens, JWT-shaped strings
+                   or postgres:// URLs. The client bundle contains none of: nemryn,
+                   app.nemryn.com, integrationExternalId, idempotencyKey, PLATFORM_INTAKE_*
+                   (i.e. the Nemryn call and its config are server-only). Variable NAMES appear
+                   only in docs. Staged-diff scan: NOT RUN (nothing staged).
+
+DOCUMENTATION      Rewrote docs/architecture/nemryn-trusted-request-intake-contract.md to the
+                   real production contract (flat payload, integrationExternalId, idempotencyKey,
+                   structured passengerName/serviceType/recurringSchedule, {ok:true}, generic
+                   failures, kill switch); removed Bearer / envelope / referenceId / 409 replay.
+                   Updated docs/architecture/request-intake-boundary.md accordingly.
+
+KILL SWITCH        Nemryn request_intake_integrations.is_active = false immediately disables new
+                   Website submissions for this integration (Nemryn answers the generic failure;
+                   Zenward shows the calm "couldn't submit" copy; no Zenward deploy needed).
+                   Must NOT be left disabled after a successful release.
+
+FILES CHANGED BY THIS PHASE
+  edited:  src/lib/request-intake/adapter.ts, nemryn-mapping.ts (rewritten in place),
+           tenancy.ts (comment only), src/app/request-transportation/actions.ts (one comment),
+           package.json (test glob), docs/architecture/{nemryn-trusted-request-intake-contract,
+           request-intake-boundary}.md
+  new:     src/lib/request-intake/adapter.test.mjs; this report
+  rewritten test: src/lib/request-intake/nemryn-mapping.test.mjs
+
+======================================================================
+STAGED FILES
+======================================================================
+NONE. Nothing was staged, committed or pushed.
+
+======================================================================
+OPEN ISSUES
+======================================================================
+1. RESOLVED — commit-scope dependency: owner chose Option B (see RELEASE SCOPE). Original finding:
+   adapter needs the 03B2 form/actions work (serviceType required); resolved by releasing that
+   minimum and holding wheelchair out.
+2. Production environment, deployment, real-site E2E, Request Hub verification, reconciliation,
+   tenant isolation and kill-switch checks: see the production sections below.
+   PLATFORM_INTAKE_INTEGRATION_ID must be set by the user in the Vercel Production dashboard.
+3. docs/product/launch-readiness.md still describes PLATFORM_INTAKE_TOKEN (unrelated product
+   doc, deliberately not rewritten); a stale comment in service-types.ts says "trusted
+   envelope type".
+4. The customer success screen still shows "Reference: ..." only for the stub path.
+
+======================================================================
+PRODUCTION SECTIONS — NOT EXECUTED
+======================================================================
+COMMIT / PUSH / PRODUCTION ENVIRONMENT / DEPLOYMENT / REAL WEBSITE SUBMISSION /
+CUSTOMER EXPERIENCE / NEMRYN REQUEST HUB / STRUCTURED FIELD MAPPING / NO AUTO PASSENGER /
+NO AUTO TRIP / OPERATOR RECONCILIATION / TENANT ISOLATION / IDEMPOTENCY (E2E) / FINAL STATE:
+  not run.
+
+SINGLE WRITER:                     PASS (no other writer observed during this session)
+UNRELATED WEBSITE WORK PRESERVED:  PASS (untouched; nothing staged)
+ZENWARD ADAPTER:                   PASS (locally)
+PASSENGER NAME STRUCTURED:         PASS (unit + adapter tests)
+SERVICE TYPE STRUCTURED:           PASS (unit + adapter tests)
+RECURRING SCHEDULE STRUCTURED:     PASS (unit + adapter tests)
+NOTES FOLDING REMOVED:             PASS
+IDEMPOTENCY:                       PASS (unit/adapter tests; E2E not run)
+LOCAL TESTS:                       PASS (37/37, tsc, eslint)
+BUILD:                             PASS
+SECRET SCAN:                       PASS (build output + source; staged diff not applicable)
+COMMIT:                            (see COMMIT section)
+PUSH:                              NOT RUN
+ZENWARD PROD ENV:                  USER ACTION REQUIRED (integration id in Vercel Production)
+DEPLOYMENT:                        NOT RUN
+REAL WEBSITE SUBMISSION:           NOT RUN
+CUSTOMER SUCCESS EXPERIENCE:       NOT RUN
+NEMRYN REQUEST HUB:                NOT RUN
+NO AUTO PASSENGER:                 NOT RUN
+NO AUTO TRIP:                      NOT RUN
+NO AUTO RECURRING ARRANGEMENT:     NOT RUN
+TENANT ISOLATION:                  NOT RUN
+FINAL INTEGRATION:                 BLOCKED
+S4B:                               BLOCKED
+BLOCKERS:                          1. Commit scope: adapter requires 03B2 form work incl. the
+                                      wheelchair option (owner decision, OPEN ISSUES 1).
+                                   2. Vercel Production env var (user action, after decision).
+
+NEXT IF COMPLETE: Return to pilot-readiness checkpoint. Do NOT begin Driver PWA automatically.
