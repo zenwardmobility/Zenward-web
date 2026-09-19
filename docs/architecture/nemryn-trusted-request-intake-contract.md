@@ -22,9 +22,16 @@ body with no token, and Nemryn returns `{"ok":true}` with no reference.
 |---|---|
 | Method / scheme | `POST`, `https://` only (Zenward-Web refuses any other scheme) |
 | URL | `PLATFORM_INTAKE_URL` = `https://app.nemryn.com/api/public-intake/website` |
-| Headers | `content-type: application/json`, `accept: application/json`. **No `Authorization` header. No `Idempotency-Key` header.** |
+| Headers | `content-type: application/json`, `accept: application/json`, `origin: https://www.zenwardmobility.com` (see below). **No `Authorization` header. No `Idempotency-Key` header.** |
 | Client timeout | 10 s (`AbortSignal.timeout`). One attempt per call; the adapter never retries internally. |
 | Call path | Browser → Zenward Server Action → adapter → Nemryn. The Nemryn call is **server-to-server**: the browser never calls Nemryn, so browser CORS is not the security boundary for it. Nemryn's CORS/rate-limit configuration is not weakened for this integration. |
+
+**Origin header.** The Nemryn integration for this website is origin-locked (`allowed_origins`), and Nemryn's RPC fails
+**closed** when a locked integration receives a call with no `Origin`. A server-side `fetch` sends none of its own, so the
+adapter sets `Origin` to this site's public origin (default `https://www.zenwardmobility.com`, optional server-only override
+`PLATFORM_INTAKE_ORIGIN`). Nemryn treats the origin as a secondary, non-authoritative signal — the `integrationExternalId`
+identifies the integration. It is a header only (never in the JSON body) and does not loosen any Nemryn CORS setting. Without
+it, every request is rejected with the generic `400`, which is indistinguishable from other rejections by design.
 
 ## 2. Identification — no secret
 

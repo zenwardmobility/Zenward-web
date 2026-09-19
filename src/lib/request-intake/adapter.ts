@@ -48,6 +48,20 @@ export interface RequestIntakeAdapter {
 const INTAKE_TIMEOUT_MS = 10_000;
 
 /**
+ * This site's own public origin, sent as the `Origin` header on the
+ * server-to-server POST. Nemryn's integration for this website is
+ * origin-locked, and a locked integration fails CLOSED when a call carries no
+ * `Origin` at all -- and a server-side `fetch` sends none of its own. Nemryn
+ * treats the origin as a secondary, non-authoritative signal (the
+ * `integrationExternalId` is what identifies the integration), so this only
+ * lets the call satisfy the lock the way the browser-originated contract
+ * does. Header only: it is not part of the JSON body, and it does not loosen
+ * any Nemryn CORS setting. Overridable with the optional server-only
+ * `PLATFORM_INTAKE_ORIGIN` (e.g. for a staging host).
+ */
+const SITE_ORIGIN = "https://www.zenwardmobility.com";
+
+/**
  * Customer-safe copy. Never contains an HTTP status, a provider name, API
  * terminology, or an internal error. Every failure path ends by pointing at
  * the phone number (the form and page also surface a "Call 678-935-5489" CTA).
@@ -132,6 +146,7 @@ class StubRequestIntakeAdapter implements RequestIntakeAdapter {
 class PlatformRequestIntakeAdapter implements RequestIntakeAdapter {
   private readonly url = process.env.PLATFORM_INTAKE_URL;
   private readonly integrationExternalId = process.env.PLATFORM_INTAKE_INTEGRATION_ID;
+  private readonly origin = process.env.PLATFORM_INTAKE_ORIGIN?.trim().replace(/\/$/, "") || SITE_ORIGIN;
 
   async submit(
     input: TransportationRequestInput,
@@ -169,6 +184,7 @@ class PlatformRequestIntakeAdapter implements RequestIntakeAdapter {
         headers: {
           "content-type": "application/json",
           accept: "application/json",
+          origin: this.origin,
         },
         body: JSON.stringify(wireBody),
         signal: AbortSignal.timeout(INTAKE_TIMEOUT_MS),
@@ -197,7 +213,8 @@ let cachedAdapter: RequestIntakeAdapter | undefined;
 
 /**
  * Builds a fresh adapter from the current environment (`REQUEST_INTAKE_MODE`,
- * `PLATFORM_INTAKE_URL`, `PLATFORM_INTAKE_INTEGRATION_ID`). Defaults to the
+ * `PLATFORM_INTAKE_URL`, `PLATFORM_INTAKE_INTEGRATION_ID`, optional
+ * `PLATFORM_INTAKE_ORIGIN`). Defaults to the
  * stub — see REQUEST_INTAKE_MODE in .env.example. Exposed uncached so
  * contract tests can exercise each configuration; the app itself uses
  * `getRequestIntakeAdapter`.

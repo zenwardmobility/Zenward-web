@@ -11,7 +11,7 @@ const { createRequestIntakeAdapter } = await import("./adapter.ts");
 const URL_OK = "https://app.nemryn.test/api/public-intake/website";
 const INTEGRATION = "zenward-web-int-123";
 const REAL_FETCH = globalThis.fetch;
-const ENV_KEYS = ["REQUEST_INTAKE_MODE", "PLATFORM_INTAKE_URL", "PLATFORM_INTAKE_INTEGRATION_ID"];
+const ENV_KEYS = ["REQUEST_INTAKE_MODE", "PLATFORM_INTAKE_URL", "PLATFORM_INTAKE_INTEGRATION_ID", "PLATFORM_INTAKE_ORIGIN"];
 const savedEnv = {};
 const calls = [];
 let logs;
@@ -102,6 +102,8 @@ test("posts one flat JSON body to the configured URL, server-to-server, with no 
   const headerNames = Object.keys(init.headers).map((h) => h.toLowerCase());
   assert.equal(headerNames.includes("authorization"), false);
   assert.equal(headerNames.includes("idempotency-key"), false);
+  // Nemryn's origin-locked integration fails closed without an Origin; a server-side fetch sends none itself.
+  assert.equal(init.headers.origin, "https://www.zenwardmobility.com");
   assert.equal(body.integrationExternalId, INTEGRATION);
   assert.equal(body.idempotencyKey, "sub-2");
   assert.equal(body.passengerName, "PILOT-ZENWARD-WEBSITE-QA");
@@ -115,6 +117,15 @@ test("posts one flat JSON body to the configured URL, server-to-server, with no 
   for (const key of ["schemaVersion", "submissionId", "submittedAt", "source", "request", "organizationId", "tenantId"]) {
     assert.equal(key in body, false, key);
   }
+});
+
+test("Origin is header-only (never in the body) and PLATFORM_INTAKE_ORIGIN overrides it, trailing slash trimmed", async () => {
+  mockFetch(() => jsonResponse(200, { ok: true }));
+  process.env.PLATFORM_INTAKE_ORIGIN = "https://staging.zenwardmobility.test/";
+  await platform().submit(input(), { submissionId: "sub-origin" });
+  assert.equal(calls[0].init.headers.origin, "https://staging.zenwardmobility.test");
+  assert.equal(JSON.stringify(calls[0].body).includes("zenwardmobility"), false);
+  assert.equal("origin" in calls[0].body, false);
 });
 
 // ---------------------------------------------------------------------

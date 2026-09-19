@@ -297,39 +297,104 @@ OPEN ISSUES
 4. The customer success screen still shows "Reference: ..." only for the stub path.
 
 ======================================================================
-PRODUCTION SECTIONS — NOT EXECUTED
+COMMIT
 ======================================================================
-COMMIT / PUSH / PRODUCTION ENVIRONMENT / DEPLOYMENT / REAL WEBSITE SUBMISSION /
-CUSTOMER EXPERIENCE / NEMRYN REQUEST HUB / STRUCTURED FIELD MAPPING / NO AUTO PASSENGER /
-NO AUTO TRIP / OPERATOR RECONCILIATION / TENANT ISOLATION / IDEMPOTENCY (E2E) / FINAL STATE:
-  not run.
+8f1526f  "Connect Zenward transportation requests to Nemryn"  (19 files; adapter + minimum form
+dependency; no wheelchair page/homepage/services/marketing work). Staged selectively; the 03B2
+work remains uncommitted in the working tree.
 
-SINGLE WRITER:                     PASS (no other writer observed during this session)
-UNRELATED WEBSITE WORK PRESERVED:  PASS (untouched; nothing staged)
-ZENWARD ADAPTER:                   PASS (locally)
-PASSENGER NAME STRUCTURED:         PASS (unit + adapter tests)
-SERVICE TYPE STRUCTURED:           PASS (unit + adapter tests)
-RECURRING SCHEDULE STRUCTURED:     PASS (unit + adapter tests)
+======================================================================
+PUSH
+======================================================================
+origin/main 541181c..8f1526f, fast-forward, no force.
+
+======================================================================
+DEPLOYMENT
+======================================================================
+GitHub commit status for 8f1526f: success (context "Vercel: success").
+https://www.zenwardmobility.com/request-transportation now serves the new form: "Service needed"
+select with 7 options (no wheelchair_transportation), "Trip frequency" control.
+/services/wheelchair-transportation -> 404 (as intended; not released).
+Production is still in stub mode until the env vars below are set (code default is stub).
+
+======================================================================
+PRODUCTION ENVIRONMENT — USER ACTION REQUIRED
+======================================================================
+No Vercel CLI/API access from this session, so the env could not be read or set here.
+In Vercel -> zenward-web project -> Settings -> Environment Variables -> PRODUCTION, set:
+  REQUEST_INTAKE_MODE=platform
+  PLATFORM_INTAKE_URL=https://app.nemryn.com/api/public-intake/website
+  PLATFORM_INTAKE_INTEGRATION_ID=<existing active Zenward integration external id>
+No service-role key, anon key, DB credentials or token. Then redeploy Production (env changes
+apply only to new deployments).
+
+======================================================================
+REAL WEBSITE SUBMISSION — ATTEMPT 1 (2026-09-20): FAILED, ROOT CAUSE IDENTIFIED, STOPPED
+======================================================================
+Env vars set by the user; Production redeployed. From https://www.zenwardmobility.com/request-transportation
+(real form, headless Chrome), ONE synthetic Recurring dialysis request was submitted: requester
+"Zenward Website E2E QA", passenger PILOT-ZENWARD-WEBSITE-QA, Pickup/Destination "PILOT-ZENWARD-WEBSITE-QA
+Pickup/Destination", Mon+Wed, 2026-10-05..2026-10-30, 09:15, return expected, synthetic notes.
+(An earlier script run of mine was stopped by the browser's own required-field validation before any
+request was sent — my automation had not switched the form to Recurring; nothing left the browser.)
+RESULT: customer saw the calm copy "We couldn't submit your request. Please check the form and try
+again, or call us..." — i.e. the adapter's `rejected` class (Nemryn generic 400). No technical detail was
+exposed (customer-copy requirement holds). No Request was created: Nemryn Request Hub (org A "Siloan
+Medical Centre", existing QA admin) still shows 0 pending after the attempt.
+
+ROOT CAUSE (strong evidence, not directly observable — Nemryn returns one generic 400 by design):
+Nemryn's RPC fails CLOSED when an integration has allowed_origins and the caller sends no Origin header
+(submit_public_transportation_request, migration 20260919140000: `if p_origin is null or not (p_origin = any
+(allowed_origins)) then raise`). A read-only CORS preflight shows an ACTIVE Nemryn integration is
+origin-locked to https://www.zenwardmobility.com (OPTIONS with that Origin returns
+access-control-allow-origin; a control origin does not). Zenward-Web's Server Action -> Nemryn call is
+server-to-server, and the adapter sends NO Origin header, so it is rejected. The S4B-R1 production proofs
+evidently supplied an Origin. Not ruled out (would look identical): wrong/disabled integration id in Vercel.
+
+OWNER DECISION: Option A. Fix applied in the follow-up commit (adapter sends `Origin`, header only; default
+https://www.zenwardmobility.com, optional server-only PLATFORM_INTAKE_ORIGIN; payload/contract unchanged; no
+Nemryn change; test added). The options considered were:
+  A. Adapter adds `Origin: https://www.zenwardmobility.com` on the server-to-server POST (header only;
+     payload unchanged; from a server-side constant/env). Nemryn documents p_origin as a secondary,
+     non-authoritative signal; Node fetch sends it (verified locally). Needs adapter change + test +
+     commit + push + redeploy. No Nemryn change, no CORS weakening. RECOMMENDED.
+  B. Nemryn-side: clear allowed_origins for this integration (production data change; removes the origin
+     lock). Not recommended.
+
+======================================================================
+NOT YET EXECUTED (blocked on the env action above)
+======================================================================
+REAL WEBSITE SUBMISSION / CUSTOMER EXPERIENCE / NEMRYN REQUEST HUB / STRUCTURED FIELD MAPPING /
+NO AUTO PASSENGER / NO AUTO TRIP / OPERATOR RECONCILIATION / TENANT ISOLATION / IDEMPOTENCY (E2E) /
+KILL SWITCH (is_active must stay true) / FINAL STATE.
+Note: the Nemryn Request Hub checks need a signed-in synthetic QA staff session, which this
+session does not have.
+
+SINGLE WRITER:                     PASS
+UNRELATED WEBSITE WORK PRESERVED:  PASS (03B2 files byte-for-byte unchanged in the working tree)
+ZENWARD ADAPTER:                   PASS (locally + staged tree)
+PASSENGER NAME STRUCTURED:         PASS (tests)
+SERVICE TYPE STRUCTURED:           PASS (tests); wheelchair_transportation held out of the public form
+RECURRING SCHEDULE STRUCTURED:     PASS (tests)
 NOTES FOLDING REMOVED:             PASS
-IDEMPOTENCY:                       PASS (unit/adapter tests; E2E not run)
-LOCAL TESTS:                       PASS (37/37, tsc, eslint)
-BUILD:                             PASS
-SECRET SCAN:                       PASS (build output + source; staged diff not applicable)
-COMMIT:                            (see COMMIT section)
-PUSH:                              NOT RUN
-ZENWARD PROD ENV:                  USER ACTION REQUIRED (integration id in Vercel Production)
-DEPLOYMENT:                        NOT RUN
-REAL WEBSITE SUBMISSION:           NOT RUN
+IDEMPOTENCY:                       PASS (tests; E2E not run)
+LOCAL TESTS:                       PASS (44/44 staged tree, tsc, eslint)
+BUILD:                             PASS (staged tree)
+SECRET SCAN:                       PASS (staged diff + staged build output)
+COMMIT:                            8f1526f
+PUSH:                              PASS
+ZENWARD PROD ENV:                  PASS (set by user; platform mode active — a Nemryn 4xx was returned)
+DEPLOYMENT:                        PASS (8f1526f live; stub mode until env is set)
+REAL WEBSITE SUBMISSION:           FAIL (attempt 1: generic 400 — origin-lock, see above)
 CUSTOMER SUCCESS EXPERIENCE:       NOT RUN
 NEMRYN REQUEST HUB:                NOT RUN
 NO AUTO PASSENGER:                 NOT RUN
 NO AUTO TRIP:                      NOT RUN
 NO AUTO RECURRING ARRANGEMENT:     NOT RUN
 TENANT ISOLATION:                  NOT RUN
-FINAL INTEGRATION:                 BLOCKED
+FINAL INTEGRATION:                 BLOCKED (origin-lock decision)
 S4B:                               BLOCKED
-BLOCKERS:                          1. Commit scope: adapter requires 03B2 form work incl. the
-                                      wheelchair option (owner decision, OPEN ISSUES 1).
-                                   2. Vercel Production env var (user action, after decision).
+BLOCKERS:                          1. Origin header vs allowed_origins (owner decision A/B above).
+                                   2. Request Hub verification needs the synthetic QA staff login.
 
 NEXT IF COMPLETE: Return to pilot-readiness checkpoint. Do NOT begin Driver PWA automatically.
