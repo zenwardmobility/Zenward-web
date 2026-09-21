@@ -12,11 +12,10 @@ import type { ServiceContent, ServiceSectionKey } from "@/lib/services";
 /**
  * Shared renderer for the dedicated service landing pages (ZW-WEB-03A).
  * Every page funnels into the existing /request-transportation form — no new
- * intake, and nothing about the passenger or the trip is placed in a URL. The
- * form has no service-preselection support, so the CTA is a plain link.
+ * intake. The CTA carries only an allow-listed `?service=` label (see
+ * `requestHrefFor`) so the form can preselect the service; nothing about the
+ * passenger or the trip is ever placed in a URL.
  */
-
-const REQUEST_HREF = "/request-transportation";
 
 function PhoneLink({ className }: { className?: string }) {
   return (
@@ -31,11 +30,11 @@ function PhoneLink({ className }: { className?: string }) {
   );
 }
 
-function CtaRow({ className }: { className?: string }) {
+function CtaRow({ requestHref, className }: { requestHref: string; className?: string }) {
   return (
     <div className={cn("flex flex-col gap-3 sm:flex-row", className)}>
       <TrackedLinkButton
-        href={REQUEST_HREF}
+        href={requestHref}
         size="lg"
         onDark
         className="w-full sm:w-auto"
@@ -64,7 +63,7 @@ function Hero({ service }: { service: ServiceContent }) {
           <p className={cn(typography.eyebrow, "mt-6 text-brand-arrival-gold")}>{service.eyebrow}</p>
           <h1 className={cn(typography.sectionTitle, "mt-3 text-white")}>{service.h1}</h1>
           <p className={cn(typography.lede, "mt-4 max-w-[36rem] text-white/85")}>{service.lede}</p>
-          <CtaRow className="mt-8" />
+          <CtaRow requestHref={service.requestHref} className="mt-8" />
         </div>
 
         <aside
@@ -251,7 +250,7 @@ export function ServicePage({ service }: { service: ServiceContent }) {
         <div className="flex flex-col items-center gap-6 text-center">
           <h2 className={cn(typography.sectionTitle, "text-white")}>{service.ctaHeading}</h2>
           <p className={cn(typography.lede, "max-w-[36rem] text-white/85")}>{service.ctaBody}</p>
-          <CtaRow className="w-full items-center justify-center sm:w-auto" />
+          <CtaRow requestHref={service.requestHref} className="w-full items-center justify-center sm:w-auto" />
           <p className={cn(typography.metadata, "max-w-[32rem] text-white/70")}>
             Zenward provides non-emergency medical transportation only. In a medical emergency, call 911.
           </p>

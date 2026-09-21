@@ -236,10 +236,10 @@ Screenshots at 430 and 1024 were checked for overflow only.
      time or assistance get it" and Dependability "Patience and assistance for
      passengers who need a little more time or support." These imply assistance
      levels not confirmed in the repo.
-  4. Hero and OG image alt text describe a passenger seated in a wheelchair
-     (src/lib/images.ts, src/lib/seo.ts, opengraph-image.alt.txt) — accurate to
-     the photograph, but the image itself implies wheelchair transport. Owner
-     decision needed on whether wheelchair transport is an approved service.
+  4. [RESOLVED — see "OWNER CLARIFICATION" at the end of this report.] Hero
+     and OG image alt text describe a passenger seated in a wheelchair. At the
+     time of writing this was an open owner question; the owner has since
+     confirmed that Zenward provides wheelchair transportation.
   5. Service-card copy "Dependable, recurring transportation for ongoing
      treatment" (dialysis) is not a punctuality guarantee but may be softened.
   6. src/lib/request-intake/adapter.ts:46 comment still names 470-206-8005
@@ -336,17 +336,36 @@ QA RESULT
   /request-transportation, /contact, images, seo or OG alt files.
   Files changed by 03B1: src/app/page.tsx (copy only) and this report.
 
-REMAINING OWNER DECISION — WHEELCHAIR IMAGERY (deliberately not touched)
-  The hero image, homepage supporting imagery, the OG image and their alt text
-  still depict/describe a passenger seated in a wheelchair at a deployed van ramp
-  (src/lib/images.ts, src/lib/seo.ts, src/app/opengraph-image.alt.txt; two
-  <img alt> attributes on the rendered homepage contain "wheelchair"). The alt
-  text is accurate to the photographs, but the imagery implies wheelchair
-  transport. The owner must decide whether wheelchair-accessible transportation
-  is an approved launch capability:
-    - If YES: document it as confirmed in docs/product/marketing-scope.md, then
-      the imagery stands and service copy may be extended accordingly.
-    - If NO / not yet: replace or re-crop the imagery and alt text in a
-      dedicated image phase, or keep the images with an explicit note that
-      assistance needs are reviewed per request (current copy does this).
-  No image, alt text, or OG asset was altered in 03B or 03B1.
+WHEELCHAIR IMAGERY — STATUS AT THE TIME OF 03B1 (historical; superseded below)
+  At the time of 03B1 the hero image, homepage supporting imagery, OG image and
+  their alt text still showed/described a passenger seated in a wheelchair at a
+  deployed van ramp (src/lib/images.ts, src/lib/seo.ts,
+  src/app/opengraph-image.alt.txt). No image, alt text or OG asset was altered
+  in 03B or 03B1, and the question of whether wheelchair transportation was an
+  approved capability was recorded as an open owner decision. That question has
+  since been answered — see the owner clarification that follows.
+
+======================================================================
+17. OWNER CLARIFICATION (added 2026-09-19, after 03B / 03B1 were deployed)
+======================================================================
+The owner has explicitly confirmed that Zenward Mobility DOES provide wheelchair
+transportation. It is an approved public service, and the wheelchair/ramp
+imagery and its factual alt text are consistent with it and may remain. There is
+no unresolved owner decision about the wheelchair imagery.
+
+  - Scope of the confirmation: wheelchair transportation for non-emergency
+    medical trips. It does NOT confirm stretcher, ambulance or emergency
+    transportation, medical monitoring or clinical care, oxygen administration,
+    transfer/lifting assistance, door-through-door assistance, Medicaid or
+    insurance acceptance.
+  - Effect on this report's historical entries: the 03B/03B1 wording that
+    avoided naming wheelchairs (the neutral "mobility or assistance needs" FAQ,
+    the senior-card icon swap, the "owner decision" notes) accurately describes
+    what was deployed and why at that time. It is left as written and is
+    superseded going forward by ZW-WEB-03B2
+    (docs/reports/ZW-WEB-03B2-wheelchair-intake-contract-1-1.txt), which restores
+    explicit wheelchair copy (homepage FAQ, /services/wheelchair-transportation)
+    and records the approval in docs/product/marketing-scope.md.
+  - The deployed 03B deployment report
+    (docs/reports/ZW-WEB-03B-deployment-report.txt) likewise records the
+    then-open decision as history; this clarification supersedes it.

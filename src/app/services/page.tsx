@@ -31,21 +31,32 @@ export default function ServicesPage() {
 
       <Section tone="white">
         <div className="grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-3">
-          {SERVICE_ORDER.map((slug) => {
+          {SERVICE_ORDER.map((slug, index) => {
             const service = SERVICES[slug];
+            // With an odd count the last card would sit alone in its row; let it
+            // span the grid as a single horizontal card instead of an orphan.
+            const wide = SERVICE_ORDER.length % 2 === 1 && index === SERVICE_ORDER.length - 1;
             return (
               <Link
                 key={slug}
                 href={service.path}
-                className="group flex flex-col rounded-lg border border-border-subtle p-lg transition-colors duration-base hover:bg-surface-hover"
+                className={cn(
+                  "group flex flex-col rounded-lg border border-border-subtle p-lg transition-colors duration-base hover:bg-surface-hover",
+                  wide && "sm:col-span-2 sm:flex-row sm:items-center sm:gap-xl lg:col-span-3",
+                )}
               >
-                <service.icon className="size-8 text-brand-care-navy" weight="light" aria-hidden />
-                <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{service.cardTitle}</p>
-                <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{service.cardDescription}</p>
+                <service.icon className="size-8 shrink-0 text-brand-care-navy" weight="light" aria-hidden />
+                <div className={cn("flex-1", wide && "sm:max-w-[40rem]")}>
+                  <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary", wide && "sm:mt-0")}>
+                    {service.cardTitle}
+                  </p>
+                  <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{service.cardDescription}</p>
+                </div>
                 <span
                   className={cn(
                     typography.bodySmall,
                     "mt-auto inline-flex items-center gap-1.5 pt-4 font-medium text-brand-interactive-teal group-hover:underline",
+                    wide && "sm:mt-0 sm:ml-auto sm:pt-0",
                   )}
                 >
                   Learn more

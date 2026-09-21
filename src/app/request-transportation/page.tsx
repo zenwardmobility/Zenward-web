@@ -5,6 +5,7 @@ import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { resolveServiceParam } from "@/lib/request-intake/service-types";
 
 export const metadata: Metadata = pageMetadata({
   title: "Request Transportation",
@@ -13,7 +14,22 @@ export const metadata: Metadata = pageMetadata({
   path: "/request-transportation",
 });
 
-export default function RequestTransportationPage() {
+/**
+ * `?service=` may preselect ONE allow-listed service (the six service pages
+ * and wheelchair transportation link here that way). Anything else — unknown
+ * values, repeated params, empty, oversized, prototype keys — is ignored and
+ * the page renders exactly as if there were no query. The value is resolved on
+ * the server through an explicit map (`resolveServiceParam`); nothing else is
+ * ever read from the URL, and no passenger/trip data ever belongs there.
+ */
+export default async function RequestTransportationPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { service } = await searchParams;
+  const initialServiceType = resolveServiceParam(service);
+
   return (
     <>
       <Section tone="mist" narrow>
@@ -38,7 +54,7 @@ export default function RequestTransportationPage() {
       </Section>
 
       <Section tone="white" narrow>
-        <RequestTransportationForm />
+        <RequestTransportationForm initialServiceType={initialServiceType} />
       </Section>
     </>
   );

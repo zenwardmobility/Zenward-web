@@ -1,5 +1,6 @@
 /**
- * Requested recurring schedule (trusted intake contract v1.1).
+ * Requested recurring schedule (sent to Nemryn as the structured `recurringSchedule`
+ * field; see docs/architecture/nemryn-trusted-request-intake-contract.md).
  *
  * This describes the schedule the requester WANTS. It does not create trips,
  * a series, or any booking — Zenward reviews it and confirms what can be

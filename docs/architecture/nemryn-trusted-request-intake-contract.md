@@ -102,9 +102,10 @@ A recurring request replaces `preferredDate` / `preferredTime` with a structured
   refuses to transmit a body containing one.
 - **A supported `serviceType` is not a service offering.** Nemryn accepting a value does not mean Zenward Mobility
   offers it publicly; what the site presents is governed by `docs/product/marketing-scope.md`. Zenward-Web keeps
-  the full enum in its internal/wire model (`SERVICE_TYPES`) but offers, and its Server Action accepts from visitors,
-  only `PUBLIC_SERVICE_TYPES`. In the S4B-R3 release that excludes `wheelchair_transportation` — Nemryn would accept
-  it, the public form does not send it; the ZW-WEB-03B2 release adds it back deliberately.
+  the full enum in its internal/wire model (`SERVICE_TYPES`) and separately lists what it offers and accepts from
+  visitors (`PUBLIC_SERVICE_TYPES`). Today the two are equal: wheelchair transportation is an owner-confirmed approved
+  service (ZW-WEB-03B2, 2026-09-19) and is offered on the form and its own service page. A type Nemryn accepts but Zenward
+  does not offer stays out of `PUBLIC_SERVICE_TYPES`.
 - **A request expresses intent only.** `recurringSchedule` creates no recurring arrangement, and a website submission
   creates no Passenger, Trip, Driver assignment or Vehicle assignment. It stops at a pending Request that an operator
   reviews, reconciles to a Passenger and (optionally) turns into a Trip manually.

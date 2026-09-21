@@ -80,11 +80,6 @@ export interface RequestSubmissionMeta {
   submissionId: string;
 }
 
-// The wire body actually sent to Nemryn's trusted intake endpoint is
-// `NemrynIntakeRequestBody` (see `nemryn-mapping.ts`) — a flat JSON object
-// with no envelope wrapper, no schema version, and no bearer credential.
-// The speculative versioned-envelope shape that used to live here
-// (`TrustedIntakeEnvelope`, written before Nemryn's endpoint existed) has
-// been retired now that the real contract is implemented and proven; see
-// docs/architecture/nemryn-trusted-request-intake-contract.md for the
-// current, accurate spec.
+// The wire body actually sent to Nemryn is `NemrynIntakeRequestBody` (see
+// `nemryn-mapping.ts`): a flat JSON object with no wrapper, no schema version and
+// no credential. See docs/architecture/nemryn-trusted-request-intake-contract.md.

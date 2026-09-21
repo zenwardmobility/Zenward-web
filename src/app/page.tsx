@@ -143,9 +143,9 @@ const FAQ_ITEMS = [
       "No. A request tells Zenward what transportation you need. It is not a confirmed ride until our team follows up to confirm availability and next steps.",
   },
   {
-    question: "What if the passenger has mobility or assistance needs?",
+    question: "Does Zenward provide wheelchair transportation?",
     answer:
-      "Tell us about any mobility or assistance needs when you submit your request. Zenward will review the details and confirm what we can accommodate.",
+      "Yes. Zenward provides wheelchair transportation for non-emergency medical trips. Tell us about the passenger's mobility and assistance needs when you submit the request so our team can review the trip details and confirm the transportation arrangement.",
   },
   {
     question: "Can a healthcare facility request transportation for a patient?",
@@ -439,7 +439,17 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
-        <p className={cn(typography.bodySmall, "mt-lg text-center text-text-muted")}>
+        <p className={cn(typography.body, "mt-lg text-center text-text-secondary")}>
+          Arranging a trip for someone who uses a wheelchair?{" "}
+          <Link
+            href={SERVICE_PAGES["wheelchair-transportation"].path}
+            className="inline-flex items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline"
+          >
+            See wheelchair transportation
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </p>
+        <p className={cn(typography.bodySmall, "mt-3 text-center text-text-muted")}>
           Zenward does not provide emergency response, ambulance, or stretcher transportation.
         </p>
       </Section>

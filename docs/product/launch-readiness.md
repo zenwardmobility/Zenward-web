@@ -31,7 +31,7 @@ Optional polish is never BLOCKED.
 | Terms page | Launch-quality conservative draft: what Zenward provides (NEMT, not emergency/ambulance/stretcher), site use, requests are subject to review / not a confirmed ride / no guaranteed availability or response time, emergencies → 911, info may change. No insurance / refund / liability-limitation / licensing / regulatory claims. "Counsel review still required" stated. |
 | Domain configuration | `NEXT_PUBLIC_SITE_URL` is the single source of truth (canonical, OG, sitemap, robots, JSON-LD). Not hardcoded anywhere. Changing the env var is sufficient for a custom domain. |
 | No software / operator positioning | The public site presents Zenward Mobility only as a non-emergency medical transportation company. No "Sign In" / operator / platform / dashboard link anywhere (`business.signInUrl` removed; `NEXT_PUBLIC_APP_URL` reserved/unused). No "Provider Solutions" / "operator tools" CTAs or copy. Verified: 0 public occurrences. |
-| Environment contract | `.env.example` rewritten with PUBLIC vs SERVER-ONLY sections and every variable documented: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `REQUEST_INTAKE_MODE`, `PLATFORM_INTAKE_URL`, `PLATFORM_INTAKE_TOKEN`, `CONTACT_INTAKE_MODE`, `CONTACT_INTAKE_EMAIL`, `CONTACT_EMAIL_FROM`, `CONTACT_EMAIL_API_KEY`. |
+| Environment contract | `.env.example` rewritten with PUBLIC vs SERVER-ONLY sections and every variable documented: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `REQUEST_INTAKE_MODE`, `PLATFORM_INTAKE_URL`, `PLATFORM_INTAKE_INTEGRATION_ID` (an opaque integration id, not a secret; the earlier bearer token no longer exists), `CONTACT_INTAKE_MODE`, `CONTACT_INTAKE_EMAIL`, `CONTACT_EMAIL_FROM`, `CONTACT_EMAIL_API_KEY`. |
 | No Supabase credentials | None present. `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SECRET_KEY`, `DATABASE_URL` are explicitly absent and documented as forbidden. |
 | SEO — titles / descriptions / canonical | Single `%s | Zenward Mobility` suffix (fixed a double-suffix bug); unique description per page; `rel=canonical` on every page. |
 | SEO — sitemap / robots | 8 routes in `sitemap.xml`; `robots.txt` allows all + points at the sitemap. Both env-URL driven. |
@@ -49,9 +49,9 @@ Optional polish is never BLOCKED.
 
 | Item | Why | Unblocks when |
 |---|---|---|
-| **Trusted TransportationRequest intake** (`REQUEST_INTAKE_MODE=platform`) | The Zenward Platform's RLS-secured, server-assigned-`organization_id` intake endpoint does not exist yet. `PlatformRequestIntakeAdapter` is implemented and fails closed; production runs in `stub` (acknowledges, delivers nothing, tells the visitor to call). | Platform database security foundation is complete and the intake endpoint + token are issued. Then: set `PLATFORM_INTAKE_URL` / `PLATFORM_INTAKE_TOKEN`, set `REQUEST_INTAKE_MODE=platform`. No code change. |
+| **Trusted TransportationRequest intake** (`REQUEST_INTAKE_MODE=platform`) | **Connected (P1-PILOT-S4B-R3).** `PlatformRequestIntakeAdapter` POSTs a flat JSON body to Nemryn's production public website intake (`integrationExternalId` + `idempotencyKey`; structured `passengerName`, `serviceType`, `recurringSchedule`) and treats exactly `200 {"ok":true}` as delivered; every other outcome fails closed with customer-safe copy. `stub` remains the local-development default. | Production needs `REQUEST_INTAKE_MODE=platform`, `PLATFORM_INTAKE_URL` and `PLATFORM_INTAKE_INTEGRATION_ID` (Vercel Production). No code change. Details: `docs/architecture/nemryn-trusted-request-intake-contract.md`. |
 
-This is the only hard launch blocker for the digital request flow. **The site can still launch** — every request path offers the phone number as an immediate alternative, and the success copy is honest about the stub.
+This is no longer a blocker as of P1-PILOT-S4B-R3: the request path is connected once the Production env vars above are set. Every request path still offers the phone number as an immediate alternative, and any non-accepted submission fails closed with honest copy (the `stub` mode's success copy is honest about delivering nothing).
 
 ---
 
@@ -73,7 +73,7 @@ This is the only hard launch blocker for the digital request flow. **The site ca
 
 The public marketing site is a **launch candidate**. It can go live on the current Vercel URL or a custom domain today, with:
 
-- the transportation-request form in honest `stub` mode + phone fallback everywhere, and
+- the transportation-request form delivering to Nemryn in `platform` mode (or, without the env vars, honest `stub` mode) + phone fallback everywhere, and
 - the contact form either in `stub` mode (now honest: it says the message was not sent and to call) or, once the owner sets the four `CONTACT_*` vars, delivering by Resend with delivery-gated success copy — a few minutes of config, not engineering.
 
-The one true blocker (trusted Platform intake) blocks *automated request delivery*, not *launch* — and is owned by the Platform team.
+Automated request delivery no longer waits on the Platform team: the Nemryn intake exists and the adapter targets it (see the contract doc).

@@ -10,9 +10,9 @@
  * - `PUBLIC_SERVICE_TYPES` is what Zenward Mobility currently OFFERS through
  *   the public form. Nemryn accepting a value does not mean Zenward presents
  *   that service publicly; that is a Zenward-Web decision governed by
- *   docs/product/marketing-scope.md. `wheelchair_transportation` is held out
- *   of the public set in this release and is added back deliberately by the
- *   ZW-WEB-03B2 release.
+ *   docs/product/marketing-scope.md. Today the two sets are equal: wheelchair
+ *   transportation is an owner-confirmed approved service (ZW-WEB-03B2). A
+ *   type Nemryn accepts but Zenward does not offer must stay out of this set.
  *
  * Pure data + pure functions: no React, no server-only imports, safe in the
  * browser bundle.
@@ -38,6 +38,7 @@ export const PUBLIC_SERVICE_TYPES = [
   "hospital_discharge",
   "recurring_care",
   "senior_medical",
+  "wheelchair_transportation",
   "other",
 ] as const satisfies readonly ServiceType[];
 
@@ -76,8 +77,9 @@ export function isPublicServiceType(value: unknown): value is PublicServiceType 
  *
  * A deliberate, explicit map (not "any enum value is accepted"): the URL is
  * public, user-editable and shareable, so the set of values it can express is
- * decided here. Only the six approved service routes can be preselected;
- * `other` and any type not publicly offered cannot. The URL carries a
+ * decided here. Only the six approved service routes plus wheelchair
+ * transportation can be preselected; `other` and any type not publicly offered
+ * cannot. The URL carries a
  * service label and NOTHING else — never a name, phone, email, address,
  * appointment detail, mobility note, schedule, or tenant identifier.
  */
@@ -88,6 +90,7 @@ export const PUBLIC_SERVICE_PARAMS = {
   hospital_discharge: "hospital_discharge",
   recurring_care: "recurring_care",
   senior_medical: "senior_medical",
+  wheelchair_transportation: "wheelchair_transportation",
 } as const satisfies Partial<Record<PublicServiceType, PublicServiceType>>;
 
 export type PublicServiceParam = keyof typeof PUBLIC_SERVICE_PARAMS;

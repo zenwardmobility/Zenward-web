@@ -1,8 +1,8 @@
-// Guards the PUBLIC service offering for the Nemryn adapter release
-// (P1-PILOT-S4B-R3, owner decision "Option B"): Nemryn's contract accepts
-// `wheelchair_transportation`, but Zenward-Web does not offer it publicly in
-// this release. The ZW-WEB-03B2 release adds it back deliberately -- when it
-// does, update the assertions below in the same change.
+// Guards the PUBLIC service offering: Zenward-Web keeps a public set
+// (`PUBLIC_SERVICE_TYPES`) separate from the Nemryn wire enum (`SERVICE_TYPES`).
+// Today they are equal -- wheelchair transportation is an owner-confirmed approved
+// service (ZW-WEB-03B2). If Nemryn ever accepts a type Zenward does not offer, it
+// belongs in SERVICE_TYPES only, and these assertions should be extended.
 //
 //   npm test
 
@@ -24,17 +24,17 @@ test("the wire model still represents the whole Nemryn enum, including wheelchai
   assert.ok(isServiceType("wheelchair_transportation"));
 });
 
-test("wheelchair_transportation is not a public service type in this release", () => {
-  assert.equal(PUBLIC_SERVICE_TYPES.includes("wheelchair_transportation"), false);
-  assert.equal(isPublicServiceType("wheelchair_transportation"), false);
+test("wheelchair_transportation is an approved public service type", () => {
+  assert.ok(PUBLIC_SERVICE_TYPES.includes("wheelchair_transportation"));
+  assert.ok(isPublicServiceType("wheelchair_transportation"));
 });
 
-test("the public form options are exactly the already-public services", () => {
+test("the public form options are the eight approved services, wheelchair included", () => {
   assert.deepEqual(
     SERVICE_TYPE_OPTIONS.map((o) => o.value),
-    ["medical_appointment", "dialysis", "rehabilitation", "hospital_discharge", "recurring_care", "senior_medical", "other"],
+    ["medical_appointment", "dialysis", "rehabilitation", "hospital_discharge", "recurring_care", "senior_medical", "wheelchair_transportation", "other"],
   );
-  assert.equal(SERVICE_TYPE_OPTIONS.some((o) => /wheelchair/i.test(o.label)), false);
+  assert.ok(SERVICE_TYPE_OPTIONS.some((o) => o.value === "wheelchair_transportation" && o.label === "Wheelchair transportation"));
 });
 
 test("every public type is a valid Nemryn type", () => {
@@ -47,12 +47,15 @@ test("isPublicServiceType rejects unknown, empty and non-string values", () => {
   }
 });
 
-test("?service=wheelchair_transportation is not preselectable", () => {
-  assert.equal(resolveServiceParam("wheelchair_transportation"), undefined);
+test("?service= preselects approved services (wheelchair included) and ignores everything else", () => {
+  assert.equal(resolveServiceParam("wheelchair_transportation"), "wheelchair_transportation");
   assert.equal(resolveServiceParam("dialysis"), "dialysis");
+  for (const v of ["other", "ambulance", "stretcher", "__proto__", "constructor", "", undefined, ["nope"], "x".repeat(200)]) {
+    assert.equal(resolveServiceParam(v), undefined, String(v));
+  }
 });
 
-test("the mapping layer itself is not narrowed: it would still pass wheelchair through", () => {
+test("the mapping layer sends wheelchair_transportation directly as the structured serviceType", () => {
   const body = buildNemrynIntakeBody(
     {
       serviceType: "wheelchair_transportation",

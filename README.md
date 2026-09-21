@@ -39,6 +39,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - Colors, spacing, radii, shadows, and fonts are defined once in `src/app/globals.css` (Tailwind v4 `@theme`) — replicated from, not imported from, the Zenward Platform's design system. See `docs/design/design-system.md`.
 - No runtime code is ever imported from the Zenward Platform repository, and vice versa. The two projects are independently deployable.
-- This site has no direct connection to the Zenward Platform's database. Forms submit through a Server Action to a swappable adapter (`src/lib/request-intake/`, `src/lib/contact-intake/`) — currently a safe stub that persists nothing.
+- This site has no direct connection to the Zenward Platform's database. Forms submit through a Server Action to a swappable adapter (`src/lib/request-intake/`, `src/lib/contact-intake/`) — `stub` (safe default; acknowledges and delivers nothing) or `platform` (server-to-server to Nemryn's public website intake; see `docs/architecture/nemryn-trusted-request-intake-contract.md`).
 - Analytics track actions, never passenger data — see `src/lib/analytics/events.ts`.
 - Do not fabricate certifications, licenses, partner logos, testimonials, ratings, statistics, fleet size, customer counts, or service-area details. Use honest, non-committal language where final business information isn't confirmed yet.

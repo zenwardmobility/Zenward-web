@@ -1,7 +1,7 @@
 # Zenward Web — Marketing Scope
 
 **Status:** Foundation.
-**Last updated:** 2026-08-30
+**Last updated:** 2026-09-19 (ZW-WEB-03B2: wheelchair transportation confirmed)
 
 ## Purpose
 
@@ -40,7 +40,35 @@ This site's only connection to the platform, now or in the future, is through th
 
 ## Services presented (approved list)
 
-Medical appointments, dialysis visits, rehabilitation appointments, hospital discharge transportation, recurring scheduled care, senior medical transportation. Emergency transportation, ambulance service, stretcher transportation, and wheelchair-specific transport are **not** presented unless separately approved.
+Seven approved public services:
+
+1. Medical appointments
+2. Dialysis transportation
+3. Rehabilitation transportation
+4. Hospital discharge transportation
+5. Recurring scheduled care
+6. Senior medical transportation
+7. **Wheelchair transportation** — *confirmed by the owner (2026-09-19)*
+
+Each has a dedicated landing page under `/services/…` (ZW-WEB-03A; wheelchair transportation added in ZW-WEB-03B2) and a matching allow-listed `serviceType` in the trusted intake contract (`docs/architecture/nemryn-trusted-request-intake-contract.md`).
+
+### Owner confirmation — wheelchair transportation (2026-09-19)
+
+The owner has explicitly confirmed that Zenward Mobility **does provide wheelchair transportation** for non-emergency medical trips. It is an approved public service. The wheelchair/ramp photography and its factual alt text are consistent with this and may remain. This supersedes the earlier "wheelchair-specific transport is not presented unless separately approved" rule and the open owner question recorded in the ZW-WEB-03B reports.
+
+This confirmation is **exactly and only** wheelchair transportation. It does **not** confirm, and public copy must not claim:
+
+- stretcher transportation
+- ambulance transportation
+- emergency transportation or emergency response
+- medical monitoring or clinical care during transport
+- oxygen administration
+- transfer or lifting assistance
+- door-through-door assistance
+- Medicaid participation
+- insurance acceptance
+
+Wheelchair copy stays request-led: the passenger's mobility and assistance needs are collected on the request, Zenward reviews the trip details, and the arrangement is confirmed by Zenward — a submitted request is never a confirmed booking. Emergency transportation, ambulance service and stretcher transportation remain **not** presented.
 
 ## Claim discipline
 

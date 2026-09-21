@@ -1,0 +1,444 @@
+ZW-WEB-03B2 — WHEELCHAIR SERVICE + TRUSTED INTAKE CONTRACT 1.1
+Date: 2026-09-19
+Repository: /Users/datamatics/Zenward-Web
+Status: RECONCILED 2026-09-21 — released together with P1-PILOT-S4B-R3 as one commit
+        ("Connect Zenward structured request intake to Nemryn"). The wheelchair service, service page,
+        taxonomy, service selector, One-time/Recurring control, recurring fields, ?service= preselection,
+        server-side validation and tenancy guard described below are all part of that release.
+
+RECONCILIATION NOTE (2026-09-21) — READ FIRST
+  The "trusted intake contract 1.1" this report describes (Bearer token, versioned envelope with
+  schemaVersion "1.1", Idempotency-Key header, Nemryn-issued referenceId, 409 replay) was a SPECULATIVE
+  contract written before Nemryn's endpoint existed. It was never implemented by Nemryn and is NOT the
+  production contract. The adapter, mapping, tests and current docs were replaced by P1-PILOT-S4B-R3 with
+  Nemryn's actual frozen contract: a flat body with integrationExternalId + idempotencyKey (= submissionId),
+  structured passengerName / serviceType / recurringSchedule, no token, no envelope, response
+  200 {"ok":true} with no reference. Current source of truth:
+    docs/architecture/nemryn-trusted-request-intake-contract.md
+    docs/reports/p1-pilot-s4b-r3-zenward-web-adapter-finalization.txt
+  Section 0's owner question (which contract is real) is therefore RESOLVED: option A — Nemryn's live
+  endpoint is authoritative. Sections 12 and 15 (envelope payload, envelope contract harness) and the
+  Nemryn implementer checklist are HISTORICAL and describe an adapter that no longer exists; they are kept as
+  the record of that work. Everything not about the wire format (wheelchair approval, page, taxonomy, form,
+  URL preselection, recurring UX, server-side validation, tenancy guard) is current.
+
+======================================================================
+0. [RESOLVED 2026-09-21 — historical] BLOCKER — CONCURRENT EDITS TO THE INTAKE LAYER
+======================================================================
+While finishing QA I found files in this working tree that I did not write.
+Several Claude Code sessions are running on this machine, and one of them (its
+comments cite "P1-PILOT-S4B-R1") is wiring Zenward-Web to Nemryn's ACTUAL public
+intake endpoint. It was still editing at 18:07 local. I have not modified,
+reverted or committed any of its work, and I stopped running builds/tests against
+the tree once I saw it was changing.
+
+Files changed by the OTHER session (not by me), with local mtimes:
+  src/lib/request-intake/nemryn-mapping.ts        NEW    18:03
+  src/lib/request-intake/nemryn-mapping.test.mjs  NEW    18:05
+  src/lib/request-intake/adapter.ts               edited 18:05 (on top of my edits)
+  src/lib/request-intake/types.ts                 edited 18:03 (on top of my edits)
+  .env.example                                    edited 18:05
+  package.json  ("test" script)                   edited 18:07
+  tsconfig.json ("allowImportingTsExtensions")    edited 18:07
+
+What that session's code does (read from the files):
+  - POSTs a FLAT JSON body to https://app.nemryn.com/api/public-intake/website with
+    `integrationExternalId` + `idempotencyKey`. NO Bearer token, NO versioned
+    envelope, NO `Idempotency-Key` header, NO `referenceId` in the response.
+  - Env vars: PLATFORM_INTAKE_URL + PLATFORM_INTAKE_INTEGRATION_ID (replaces
+    PLATFORM_INTAKE_TOKEN). Success = exactly `200 {"ok":true}`.
+  - Nemryn "has NO passengerName, serviceType, or recurringSchedule field", so the
+    mapping folds passenger name, service and recurring schedule into free-text
+    `additionalNotes` ("Service requested: …", "Recurring schedule requested: …").
+  - .env.example calls `platform` the "CONNECTED, PRODUCTION VALUE". The value left
+    in .env.example is still REQUEST_INTAKE_MODE=stub, and I did not change any
+    environment value.
+
+Why this conflicts with 03B2 as briefed:
+  1. The brief said the Nemryn endpoint is "still under active development" and
+     asked for a structured contract 1.1 (Bearer, versioned envelope,
+     `serviceType`, `recurringSchedule`, 409 + opaque reference). That other work
+     says a real endpoint exists with a different, fixed shape.
+  2. The rewritten docs/architecture/nemryn-trusted-request-intake-contract.md
+     (mine, 17:53) documents envelope 1.1 + Bearer. The adapter in the tree now
+     sends the flat body. The doc and the code disagree.
+  3. My contract test harness (section 15) proved the envelope adapter I wrote. That
+     adapter no longer exists in the tree; those results do NOT describe the
+     current adapter. A re-run at 18:07 produced no output (most likely the
+     concurrent tsconfig/package.json edits); I did not investigate further.
+  4. If the flat body is what Nemryn really accepts, the structured `serviceType`
+     and `recurringSchedule` the form now collects reach Nemryn only as
+     free-text notes. Nothing structured is lost inside Zenward-Web (validation
+     and the typed allow-lists are unaffected), but Nemryn would receive prose.
+
+Owner decision needed (I did not choose): which contract is real?
+  A. Nemryn's live endpoint is authoritative (flat body). Then: rewrite the
+     contract doc to describe that; decide whether to ask Nemryn to add real
+     `serviceType` / `recurringSchedule` fields; drop my envelope tests in favour
+     of that session's tests.
+  B. The structured 1.1 envelope is what Nemryn will build. Then: restore an
+     envelope adapter, and stop the other session's flat-body work.
+  C. Both: keep the flat body now and treat envelope 1.1 as the target for a
+     later Nemryn change.
+Also confirm production stays on stub until you say otherwise.
+
+Everything else in this report (wheelchair approval, page, taxonomy, form, URL
+preselection, recurring UX, server-side validation, tenancy guard) is independent
+of the wire format and is unaffected.
+
+======================================================================
+1. STARTING COMMIT / GIT STATE
+======================================================================
+Branch main, up to date with origin/main, HEAD 541181c "Document ZW-WEB-03B
+production deployment" (parent ac4a47f). Working tree clean at start.
+Deployed baseline: ZW-WEB-03 / 03B / 03B1 (production). Nothing reverted or
+rewritten from 03B. Docs read first: marketing-scope.md, launch-readiness.md,
+request-intake-boundary.md, nemryn-trusted-request-intake-contract.md (1.0 as it
+stood), the 03B and 03B deployment reports; code read: request form, types,
+adapter, action, guard, services taxonomy, routes, homepage FAQ, sitemap,
+analytics events.
+
+======================================================================
+2. WHEELCHAIR CAPABILITY CONFIRMATION
+======================================================================
+Owner-confirmed (brief, 2026-09-19): Zenward Mobility DOES provide wheelchair
+transportation. It is an approved public service. This does NOT confirm stretcher,
+ambulance, emergency transportation, medical monitoring or clinical care, oxygen
+administration, transfer/lifting assistance, door-through-door assistance, Medicaid
+participation, or insurance acceptance. None of these is claimed anywhere.
+No "wheelchair-accessible vehicle" or ramp claim was added either (not confirmed).
+
+======================================================================
+3. MARKETING-SCOPE CHANGE
+======================================================================
+docs/product/marketing-scope.md: "Services presented" is now the seven approved
+services (wheelchair transportation added and marked owner-confirmed 2026-09-19),
+with a dated "Owner confirmation" subsection listing exactly what is and is not
+confirmed. It supersedes the old "wheelchair-specific transport is not presented
+unless separately approved" line. Emergency/ambulance/stretcher remain not
+presented. Older reports: the 03B report gets a new section 17 "Owner
+clarification" and its known-issue 4 now points to it; the historical 03B/03B1
+entries and the 03B deployment report's recorded decision are left as written, with
+a dated "later owner clarification" appended (deployment report section 13). There
+is no remaining "unresolved owner decision" wording in the 03B report.
+
+======================================================================
+4. WHEELCHAIR PUBLIC COPY
+======================================================================
+Homepage FAQ (replaces the 03B neutral "mobility or assistance needs" FAQ):
+  Q: "Does Zenward provide wheelchair transportation?"
+  A: "Yes. Zenward provides wheelchair transportation for non-emergency medical
+     trips. Tell us about the passenger's mobility and assistance needs when you
+     submit the request so our team can review the trip details and confirm the
+     transportation arrangement."
+The existing wheelchair/ramp imagery and factual alt text were left unchanged.
+
+======================================================================
+5. WHEELCHAIR SERVICE PAGE
+======================================================================
+/services/wheelchair-transportation, built on the shared ServicePage system (no new
+visual system, no photo). Title "Wheelchair Transportation"; H1 "Wheelchair
+transportation for scheduled medical care"; canonical, OpenGraph and Twitter
+metadata via pageMetadata; unique description. Sections: audience, what Zenward
+coordinates (mobility details, pickup/destination, timing + return trip, who is
+arranging), what to expect (request > review > contact > confirm; "Submitting a
+request is not a confirmed booking"), scenarios (medical appointment, recurring
+treatment/therapy, after a hospital stay — each linked), five FAQs (does Zenward
+provide it; how to request; does a request confirm a ride; recurring; is this
+ambulance/stretcher — No). CTA -> /request-transportation?service=wheelchair_transportation.
+Icon: Wheelchair. Related: Senior Medical, Recurring Care.
+
+======================================================================
+6. SERVICE TAXONOMY CHANGES
+======================================================================
+src/lib/services.ts is the taxonomy. Added the wheelchair-transportation entry
+and slug; SERVICE_ORDER now has seven entries (sitemap and /services derive from
+it). Each entry gains `serviceType` and `requestHref` (the allow-listed
+`?service=` link). New shared allow-list module src/lib/request-intake/service-types.ts
+(SERVICE_TYPES, labels, options, PUBLIC_SERVICE_PARAMS map, resolveServiceParam,
+defaultFrequencyFor, requestHrefFor) is used by the form, the pages, the Server
+Action and the type layer. Copy on the recurring/dialysis/rehab/senior pages that
+told visitors to "describe the schedule in the notes" was updated because the form
+now has a real Recurring option; nothing else on those pages changed.
+
+======================================================================
+7. SITEMAP / INTERNAL LINKS
+======================================================================
+Sitemap: 15 URLs (was 14); /services/wheelchair-transportation included; no
+`?service=` URLs. Canonical of /request-transportation?service=… stays
+/request-transportation.
+/services: seven cards. With seven, the 3-column grid would leave one orphan, so
+the last card spans the row as a single horizontal card (icon, text, Learn more).
+Homepage: DECISION — kept at six cards (a seventh would break the 3x2 grid, and a
+wide card would be a redesign of the section). Wheelchair transportation is
+introduced by a link line below the grid: "Arranging a trip for someone who uses a
+wheelchair? See wheelchair transportation ->", plus the FAQ. Contextual "Related"
+links to the wheelchair page were added on Medical Appointments, Hospital Discharge
+(now two related), Recurring Care, and Senior Medical (which now shows Wheelchair +
+Recurring; its Hospital Discharge link remains as a scenario card). Max two related
+links per page kept.
+
+======================================================================
+8. REQUEST FORM CHANGES
+======================================================================
+/request-transportation form (concise; not a dispatch form):
+  - SERVICE NEEDED (required select): Medical appointment; Dialysis
+    transportation; Rehabilitation transportation; Hospital discharge
+    transportation; Recurring care transportation; Senior medical transportation;
+    Wheelchair transportation; Other. Placeholder "Select one" (nothing silently
+    preselected).
+  - TRIP FREQUENCY (segmented control): One-time | Recurring.
+  - Recurring reveals a panel: Days of the week (seven toggle chips), Start date
+    (required), End date (optional), Appointment time (optional), Return
+    transportation expected? Yes / No. Panel text: "…this doesn't book trips
+    automatically."
+  - When Recurring: the one-time "Return trip needed?" select and "Preferred
+    date/time" are hidden (the recurring return answer and start date/time replace
+    them, to avoid asking twice); returnTripNeeded is sent as yes/no derived from
+    the recurring answer. When One-time: the form is as before.
+  - All existing passenger/contact/trip fields, honeypot, timing guard and
+    submissionId behaviour are unchanged. New SegmentedChoice UI component (native
+    radios, 48px) and RecurringScheduleFields component.
+  - Fixed while here: a failed Server Action call (dropped connection) no longer
+    leaves the form stuck "submitting"; it shows a friendly retry message, keeps all
+    entered data and reuses the same submissionId.
+
+======================================================================
+9. SERVICE PRESELECTION
+======================================================================
+Service pages link to /request-transportation?service=<value>. Explicit map (not
+"any enum"): medical_appointment, dialysis, rehabilitation, hospital_discharge,
+recurring_care, senior_medical, wheelchair_transportation. `other` is not
+URL-preselectable. The request page resolves the value on the server
+(searchParams) via a hasOwnProperty lookup; unknown/empty/oversized/repeated/
+prototype-key values are ignored and the page renders as if there were no query;
+nothing throws or echoes the input. Only the service label is ever in a URL. Note:
+reading searchParams makes /request-transportation a dynamic (server-rendered)
+route instead of static — acceptable for a form page. Homepage and /services CTAs
+stay plain /request-transportation.
+
+======================================================================
+10. RECURRING FORM UX
+======================================================================
+Arriving from the Recurring Care page (?service=recurring_care) preselects that
+service and defaults Trip frequency to Recurring (panel open). Dialysis,
+rehabilitation, wheelchair etc. preselect only the service and stay One-time.
+Weekday chips are a 4+3 grid on phones (7 across from sm), 44px+ wide and 48px
+tall; toggled with tap or keyboard; visible focus ring; screen readers hear full
+day names. End-date input min follows the start date. Choosing no day shows an
+inline message and does not submit. Verified at 390 px (screenshots reviewed).
+
+======================================================================
+11. CONTRACT 1.0 -> 1.1 (as implemented by 03B2 — see section 0)
+======================================================================
+Doc: docs/architecture/nemryn-trusted-request-intake-contract.md rewritten as
+version 1.1: schemaVersion "1.1"; NEW required request.serviceType (8 values);
+NEW optional request.recurringSchedule; tenancy rule tightened from "ignore" to
+"reject with 400"; changelog table; updated examples, validation, versioning and
+implementer checklist. docs/architecture/request-intake-boundary.md updated to
+match. NOTE: this doc now conflicts with the adapter currently in the tree (0).
+
+======================================================================
+12. EXACT OUTGOING PAYLOAD (envelope 1.1, as sent by the 03B2 adapter; captured from the mock)
+======================================================================
+Headers: Authorization: Bearer <token>; Idempotency-Key: <submissionId>;
+content-type: application/json. Body (test values):
+{
+  "schemaVersion": "1.1",
+  "submissionId": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+  "submittedAt": "<ISO-8601 UTC>",
+  "source": "zenward_web",
+  "request": {
+    "serviceType": "dialysis",
+    "requesterName": "…", "requesterRelationship": "family", "requesterPhone": "…",
+    "requesterEmail": "…", "passengerName": "…",
+    "pickupDescription": "…", "destinationDescription": "…",
+    "returnTripNeeded": "yes", "assistanceNotes": "…", "additionalNotes": "…",
+    "recurringSchedule": {
+      "daysOfWeek": ["monday","wednesday","friday"],
+      "startDate": "2026-10-05", "endDate": "2026-12-18",
+      "appointmentTime": "09:15", "returnTripExpected": true
+    }
+  }
+}
+A one-time request has no recurringSchedule key and keeps preferredDate/Time.
+No tenant_id / organization_id / workspace_id / operator_id / company_id anywhere.
+CURRENT tree (other session): a flat body {integrationExternalId, idempotencyKey,
+requesterName, requesterRelationship, requesterPhone, [requesterEmail],
+pickupDescription, destinationDescription, [preferredDate], [preferredTime],
+returnTripNeeded, [assistanceNotes], [additionalNotes]} with service/schedule/
+passenger folded into additionalNotes. That code was not written or tested by me.
+
+======================================================================
+13. VALIDATION RULES (server-side; src/lib/request-intake/recurring.ts + actions.ts)
+======================================================================
+serviceType: exactly one of the 8 values; missing or unknown -> rejected (never
+coerced to "other"). recurringSchedule: absent/null = one-time; otherwise a plain
+object with ONLY the five known keys (unknown key, array, string, number, prototype
+key -> reject). daysOfWeek: array of 1-7, lowercase weekday names only, no
+duplicates (returned in Mon->Sun order). startDate: required, real YYYY-MM-DD
+(2026-02-30 and 2026-13-01 rejected). endDate: optional ("" = absent), real date,
+not before startDate (equal is allowed). appointmentTime: optional, 24-hour HH:MM.
+returnTripExpected: optional strict boolean ("true"/1 rejected). Payload cap 16 KB
+unchanged. Invalid schedule -> "Please check the recurring schedule…" message.
+The validator is pure (no I/O or logging) and returns a fresh object.
+
+======================================================================
+14. TENANCY / SECURITY RULES
+======================================================================
+Zenward-Web never sends tenant_id, organization_id, workspace_id, operator_id,
+company_id (any case/separator variant, plus org_id / organisation_id).
+src/lib/request-intake/tenancy.ts: key-NAME scan at any depth, bounded, returns
+names only. The Server Action REJECTS a submission containing one (not silently
+dropped) and logs only that fact. The adapter refuses to transmit a body containing
+one (kept by the other session's edit). Contract 1.1 (my doc) requires the receiver
+to REJECT with 400 rather than ignore, in body (any depth), headers or query.
+Nemryn must derive the Zenward Mobility organisation solely from the trusted
+credential/integration. REQUEST_INTAKE_MODE and Vercel environment variables were
+not touched by me.
+
+======================================================================
+15. MOCK-TEST MATRIX
+======================================================================
+Harness: outside the repo (scratchpad) — a mock HTTPS endpoint whose validation is an
+independent implementation of contract v1.1, driven against the REAL validators,
+Server Action and adapter. RESULT AT THE TIME (~17:57 local, against the 03B2 envelope
+adapter, before the concurrent edits): 207/207 PASS.
+  SERVICE TYPE     29/29  all 8 allowed values delivered unchanged; missing
+                          rejected; 11 invalid values rejected; nothing sent
+  URL PRESELECTION 31/31  7 public values resolve; 'other' does not; 19 junk values
+                          (foo, empty, wrong case, __proto__, constructor, script
+                          tag, 500 chars, arrays…) ignored without throwing
+  ONE-TIME          2/2   valid request accepted; no recurringSchedule key
+  RECURRING        69/69  one/multiple/all weekdays, duplicate, invalid, capitalised,
+                          empty, 8 days; valid/invalid start (13 cases incl. Feb 30,
+                          leap day); optional/empty/equal/before end date; valid and
+                          invalid times; return true/false preserved; non-boolean
+                          rejected; array/string/number/unknown-key/empty/__proto__
+                          objects rejected; oversized payload rejected
+  TENANCY          30/30  tenant_id, organization_id, workspace_id, operator_id,
+                          company_id + variants rejected by the action; nested keys
+                          rejected; adapter guard blocks transmission; the mock
+                          receiver returns 400 for the same keys in body, envelope,
+                          nested, header and query; 1.0 version and missing
+                          serviceType -> 400
+  TRANSPORT        24/24  201 accepted; same-UUID retry -> same reference (200),
+                          Idempotency-Key == envelope.submissionId; 409 with
+                          reference -> delivered; 409 without -> not delivered; 400,
+                          401, 429, 500; malformed 2xx (3 forms); unreachable; HTTP
+                          (non-HTTPS) endpoint refused with zero plaintext calls;
+                          missing URL/token; 10 s timeout (took ~10 s); envelope key
+                          set exact
+  STUB              4/4   default and explicit stub -> ok:true, delivered:false,
+                          ZW-STUB reference, no network; unknown mode falls back to
+                          stub
+  LOGS             18/18  no name/phone/email/address/note/date/token in any captured
+                          log line; only submissionId + outcome + status
+Also run separately through the real Server Action with REQUEST_INTAKE_MODE unset:
+valid recurring request -> {"ok":true,"delivered":false,"referenceId":"ZW-STUB-…"};
+invalid schedule -> rejected. NOT re-validated against the adapter now in the tree.
+
+======================================================================
+16. TYPESCRIPT / LINT / BUILD
+======================================================================
+Combined working tree at 18:07 (includes the other session's edits):
+  npx tsc --noEmit   PASS (no output)
+  npm run lint       PASS
+  npm run build      PASS — 21 static/dynamic routes; /services/wheelchair-transportation
+                     generated; /request-transportation is dynamic (server-rendered).
+Earlier runs on my own edits were also clean. (A missing wheelchair route file was
+caught by the first build and added.)
+
+======================================================================
+17. RESPONSIVE QA
+======================================================================
+Production build, headless Chrome. Widths 390 / 430 / 768 / 1024 / 1440 x 15 routes
+(/, /services, /healthcare-providers, /request-transportation, the form with
+?service=recurring_care and ?service=wheelchair_transportation, /contact, /about and
+all seven service pages) = 75 loads, plus the open Recurring panel at each width:
+HTTP 200, exactly one h1, zero horizontal overflow, zero page errors.
+Browser assertions: 64/65 passed; the one "failure" was my own assertion tripping
+on React's "$undefined" serialisation — the captured payload itself was correct.
+Verified: service select defaults to the placeholder; recurring panel opens/closes
+and removes/restores the one-time-only fields; seven chips toggle on tap; touch
+targets at 390 px (chips >=44x48, segmented and inputs/selects/submit >=48); end-date
+min tracks start date; every service page's CTA carries exactly ?service=<its value>
+and preselects it; recurring page defaults frequency to Recurring; 14 junk query
+strings load 200 with nothing preselected and no error UI; `?service=dialysis&tenant_id=1`
+preselects dialysis and ignores the rest; one-time and recurring submissions in stub
+mode show "Request received" with honest "please also call" copy and a tel:+16789355489
+link — never "confirmed"; recurring with no weekday shows an inline error and sends
+nothing; on a dropped request the form shows a retry message, keeps data/days/panel,
+and the retry reuses the SAME submission UUID. Also checked: rendered pages have no
+transfer/lifting/oxygen/insurance/Medicaid/guarantee/door-through/on-time/trained
+claims and no Nemryn/platform/software language; the only stretcher/ambulance text
+is disclaimers and the two "is this ambulance or stretcher? No" FAQs; every tel: is
+tel:+16789355489; the old number appears nowhere. Screenshots reviewed: recurring
+form at 390, /services and the homepage service section at 1440. 430/1024 were
+checked for overflow only.
+
+======================================================================
+18. FILES CREATED / MODIFIED (by me)
+======================================================================
+Created:
+  src/app/services/wheelchair-transportation/page.tsx
+  src/components/public/RecurringScheduleFields.tsx
+  src/components/ui/SegmentedChoice.tsx
+  src/lib/request-intake/service-types.ts
+  src/lib/request-intake/recurring.ts
+  src/lib/request-intake/tenancy.ts
+  docs/reports/ZW-WEB-03B2-wheelchair-intake-contract-1-1.txt
+Modified:
+  src/lib/services.ts, src/components/public/ServicePage.tsx,
+  src/components/public/RequestTransportationForm.tsx,
+  src/app/request-transportation/page.tsx, src/app/request-transportation/actions.ts,
+  src/app/services/page.tsx, src/app/page.tsx,
+  src/lib/request-intake/types.ts (mine: serviceType/recurringSchedule; the other
+  session then removed the envelope type), src/lib/request-intake/adapter.ts (mine:
+  1.1 envelope, tenancy guard, createRequestIntakeAdapter, stale phone comment
+  fixed; the other session then replaced the transport),
+  docs/product/marketing-scope.md, docs/architecture/nemryn-trusted-request-intake-contract.md,
+  docs/architecture/request-intake-boundary.md,
+  docs/reports/ZW-WEB-03B-why-specialized-medical-transportation.txt,
+  docs/reports/ZW-WEB-03B-deployment-report.txt (clarification appended).
+Not mine (other session): see section 0.
+Sitemap needed no edit (derived from the taxonomy). analytics/events.ts unchanged.
+
+======================================================================
+19. WHAT NEMRYN MUST IMPLEMENT (only if contract 1.1 / option B or C is adopted)
+======================================================================
+  - POST, HTTPS only; verify Authorization: Bearer first; support two tokens for rotation.
+  - Resolve the Zenward Mobility tenant from the credential only; REJECT (400, create
+    nothing) any tenant_id / organization_id / workspace_id / operator_id /
+    company_id (any case/separator) in body at any depth, headers or query.
+  - Accept schemaVersion exactly "1.1"; source "zenward_web"; UUID submissionId.
+  - Validate required request.serviceType (8 values) and every recurringSchedule rule
+    in section 13 (1-7 distinct weekdays, real dates, endDate >= startDate, HH:MM,
+    strict boolean, no unknown keys).
+  - Store recurringSchedule as the REQUESTED schedule for staff review; do not
+    auto-create trips or a series.
+  - Idempotency-Key = submissionId; same key -> same referenceId (200; 409 allowed only
+    with the reference); keep >= 7 days; serialise concurrent duplicates.
+  - Respond 201/200 {"accepted":true,"referenceId":"ZW-…"} (opaque, non-sequential);
+    400/401/403/409/413/422/429/5xx as documented; answer within ~5 s.
+  - Do not log the token; treat request content as sensitive.
+If the flat-body contract (option A) is authoritative instead, none of the above
+applies; Nemryn would instead need real fields for serviceType and recurringSchedule
+if structured handling is wanted.
+
+======================================================================
+20. REMAINING BLOCKERS
+======================================================================
+  1. Reconcile the intake contract (section 0): flat body (live endpoint) vs
+     structured envelope 1.1. Until then the contract doc and adapter disagree, and
+     the mock tests in section 15 do not describe the current adapter.
+  2. Rewrite the tests to match whichever contract is chosen (the other session has
+     its own node --test file for the flat mapping).
+  3. Confirm REQUEST_INTAKE_MODE stays on stub in production; .env.example prose
+     from the other session calls platform the production value.
+  4. The other session is still editing this tree; commit only after it finishes and
+     the above is settled. Do not commit the two sessions' work as one change by
+     accident.
+  5. Owner sign-off wanted on: hiding "Return trip needed?" / "Preferred date/time"
+     when Recurring; homepage staying at six cards; the recurring-page copy edits.
+  6. Nothing committed, pushed or deployed. 03C (recurring funnel) not started.

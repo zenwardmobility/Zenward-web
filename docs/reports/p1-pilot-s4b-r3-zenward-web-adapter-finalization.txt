@@ -3,9 +3,12 @@ Date: 2026-09-19
 Repository: /Users/datamatics/Zenward-Web   (branch main, HEAD 541181c)
 Nemryn contract: frozen at c275ec52ea1da6f300811a87849de86fd5225ef2 (read-only; not modified)
 
-STATUS: OWNER DECISION "OPTION B" RECEIVED AND APPLIED. Adapter + minimum form dependency
-        staged selectively and validated as the exact staged tree. Production sections
-        (push, env, deploy, real-site E2E, Request Hub) are recorded below as they are executed.
+STATUS: COORDINATED RELEASE (2026-09-21). Adapter commits 8f1526f + d7782a3 are already on origin/main and live.
+        The owner then decided to release the COMPLETE ZW-WEB-03B2 work (wheelchair service + service page +
+        taxonomy + preselection) together with the final R3 adapter in one further commit,
+        "Connect Zenward structured request intake to Nemryn" (see git log). This supersedes the earlier
+        "Option B" hold on wheelchair_transportation (section RELEASE SCOPE below is now historical for that point).
+        Production sections below record the real E2E results as they stood on 2026-09-20.
 
 ======================================================================
 STARTING WORKTREE
@@ -140,7 +143,7 @@ FILES CHANGED BY THIS PHASE
   rewritten test: src/lib/request-intake/nemryn-mapping.test.mjs
 
 =======================================================================================================================================
-RELEASE SCOPE — OWNER DECISION "OPTION B"
+RELEASE SCOPE — OWNER DECISION "OPTION B" (SUPERSEDED 2026-09-21: wheelchair_transportation is now released with 03B2)
 ======================================================================
 Ship the adapter plus the minimum form dependency for structured serviceType /
 recurringSchedule; do NOT ship wheelchair_transportation; leave 03B2 in the working tree.
@@ -362,6 +365,36 @@ Nemryn change; test added). The options considered were:
      lock). Not recommended.
 
 ======================================================================
+FIX + REAL WEBSITE SUBMISSION — ATTEMPT 2 (2026-09-20): PASS (customer side)
+======================================================================
+Fix commit d7782a3 "Send site Origin on the server-to-server Nemryn intake call" (adapter header only; 45/45
+tests, tsc, eslint, build on the exact staged tree; pushed 8f1526f..d7782a3; Vercel status success).
+Re-ran the identical single synthetic submission on the real production form (Recurring, dialysis, Mon+Wed,
+2026-10-05..2026-10-30, 09:15, return expected; passenger PILOT-ZENWARD-WEBSITE-QA).
+
+CUSTOMER EXPERIENCE: PASS. Success card "Request received / Zenward will review the transportation details and
+contact you to confirm availability and next steps." — the DELIVERED variant (not the stub "please also call"
+fallback), no reference number, no Nemryn/UUID/database/technical wording. Screenshot kept locally (not committed).
+=> Nemryn returned 200 {"ok":true} (the adapter only reports delivered on exactly that).
+
+NEMRYN REQUEST HUB: NOT VERIFIED — BLOCKED ON ACCOUNT. The only synthetic staff credentials available to this
+session are the existing org A ("Siloan Medical Centre") and org B admins. After the accepted submission:
+  org A Request Hub: 0 pending, "Nothing needs review" (also 0 before and after the rejected attempt 1)
+  org B Request Hub: "No requests yet"
+So the Request was created in whichever organization owns the Zenward website integration, which is NEITHER of
+these two orgs. No production database access was used or requested; no other credentials were searched for.
+Needed to finish: a staff login for the organization that owns the Zenward integration (or the owner checking
+that Request Hub against the checklist below).
+NOT VERIFIED for the same reason: Source=Website badge, requester fields, Requested passenger =
+PILOT-ZENWARD-WEBSITE-QA / Linked passenger = Not linked, Service requested = Dialysis, recurring schedule shown,
+additionalNotes = only "PILOT-ZENWARD-WEBSITE-QA additional notes only (synthetic)", no auto Passenger / Trip /
+recurring arrangement / Driver / Vehicle, operator reconciliation, manual Trip.
+TENANT ISOLATION: PARTIAL — the Request is absent from both org A and org B hubs (consistent with isolation); a
+positive test needs the owning org's view. Idempotency E2E: not repeated (no way to replay the browser's
+submissionId); covered by adapter tests + Nemryn's own production idempotency proof.
+KILL SWITCH: not exercised; is_active was not touched and must remain true.
+
+======================================================================
 NOT YET EXECUTED (blocked on the env action above)
 ======================================================================
 REAL WEBSITE SUBMISSION / CUSTOMER EXPERIENCE / NEMRYN REQUEST HUB / STRUCTURED FIELD MAPPING /
@@ -381,20 +414,20 @@ IDEMPOTENCY:                       PASS (tests; E2E not run)
 LOCAL TESTS:                       PASS (44/44 staged tree, tsc, eslint)
 BUILD:                             PASS (staged tree)
 SECRET SCAN:                       PASS (staged diff + staged build output)
-COMMIT:                            8f1526f
+COMMIT:                            8f1526f (+ d7782a3 Origin fix)
 PUSH:                              PASS
 ZENWARD PROD ENV:                  PASS (set by user; platform mode active — a Nemryn 4xx was returned)
 DEPLOYMENT:                        PASS (8f1526f live; stub mode until env is set)
-REAL WEBSITE SUBMISSION:           FAIL (attempt 1: generic 400 — origin-lock, see above)
-CUSTOMER SUCCESS EXPERIENCE:       NOT RUN
-NEMRYN REQUEST HUB:                NOT RUN
-NO AUTO PASSENGER:                 NOT RUN
-NO AUTO TRIP:                      NOT RUN
-NO AUTO RECURRING ARRANGEMENT:     NOT RUN
-TENANT ISOLATION:                  NOT RUN
-FINAL INTEGRATION:                 BLOCKED (origin-lock decision)
-S4B:                               BLOCKED
-BLOCKERS:                          1. Origin header vs allowed_origins (owner decision A/B above).
+REAL WEBSITE SUBMISSION:           PASS (attempt 2, after d7782a3; attempt 1 failed on the origin lock)
+CUSTOMER SUCCESS EXPERIENCE:       PASS
+NEMRYN REQUEST HUB:                NOT VERIFIED (owning org's staff account not available)
+NO AUTO PASSENGER:                 NOT VERIFIED
+NO AUTO TRIP:                      NOT VERIFIED
+NO AUTO RECURRING ARRANGEMENT:     NOT VERIFIED
+TENANT ISOLATION:                  PARTIAL (absent from org A and org B)
+FINAL INTEGRATION:                 LIVE (website -> Nemryn accepts); receipt in the owning org unverified
+S4B:                               BLOCKED (Request Hub verification)
+BLOCKERS:                          1. A staff login for the org that owns the Zenward integration (Request Hub checks).
                                    2. Request Hub verification needs the synthetic QA staff login.
 
 NEXT IF COMPLETE: Return to pilot-readiness checkpoint. Do NOT begin Driver PWA automatically.

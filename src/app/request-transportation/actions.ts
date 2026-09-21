@@ -78,8 +78,8 @@ export async function submitTransportationRequest(
   }
 
   // serviceType must be exactly one of the publicly offered values. A missing,
-  // unknown or not-yet-public value (Nemryn accepts more than Zenward offers) is
-  // rejected, never coerced to "other".
+  // unknown or not-publicly-offered value (Nemryn may accept more than Zenward
+  // offers) is rejected, never coerced to "other".
   if (!isPublicServiceType(src.serviceType)) {
     return { ok: false, delivered: false, error: "Please fill in all required fields." };
   }

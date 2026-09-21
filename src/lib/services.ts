@@ -1,15 +1,19 @@
 /**
- * Content for the dedicated service landing pages (ZW-WEB-03A). One typed
+ * Content for the dedicated service landing pages (ZW-WEB-03A; wheelchair
+ * transportation added in ZW-WEB-03B2). One typed
  * config per approved service, rendered by `ServicePage`. Kept in a single
  * module so `/services`, the landing pages, the sitemap and cross-links all
  * read the same slugs, titles and descriptions.
  *
  * CLAIM DISCIPLINE (docs/product/marketing-scope.md): copy here describes only
  * what Zenward does today — non-emergency transportation, reviewed by a person,
- * confirmed by Zenward after the request. It must not claim wheelchair,
- * stretcher, ambulance, oxygen, Medicaid/insurance, certification, licensing,
- * same-day availability, guaranteed punctuality, door-through-door assistance,
- * standing-order automation, or any geography.
+ * confirmed by Zenward after the request. Wheelchair transportation is a
+ * confirmed service (owner-confirmed, ZW-WEB-03B2); nothing here may extend that
+ * to stretcher, ambulance, emergency response, medical monitoring or clinical
+ * care, oxygen administration, transfer/lifting assistance, door-through-door
+ * assistance, Medicaid/insurance, certification, licensing, same-day
+ * availability, guaranteed punctuality, standing-order automation, or any
+ * geography.
  */
 import type { Icon } from "@phosphor-icons/react";
 import {
@@ -27,9 +31,11 @@ import {
   ClipboardText,
   ChatCircleText,
   Repeat,
+  Wheelchair,
 } from "@phosphor-icons/react/dist/ssr";
 import type { FaqItem } from "@/components/public/FaqAccordion";
 import { business } from "@/lib/business";
+import { requestHrefFor, type ServiceType } from "@/lib/request-intake/service-types";
 
 const PHONE = business.phoneDisplay;
 
@@ -44,6 +50,10 @@ export interface ServiceLink {
 export interface ServiceContent {
   slug: ServiceSlug;
   path: string;
+  /** The allow-listed service type this page's Request Transportation CTA preselects. */
+  serviceType: Exclude<ServiceType, "other">;
+  /** `/request-transportation?service=<allow-listed value>` — a service label and nothing else. */
+  requestHref: string;
   /** Card title on /services and label in cross-links. */
   cardTitle: string;
   /** Short card description on /services. */
@@ -75,7 +85,8 @@ export type ServiceSlug =
   | "rehabilitation-transportation"
   | "hospital-discharge-transportation"
   | "recurring-care-transportation"
-  | "senior-medical-transportation";
+  | "senior-medical-transportation"
+  | "wheelchair-transportation";
 
 const path = (slug: ServiceSlug) => `/services/${slug}` as const;
 
@@ -83,6 +94,8 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "medical-appointments": {
     slug: "medical-appointments",
     path: path("medical-appointments"),
+    serviceType: "medical_appointment",
+    requestHref: requestHrefFor("medical_appointment"),
     cardTitle: "Medical Appointments",
     cardDescription: "Routine checkups, specialist visits, and follow-up appointments, on schedule.",
     metaTitle: "Transportation to Medical Appointments",
@@ -184,7 +197,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
           "No. Zenward provides non-emergency transportation only. It does not provide medical treatment or care.",
       },
     ],
-    related: [],
+    related: [
+      {
+        href: path("wheelchair-transportation"),
+        label: "Wheelchair Transportation",
+        blurb: "Scheduled trips for passengers who use a wheelchair.",
+      },
+    ],
     ctaHeading: "Need a ride to an appointment?",
     ctaBody: "Send the details and Zenward will review your request and contact you.",
     order: ["audience", "coordinate", "expect", "scenarios"],
@@ -193,6 +212,8 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "dialysis-transportation": {
     slug: "dialysis-transportation",
     path: path("dialysis-transportation"),
+    serviceType: "dialysis",
+    requestHref: requestHrefFor("dialysis"),
     cardTitle: "Dialysis Visits",
     cardDescription: "Dependable, recurring transportation for ongoing dialysis treatment.",
     metaTitle: "Dialysis Transportation",
@@ -244,7 +265,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
       heading: "What to expect",
       intro: "The goal is to reduce how often you have to arrange every trip from scratch. Nothing is confirmed until Zenward confirms it with you.",
       steps: [
-        { title: "Describe the schedule", description: "Fill in the request form for the first trip, and describe the repeating days and times in the notes." },
+        { title: "Describe the schedule", description: "On the request form, choose Recurring and tell us the days of the week, start date, and appointment time." },
         { title: "Zenward reviews it", description: "The team looks at the pattern, the pickup and destination, and any assistance notes." },
         { title: "Zenward contacts you", description: "We reach out to the requester to talk through the schedule and ask about return-trip timing." },
         { title: "The arrangement is confirmed", description: "Zenward confirms what it can arrange and the next steps. Until then, the request is not a booking." },
@@ -272,7 +293,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
       {
         question: "Can I request recurring dialysis trips?",
         answer:
-          "You can describe your repeating schedule in the request. Zenward reviews it and confirms with you what it can arrange. The request form doesn't set up trips on its own.",
+          "Yes. Choose Recurring on the request form and tell us the days, start date, and appointment time. Zenward reviews the schedule you requested and confirms with you what it can arrange. The form doesn't set up trips on its own.",
       },
       {
         question: "Will my trips be scheduled automatically after I submit once?",
@@ -309,6 +330,8 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "rehabilitation-transportation": {
     slug: "rehabilitation-transportation",
     path: path("rehabilitation-transportation"),
+    serviceType: "rehabilitation",
+    requestHref: requestHrefFor("rehabilitation"),
     cardTitle: "Rehabilitation Appointments",
     cardDescription: "Consistent transportation for physical therapy and recovery-focused visits.",
     metaTitle: "Rehabilitation Transportation",
@@ -352,7 +375,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         {
           icon: Repeat,
           title: "A series of visits",
-          description: "If you have several visits planned, describe them in the notes and Zenward looks at the whole schedule with you.",
+          description: "If you have several visits planned, choose Recurring on the request form and Zenward looks at the whole schedule with you.",
         },
       ],
     },
@@ -388,7 +411,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
       {
         question: "Can I request trips for a series of therapy visits?",
         answer:
-          "You can describe the visits you have planned in the request. Zenward reviews them and confirms with you what it can arrange.",
+          "Yes. Choose Recurring on the request form and tell us the days and dates. Zenward reviews the schedule you requested and confirms with you what it can arrange.",
       },
       {
         question: "Does Zenward provide therapy or care during the trip?",
@@ -425,6 +448,8 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "hospital-discharge-transportation": {
     slug: "hospital-discharge-transportation",
     path: path("hospital-discharge-transportation"),
+    serviceType: "hospital_discharge",
+    requestHref: requestHrefFor("hospital_discharge"),
     cardTitle: "Hospital Discharge Transportation",
     cardDescription: "Coordinated transportation following a hospital stay.",
     metaTitle: "Hospital Discharge Transportation",
@@ -532,6 +557,11 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         label: "Senior Medical Transportation",
         blurb: "For older adults travelling to scheduled care.",
       },
+      {
+        href: path("wheelchair-transportation"),
+        label: "Wheelchair Transportation",
+        blurb: "Scheduled trips for passengers who use a wheelchair.",
+      },
     ],
     ctaHeading: "Planning a discharge trip?",
     ctaBody: "Send the discharge details and Zenward will review your request and contact you.",
@@ -541,6 +571,8 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "recurring-care-transportation": {
     slug: "recurring-care-transportation",
     path: path("recurring-care-transportation"),
+    serviceType: "recurring_care",
+    requestHref: requestHrefFor("recurring_care"),
     cardTitle: "Recurring Scheduled Care",
     cardDescription: "Regular transportation arranged around a recurring treatment or care schedule.",
     metaTitle: "Recurring Care Transportation",
@@ -590,9 +622,9 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     },
     expect: {
       heading: "How a regular arrangement starts",
-      intro: "The request form is the starting point. A request is not a booking, and it doesn't set up trips automatically.",
+      intro: "The request form is the starting point. It records the schedule you'd like; a request is not a booking, and it doesn't set up trips automatically.",
       steps: [
-        { title: "Tell us about the schedule", description: "Fill in the request form for the first trip and describe the repeating days and times in the notes." },
+        { title: "Tell us about the schedule", description: "On the request form, choose Recurring and tell us the days of the week, start date, and appointment time." },
         { title: "Zenward reviews it", description: "The team looks at the pattern, not only the first trip." },
         { title: "Zenward contacts you", description: "We reach out to the requester to talk through what a regular arrangement could look like." },
         { title: "The arrangement is confirmed", description: "Zenward confirms what it can arrange and the next steps. Until then, nothing is confirmed." },
@@ -626,7 +658,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
       {
         question: "Can I request recurring trips through the form?",
         answer:
-          "Yes, but the form has no dedicated recurring-trip setting. Fill it in for your first trip and describe the repeating days and times in the notes. Zenward follows up to talk through the rest.",
+          "Yes. Choose Recurring as the trip frequency on the request form, then pick the days of the week and a start date, and add an end date and appointment time if you know them. Zenward reviews the schedule you requested and follows up to confirm what it can arrange.",
       },
       {
         question: "Will trips be booked automatically?",
@@ -643,7 +675,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: `Let Zenward know as soon as you can by calling ${PHONE}. Changes are confirmed with the Zenward team, not assumed.`,
       },
     ],
-    related: [],
+    related: [
+      {
+        href: path("wheelchair-transportation"),
+        label: "Wheelchair Transportation",
+        blurb: "Scheduled trips for passengers who use a wheelchair.",
+      },
+    ],
     ctaHeading: "Start a regular transportation arrangement",
     ctaBody: "Send your first trip and describe your schedule. Zenward will review it and contact you.",
     order: ["audience", "coordinate", "scenarios", "expect"],
@@ -652,6 +690,8 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "senior-medical-transportation": {
     slug: "senior-medical-transportation",
     path: path("senior-medical-transportation"),
+    serviceType: "senior_medical",
+    requestHref: requestHrefFor("senior_medical"),
     cardTitle: "Senior Medical Transportation",
     cardDescription: "Transportation for older adults attending medical appointments and care visits.",
     metaTitle: "Senior Medical Transportation",
@@ -748,7 +788,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
       {
         question: "Can I arrange regular trips to appointments?",
         answer:
-          "You can describe a repeating schedule in the request notes. Zenward reviews it and confirms with you what it can arrange.",
+          "Yes. Choose Recurring on the request form and tell us the days and dates. Zenward reviews the schedule you requested and confirms with you what it can arrange.",
       },
       {
         question: "How do I request transportation?",
@@ -757,19 +797,149 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ],
     related: [
       {
+        href: path("wheelchair-transportation"),
+        label: "Wheelchair Transportation",
+        blurb: "Scheduled trips for passengers who use a wheelchair.",
+      },
+      {
         href: path("recurring-care-transportation"),
         label: "Recurring Care Transportation",
         blurb: "For appointments that repeat on a schedule.",
-      },
-      {
-        href: path("hospital-discharge-transportation"),
-        label: "Hospital Discharge Transportation",
-        blurb: "Planned transportation after a hospital stay.",
       },
     ],
     ctaHeading: "Arranging a ride for an older adult?",
     ctaBody: "Send the details and Zenward will review your request and contact you.",
     order: ["audience", "coordinate", "expect", "scenarios"],
+  },
+
+  "wheelchair-transportation": {
+    slug: "wheelchair-transportation",
+    path: path("wheelchair-transportation"),
+    serviceType: "wheelchair_transportation",
+    requestHref: requestHrefFor("wheelchair_transportation"),
+    cardTitle: "Wheelchair Transportation",
+    cardDescription: "Scheduled non-emergency medical transportation for passengers who use a wheelchair.",
+    metaTitle: "Wheelchair Transportation",
+    metaDescription:
+      "Scheduled non-emergency medical transportation for passengers who use a wheelchair. Send a request with the passenger's mobility details and Zenward will review it and contact you.",
+    icon: Wheelchair,
+    eyebrow: "Wheelchair Transportation",
+    h1: "Wheelchair transportation for scheduled medical care",
+    lede: "Zenward provides non-emergency wheelchair transportation to medical appointments and other scheduled care. Tell us about the passenger's mobility needs and we'll review the trip, contact you, and confirm the arrangement.",
+    glance: {
+      heading: "A good fit for",
+      items: [
+        "Passengers who use a wheelchair",
+        "Scheduled, non-emergency medical trips",
+        "Family and caregiver coordination",
+      ],
+    },
+    audience: {
+      heading: "Who this transportation is for",
+      intro: "Passengers who use a wheelchair and have scheduled, non-emergency medical care to get to, and the people who arrange the trip with them.",
+      points: [
+        "Passengers who use a wheelchair to get to appointments, treatment, or therapy",
+        "Family members and caregivers arranging a trip for someone who uses a wheelchair",
+        "Care coordinators and facility staff arranging transportation for a patient",
+        "Passengers leaving the hospital who need planned transportation to their next destination",
+      ],
+    },
+    coordinate: {
+      heading: "What Zenward helps coordinate",
+      items: [
+        {
+          icon: ChatCircleText,
+          title: "The passenger's mobility details",
+          description: "What the passenger needs for the trip, described in the request so our team can review it before anything is confirmed.",
+        },
+        {
+          icon: MapPin,
+          title: "Pickup and destination",
+          description: "Where the passenger is starting from, and the clinic, treatment center, or other address they're going to.",
+        },
+        {
+          icon: Clock,
+          title: "Timing and the return trip",
+          description: "Your preferred date and time, planned around the appointment, and whether a ride back is needed.",
+        },
+        {
+          icon: UsersThree,
+          title: "Who is arranging it",
+          description: "The passenger, a family member, a caregiver, or a care coordinator can be the requester. Zenward follows up with them.",
+        },
+      ],
+    },
+    expect: {
+      heading: "What to expect",
+      intro: "Submitting a request is not a confirmed booking. Zenward reviews it and confirms the arrangement with you.",
+      steps: [
+        { title: "Send a request", description: "Choose Wheelchair transportation as the service, then add the trip details and the passenger's mobility and assistance needs." },
+        { title: "Zenward reviews it", description: "A member of the team looks over the trip details and mobility notes." },
+        { title: "Zenward contacts you", description: "We reach out to the requester with any questions and to talk through the trip." },
+        { title: "The arrangement is confirmed", description: "The trip is confirmed only once Zenward confirms availability and the transportation arrangement with you." },
+      ],
+    },
+    scenarios: {
+      heading: "Trips people request",
+      items: [
+        {
+          title: "A medical appointment",
+          description: "A passenger who uses a wheelchair has a specialist visit and needs a planned round trip.",
+          link: { href: path("medical-appointments"), label: "Medical appointment transportation" },
+        },
+        {
+          title: "Recurring treatment or therapy",
+          description: "Dialysis or rehabilitation visits on a repeating schedule, described once in the request.",
+          link: { href: path("recurring-care-transportation"), label: "Recurring care transportation" },
+        },
+        {
+          title: "After a hospital stay",
+          description: "A family plans transportation for a passenger who uses a wheelchair to their next destination.",
+          link: { href: path("hospital-discharge-transportation"), label: "Hospital discharge transportation" },
+        },
+      ],
+    },
+    faq: [
+      {
+        question: "Does Zenward provide wheelchair transportation?",
+        answer:
+          "Yes. Zenward provides wheelchair transportation for non-emergency medical trips. Tell us about the passenger's mobility and assistance needs when you submit the request so our team can review the trip details and confirm the transportation arrangement.",
+      },
+      {
+        question: "How do I request wheelchair transportation?",
+        answer: `Use the Request Transportation form and choose Wheelchair transportation as the service, or call ${PHONE} and our team can take the details by phone. A family member, caregiver, or care coordinator can submit the request for the passenger.`,
+      },
+      {
+        question: "Does submitting a request confirm my ride?",
+        answer:
+          "No. A request tells Zenward what you need. Zenward reviews it and contacts you, and the trip is only confirmed once we've confirmed availability and the transportation arrangement with you.",
+      },
+      {
+        question: "Can I request recurring wheelchair transportation?",
+        answer:
+          "Yes. Choose Recurring on the request form and tell us the days, start date, and appointment time. Zenward reviews the schedule you requested and confirms with you what it can arrange. The form doesn't book trips automatically.",
+      },
+      {
+        question: "Is this ambulance or stretcher transportation?",
+        answer:
+          "No. Zenward provides non-emergency medical transportation only. It does not provide ambulance, stretcher, or emergency transportation, or medical care during the trip. In a medical emergency, call 911.",
+      },
+    ],
+    related: [
+      {
+        href: path("senior-medical-transportation"),
+        label: "Senior Medical Transportation",
+        blurb: "For older adults travelling to scheduled care.",
+      },
+      {
+        href: path("recurring-care-transportation"),
+        label: "Recurring Care Transportation",
+        blurb: "For appointments that repeat on a schedule.",
+      },
+    ],
+    ctaHeading: "Need wheelchair transportation?",
+    ctaBody: "Send the details and Zenward will review your request and contact you.",
+    order: ["audience", "expect", "coordinate", "scenarios"],
   },
 };
 
@@ -781,6 +951,7 @@ export const SERVICE_ORDER: ServiceSlug[] = [
   "hospital-discharge-transportation",
   "recurring-care-transportation",
   "senior-medical-transportation",
+  "wheelchair-transportation",
 ];
 
 export const SERVICE_PATHS = SERVICE_ORDER.map((slug) => SERVICES[slug].path);

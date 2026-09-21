@@ -161,3 +161,12 @@ approved Zenward launch capability?
 ======================================================================
 This report is new and UNCOMMITTED, pending owner approval. It remains for the
 next documentation commit.
+
+======================================================================
+13. LATER OWNER CLARIFICATION (added 2026-09-19; historical record above unchanged)
+======================================================================
+Section 10 above records the wheelchair-imagery question as it stood at
+deployment. The owner has since confirmed that Zenward provides wheelchair
+transportation; that decision is no longer open. See
+docs/reports/ZW-WEB-03B-why-specialized-medical-transportation.txt (section 17)
+and docs/product/marketing-scope.md.
