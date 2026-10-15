@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/seo";
-import { SERVICE_PATHS } from "@/lib/services";
+import { SERVICE_PATHS } from "@/lib/service-catalog";
 
 const ROUTES = [
   "/",

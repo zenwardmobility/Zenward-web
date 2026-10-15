@@ -5,10 +5,11 @@
  * pages, the sitemap and cross-links all read the same slugs, labels and
  * summaries from here.
  *
- * LABELS: every public service name comes from `SERVICE_TYPE_LABELS`
- * (src/lib/request-intake/service-types.ts), the same source as the
- * request-form options, so a service is called the same thing everywhere.
- * Internal/wire values are unchanged.
+ * IDENTITY: slug, path, label, intake state, quote link and related services
+ * come from src/lib/service-catalog.ts. Live services take their label from
+ * `SERVICE_TYPE_LABELS` (the same source as the request-form options);
+ * contract-pending services (Airport Transportation, ZW-WEB-04C1) from
+ * `CONTRACT_PENDING_SERVICE_LABELS`. Internal/wire values are unchanged.
  *
  * MARKET: copy here is market-free. Pages add the market from
  * src/lib/service-area.ts.
@@ -40,34 +41,24 @@ import {
   ChatCircleText,
   Repeat,
   Wheelchair,
+  AirplaneTilt,
 } from "@phosphor-icons/react/dist/ssr";
 import type { FaqItem } from "@/components/public/FaqAccordion";
 import { business } from "@/lib/business";
 import { brandImages, type BrandImageAsset } from "@/lib/images";
-import { requestHrefFor, SERVICE_TYPE_LABELS, type ServiceType } from "@/lib/request-intake/service-types";
+import { SERVICE_CATALOG, SERVICE_ORDER as CATALOG_ORDER, SERVICE_PATHS as CATALOG_PATHS, type CatalogEntry, type ServiceSlug } from "@/lib/service-catalog";
 
 const PHONE = business.phoneDisplay;
 
 export type ServiceSectionKey = "audience" | "coordinate" | "expect" | "considerations" | "scenarios";
 
-export type ServiceSlug =
-  | "medical-appointments"
-  | "dialysis-transportation"
-  | "rehabilitation-transportation"
-  | "hospital-discharge-transportation"
-  | "recurring-care-transportation"
-  | "senior-medical-transportation"
-  | "wheelchair-transportation";
+export type { ServiceSlug };
 
-export interface ServiceContent {
-  slug: ServiceSlug;
-  path: string;
-  /** The allow-listed service type this page's Request a Quote CTA preselects. */
-  serviceType: Exclude<ServiceType, "other">;
-  /** `/request-transportation?service=<allow-listed value>` — a service label and nothing else. */
-  requestHref: string;
-  /** Canonical public label (from SERVICE_TYPE_LABELS). */
-  label: string;
+/**
+ * Identity fields (slug, path, label, intake, requestHref, related) come from
+ * the catalogue (src/lib/service-catalog.ts); the rest is page content.
+ */
+export interface ServiceContent extends CatalogEntry {
   /** One sentence used on the homepage, /services and related-service links. */
   summary: string;
   /** Meta description stem; the page appends the market sentence. */
@@ -86,15 +77,17 @@ export interface ServiceContent {
   considerations: { heading: string; items: { title: string; description: string }[] };
   scenarios: { heading: string; items: { title: string; description: string }[] };
   faq: FaqItem[];
-  /** Two or three intentional related services, not an SEO link grid. */
-  related: ServiceSlug[];
   ctaHeading: string;
   ctaBody: string;
   /** Section order between the practical facts and the FAQ. Restrained variation between pages. */
   order: ServiceSectionKey[];
+  /** Hero eyebrow; defaults to "Non-Emergency Medical Transportation". */
+  heroEyebrow?: string;
+  /** Shown under the hero CTAs (used while a service is contract-pending). */
+  intakeNote?: string;
+  /** Closing-panel note; defaults to the non-emergency / 911 note. */
+  closingNote?: string;
 }
-
-const path = (slug: ServiceSlug) => `/services/${slug}` as const;
 
 /** The four request steps, worded per service where it matters. */
 const steps = (first: string, last: string) => [
@@ -108,11 +101,7 @@ const NOT_A_BOOKING = "Submitting a request is not a confirmed booking.";
 
 export const SERVICES: Record<ServiceSlug, ServiceContent> = {
   "medical-appointments": {
-    slug: "medical-appointments",
-    path: path("medical-appointments"),
-    serviceType: "medical_appointment",
-    requestHref: requestHrefFor("medical_appointment"),
-    label: SERVICE_TYPE_LABELS.medical_appointment,
+    ...SERVICE_CATALOG["medical-appointments"],
     summary: "Rides to doctor visits, specialist and outpatient appointments, and diagnostic visits.",
     metaDescription:
       "Non-emergency transportation to doctor visits, specialist and outpatient appointments, and diagnostic visits. Request a quote and Zenward will review your trip and contact you.",
@@ -188,18 +177,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: `No. Zenward reviews your request and contacts you, and the trip is confirmed only once we've confirmed availability and details. Prefer to talk it through? Call ${PHONE}.`,
       },
     ],
-    related: ["senior-medical-transportation", "recurring-care-transportation", "wheelchair-transportation"],
     ctaHeading: "Need a ride to an appointment?",
     ctaBody: "Send the trip details and Zenward will review your request and contact you.",
     order: ["audience", "coordinate", "expect", "considerations", "scenarios"],
   },
 
   "dialysis-transportation": {
-    slug: "dialysis-transportation",
-    path: path("dialysis-transportation"),
-    serviceType: "dialysis",
-    requestHref: requestHrefFor("dialysis"),
-    label: SERVICE_TYPE_LABELS.dialysis,
+    ...SERVICE_CATALOG["dialysis-transportation"],
     summary: "Transportation coordinated around repeating dialysis treatment schedules, there and back.",
     metaDescription:
       "Non-emergency transportation coordinated around dialysis treatment schedules, including return trips. Describe your schedule and Zenward will review it with you.",
@@ -274,18 +258,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: "No. Zenward provides non-emergency transportation only. It does not provide medical monitoring or care.",
       },
     ],
-    related: ["recurring-care-transportation", "wheelchair-transportation"],
     ctaHeading: "Request transportation for treatment",
     ctaBody: "Describe your treatment schedule. Zenward will review it and contact you.",
     order: ["coordinate", "considerations", "audience", "expect", "scenarios"],
   },
 
   "rehabilitation-transportation": {
-    slug: "rehabilitation-transportation",
-    path: path("rehabilitation-transportation"),
-    serviceType: "rehabilitation",
-    requestHref: requestHrefFor("rehabilitation"),
-    label: SERVICE_TYPE_LABELS.rehabilitation,
+    ...SERVICE_CATALOG["rehabilitation-transportation"],
     summary: "Rides to physical therapy, occupational therapy and other rehabilitation appointments.",
     metaDescription:
       "Non-emergency transportation to physical therapy, occupational therapy and rehabilitation appointments, including a series of visits. Request a quote and Zenward will contact you.",
@@ -356,18 +335,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: "No. Zenward reviews your request, contacts you, and confirms availability and details. Until then it is not a booking.",
       },
     ],
-    related: ["recurring-care-transportation", "medical-appointments", "wheelchair-transportation"],
     ctaHeading: "Need a ride to therapy?",
     ctaBody: "Tell us about the visit or visits, and Zenward will review your request and contact you.",
     order: ["audience", "coordinate", "considerations", "expect", "scenarios"],
   },
 
   "hospital-discharge-transportation": {
-    slug: "hospital-discharge-transportation",
-    path: path("hospital-discharge-transportation"),
-    serviceType: "hospital_discharge",
-    requestHref: requestHrefFor("hospital_discharge"),
-    label: SERVICE_TYPE_LABELS.hospital_discharge,
+    ...SERVICE_CATALOG["hospital-discharge-transportation"],
     summary: "Planned, non-emergency transportation from the hospital to the passenger's next destination.",
     metaDescription:
       "Planned non-emergency transportation after a hospital stay, coordinated with the passenger, family, caregivers or the care team. Request a quote for the trip to the next destination.",
@@ -437,18 +411,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: `Tell Zenward as soon as you know by calling ${PHONE}. A changed time is confirmed by our team, not assumed.`,
       },
     ],
-    related: ["senior-medical-transportation", "wheelchair-transportation"],
     ctaHeading: "Planning a discharge trip?",
     ctaBody: "Send the discharge details and Zenward will review your request and contact you.",
     order: ["audience", "expect", "considerations", "coordinate", "scenarios"],
   },
 
   "recurring-care-transportation": {
-    slug: "recurring-care-transportation",
-    path: path("recurring-care-transportation"),
-    serviceType: "recurring_care",
-    requestHref: requestHrefFor("recurring_care"),
-    label: SERVICE_TYPE_LABELS.recurring_care,
+    ...SERVICE_CATALOG["recurring-care-transportation"],
     summary: "One request for appointments that repeat, such as dialysis, therapy or ongoing care.",
     metaDescription:
       "Regular non-emergency transportation for repeating appointments such as dialysis, therapy and ongoing care. Describe your schedule and Zenward will review and confirm it with you.",
@@ -519,18 +488,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: "Yes. The form asks for your relationship to the passenger, and Zenward follows up with you.",
       },
     ],
-    related: ["dialysis-transportation", "rehabilitation-transportation", "wheelchair-transportation"],
     ctaHeading: "Start a regular transportation arrangement",
     ctaBody: "Describe your schedule. Zenward will review it and contact you.",
     order: ["audience", "considerations", "coordinate", "scenarios", "expect"],
   },
 
   "senior-medical-transportation": {
-    slug: "senior-medical-transportation",
-    path: path("senior-medical-transportation"),
-    serviceType: "senior_medical",
-    requestHref: requestHrefFor("senior_medical"),
-    label: SERVICE_TYPE_LABELS.senior_medical,
+    ...SERVICE_CATALOG["senior-medical-transportation"],
     summary: "Transportation for older adults going to scheduled medical care, arranged with family or caregivers.",
     metaDescription:
       "Non-emergency transportation for older adults travelling to scheduled medical care, arranged directly or with family members and caregivers. Request a quote and Zenward will contact you.",
@@ -600,18 +564,13 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         answer: "Yes. Choose Recurring on the request form and tell us the days and dates. Zenward reviews the schedule and confirms with you what it can arrange.",
       },
     ],
-    related: ["medical-appointments", "wheelchair-transportation", "recurring-care-transportation"],
     ctaHeading: "Arranging a ride for an older adult?",
     ctaBody: "Send the details and Zenward will review your request and contact you.",
     order: ["audience", "coordinate", "considerations", "expect", "scenarios"],
   },
 
   "wheelchair-transportation": {
-    slug: "wheelchair-transportation",
-    path: path("wheelchair-transportation"),
-    serviceType: "wheelchair_transportation",
-    requestHref: requestHrefFor("wheelchair_transportation"),
-    label: SERVICE_TYPE_LABELS.wheelchair_transportation,
+    ...SERVICE_CATALOG["wheelchair-transportation"],
     summary: "Wheelchair-accessible transportation for scheduled, non-emergency medical trips.",
     metaDescription:
       "Zenward offers wheelchair-accessible transportation for scheduled, non-emergency medical trips. Share the passenger's mobility details and Zenward will review the trip and contact you.",
@@ -688,22 +647,94 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
           "No. Zenward provides non-emergency medical transportation only. It does not provide ambulance, stretcher or emergency transportation, or medical care during the trip. In a medical emergency, call 911.",
       },
     ],
-    related: ["medical-appointments", "dialysis-transportation", "recurring-care-transportation"],
     ctaHeading: "Need wheelchair-accessible transportation?",
     ctaBody: "Send the trip and mobility details, and Zenward will review your request and contact you.",
     order: ["audience", "considerations", "expect", "coordinate", "scenarios"],
   },
+
+  "airport-transportation": {
+    ...SERVICE_CATALOG["airport-transportation"],
+    summary: "Pre-arranged rides to and from the airport, coordinated in advance.",
+    metaDescription:
+      "Pre-arranged transportation to and from the airport for older adults, family-arranged travel and passengers with mobility considerations. Request a quote and Zenward will review your trip and contact you.",
+    icon: AirplaneTilt,
+    image: { asset: brandImages.vanWalkerAssist, objectPosition: "62% 55%" },
+    heroEyebrow: "Pre-Arranged Transportation",
+    lede: "Pre-arranged transportation to and from the airport for passengers who want a more coordinated ride, including older adults, family-arranged travel and passengers with mobility considerations.",
+    intakeNote:
+      "Requesting online? Choose Other as the service and describe your airport trip in the notes, or call us.",
+    closingNote: "Zenward does not provide emergency transportation. In a medical emergency, call 911.",
+    fit: ["Rides to or from the airport", "Older adults and family-arranged travel", "Passengers with mobility considerations", "Travel for medical care"],
+    audience: {
+      heading: "Who airport transportation is for",
+      intro: "Passengers who'd rather have a ride arranged in advance than find one on the day, and the people who plan travel with them.",
+      points: [
+        "Older adults travelling to or from the airport",
+        "Family members arranging an airport ride for a parent or relative",
+        "Passengers with mobility considerations, including people who use a wheelchair",
+        "Passengers travelling to or from medical care in another city",
+        "Caregivers arranging transportation for someone in their care",
+      ],
+    },
+    coordinate: {
+      heading: "What Zenward helps coordinate",
+      items: [
+        { icon: MapPin, title: "Pickup and drop-off", description: "Where the passenger is starting from and where they're going, including which airport." },
+        { icon: Clock, title: "Timing around the flight", description: "Your flight date and time, so the trip can be planned around it. Zenward doesn't track flights, so tell us if your flight changes." },
+        { icon: ChatCircleText, title: "Mobility details", description: "Any mobility or assistance needs, described in the request so our team can review them before confirming." },
+        { icon: UsersThree, title: "Who is arranging it", description: "The passenger, a family member or a caregiver can make the request. Zenward follows up with them." },
+      ],
+    },
+    expect: {
+      heading: "How the request works",
+      intro: `${NOT_A_BOOKING} Zenward reviews it and confirms the details with you.`,
+      steps: steps(
+        "Share the passenger, pickup, destination and flight timing, online or by phone.",
+        "The trip is confirmed only once Zenward confirms availability, details and pricing with you.",
+      ),
+    },
+    considerations: {
+      heading: "Before you request",
+      items: [
+        { title: "Request as early as practical", description: "Airport trips are reviewed like every request, and availability is confirmed after review, so the earlier we hear from you the better." },
+        { title: "Tell us about changes", description: `Flights move. If your flight time changes, call ${PHONE} so we can talk through what it means for your ride.` },
+        { title: "Pickup details are confirmed with you", description: "Where exactly the passenger will be picked up or dropped off is confirmed when we contact you, not assumed." },
+      ],
+    },
+    scenarios: {
+      heading: "Trips people request",
+      items: [
+        { title: "A parent flying home", description: "An adult child arranges a ride to the airport for a parent at the end of a visit." },
+        { title: "Travel for treatment", description: "A passenger flies to see a specialist in another city and wants the ride to the airport arranged in advance." },
+        { title: "Arriving home", description: "A caregiver arranges a ride home from the airport for someone who uses a wheelchair." },
+      ],
+    },
+    faq: [
+      {
+        question: "Can I request transportation to or from the airport?",
+        answer:
+          "Yes. Zenward offers pre-arranged airport transportation. Share the trip and flight timing in your request, and our team will review it and contact you to confirm availability, details and pricing.",
+      },
+      {
+        question: "Can a family member arrange an airport ride for someone else?",
+        answer: "Yes. A family member or caregiver can make the request, and Zenward follows up with them.",
+      },
+      {
+        question: "Can I request wheelchair-accessible airport transportation?",
+        answer:
+          "Yes. Describe the passenger's mobility needs in the request. Zenward offers wheelchair-accessible transportation and reviews the details with you before confirming.",
+      },
+      {
+        question: "How far in advance should I request airport transportation?",
+        answer: `As early as practical. Every request is reviewed, and Zenward confirms availability after review. If your trip is soon, call ${PHONE}.`,
+      },
+    ],
+    ctaHeading: "Planning an airport trip?",
+    ctaBody: "Send the trip details and Zenward will review your request and contact you.",
+    order: ["audience", "coordinate", "considerations", "expect", "scenarios"],
+  },
 };
 
-/** Stable display order, matching /services and the homepage. */
-export const SERVICE_ORDER: ServiceSlug[] = [
-  "medical-appointments",
-  "dialysis-transportation",
-  "rehabilitation-transportation",
-  "hospital-discharge-transportation",
-  "recurring-care-transportation",
-  "senior-medical-transportation",
-  "wheelchair-transportation",
-];
-
-export const SERVICE_PATHS = SERVICE_ORDER.map((slug) => SERVICES[slug].path);
+/** Stable display order and paths, from the catalogue. */
+export const SERVICE_ORDER = CATALOG_ORDER;
+export const SERVICE_PATHS = CATALOG_PATHS;

@@ -1,0 +1,312 @@
+ZW-WEB-04C1 — AIRPORT TRANSPORTATION SERVICE EXPANSION
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Baseline: f668474 "Enhance service pages and wire locked Zenward brand
+identity" (clean tree, diff --check clean); origin/main d7782a3.
+Mode: LOCAL ONLY. Not committed, pushed or deployed. No change to the
+Nemryn mapping, adapter, Server Action, tenancy handling,
+integrationExternalId, idempotency or server-to-server architecture.
+
+
+1. OWNER DECISION
+-----------------
+Airport Transportation is an approved Zenward Mobility service: an
+adjacent service. Zenward stays positioned primarily as a broad NEMT
+company. Public label "Airport Transportation"; desired internal value
+`airport_transportation`, but only once Nemryn's receiving contract
+supports it.
+
+
+2. EXISTING SERVICE CONTRACT AUDIT
+----------------------------------
+  Zenward wire model  SERVICE_TYPES (service-types.ts): medical_appointment,
+                      dialysis, rehabilitation, hospital_discharge,
+                      recurring_care, senior_medical,
+                      wheelchair_transportation, other (8).
+  Public intake set   PUBLIC_SERVICE_TYPES: the same 8. The form options and
+                      the Server Action check (isPublicServiceType) use it.
+  ?service= map       PUBLIC_SERVICE_PARAMS: the 7 named services (no
+                      `other`).
+  Nemryn contract     docs/architecture/nemryn-trusted-request-intake-
+                      contract.md (Nemryn release c275ec5, "contract
+                      frozen"): `serviceType` is a CLOSED ENUM, "identical
+                      value-for-value on both sides", the same 8 values.
+  Unknown values      Rejected. Nemryn collapses every rejection (validation,
+                      unknown values, ...) into one generic 400; Zenward
+                      shows "couldn't submit ... or call". Zenward's own
+                      Server Action also rejects any value outside
+                      PUBLIC_SERVICE_TYPES before the adapter.
+  Parity guard        nemryn-mapping.test.mjs asserts SERVICE_TYPES equals
+                      Nemryn's enum exactly.
+
+
+3. NEMRYN COMPATIBILITY FINDING
+-------------------------------
+`airport_transportation` is NOT accepted by the documented Nemryn
+contract. Sending it would turn every airport submission into a generic
+400. Mapping it to "other" (or to any medical value) would silently drop
+the structure the operator needs. Neither was done.
+=> The public architecture is built; the intake path is GATED (§8, §9,
+§17).
+
+
+4. PUBLIC TAXONOMY CHANGES
+--------------------------
+  - New: src/lib/service-catalog.ts, the public catalogue (pure data,
+    node-testable). Per service: slug, path, label, intake state
+    ({kind:"live", serviceType} | {kind:"pending", pendingValue}),
+    requestHref, related. SERVICE_ORDER now has 8 entries; Airport is 08.
+    SERVICE_PATHS (8) comes from here.
+  - service-types.ts: new CONTRACT_PENDING_SERVICE_LABELS
+    { airport_transportation: "Airport Transportation" } with a gate comment
+    giving the exact activation steps. SERVICE_TYPES, PUBLIC_SERVICE_TYPES,
+    SERVICE_TYPE_LABELS, SERVICE_TYPE_OPTIONS and PUBLIC_SERVICE_PARAMS are
+    UNCHANGED.
+  - services.ts: entries take their identity from the catalogue
+    (`...SERVICE_CATALOG[slug]`); the per-entry slug/path/serviceType/
+    requestHref/label/related fields were replaced (content unchanged
+    except related links, §12). New optional fields: heroEyebrow,
+    intakeNote, closingNote.
+  - Labels: live services from SERVICE_TYPE_LABELS; pending ones from
+    CONTRACT_PENDING_SERVICE_LABELS.
+
+
+5. AIRPORT SERVICE PAGE (/services/airport-transportation)
+----------------------------------------------------------
+Same 04C ServicePage system:
+  eyebrow   "Pre-Arranged Transportation" (not the NEMT eyebrow)
+  H1        "Airport Transportation in Metro Atlanta" (label + market config)
+  lede      pre-arranged rides to and from the airport for passengers who
+            want a more coordinated ride: older adults, family-arranged
+            travel, passengers with mobility considerations
+  CTAs      Request a Quote (-> /request-transportation, no ?service=) +
+            phone
+  note      "Requesting online? Choose Other as the service and describe
+            your airport trip in the notes, or call us." (interim; §8)
+  photo     vanWalkerAssist (branded van, passenger with walker), new crop
+  sections  who it's for (older adults, family-arranged, mobility
+            considerations incl. wheelchair users, travel for medical care,
+            caregivers) · what Zenward coordinates (pickup/drop-off incl.
+            which airport, timing around the flight with "Zenward doesn't
+            track flights, so tell us if your flight changes", mobility
+            details, who is arranging) · before you request (request as
+            early as practical, tell us about changes, pickup details
+            confirmed with you) · how the request works · trips people
+            request
+  close     "Planning an airport trip?" + note "Zenward does not provide
+            emergency transportation. In a medical emergency, call 911."
+NOT claimed (scan of rendered text: zero hits): baggage handling, flight
+monitoring/tracking, meet-and-greet, terminal escort or terminal
+procedures, curbside guarantees, Hartsfield-Jackson/ATL specifics, airport
+permits, 24/7, fixed or airport pricing, minimum lead time, taxi,
+rideshare, shuttle or limousine positioning. No airport is named.
+
+
+6. /SERVICES CHANGES
+--------------------
+Airport Transportation is row 08 with identical treatment (number, icon,
+label link, summary, "Good fit for", About this service, Request a Quote:
+plain form, aria-label "Request a quote for Airport Transportation").
+Intro line: "Seven non-emergency medical transportation services, plus
+pre-arranged airport transportation." Metadata description adds "plus
+airport transportation". The H1 stays "Non-Emergency Medical
+Transportation Services".
+
+
+7. HOMEPAGE TREATMENT
+---------------------
+  - Hero UNCHANGED: H1, support copy and photo untouched. Airport is not
+    added to the hero.
+  - Services grid shows all 8 from SERVICE_ORDER: a natural 4x2 on desktop,
+    2 columns on tablet, and one grouped list on phones. The old helper
+    eighth cell is removed. "Not sure which service fits? Call
+    678-935-5489" now sits on one line beside "Compare all transportation
+    services".
+  - Services intro: "...one trip or a regular schedule, plus pre-arranged
+    airport rides."
+  - Comment header updated (eight services).
+
+
+8. REQUEST-FORM DECISION
+------------------------
+NO "Airport Transportation" option on the form. A selectable value would
+be rejected by Nemryn, or would have to be silently remapped. The form's 8
+options are unchanged (verified in rendered HTML).
+Interim path (documented, explicit, owner-visible): the airport page tells
+visitors to choose Other and describe the airport trip, or call. That's a
+customer choice with its own words in the notes, not a code-level
+remapping, and it's temporary (§17). Owner may prefer phone-only instead:
+delete `intakeNote` and the airport page's quote CTAs still lead to the
+plain form.
+
+
+9. PRESELECTION DECISION
+------------------------
+`airport_transportation` is NOT in PUBLIC_SERVICE_PARAMS.
+/request-transportation?service=airport_transportation renders with
+nothing preselected (verified; the only "airport" string in that response
+is Next's router payload echoing the URL). The airport catalogue
+requestHref is the plain "/request-transportation".
+
+
+10. SITEMAP
+-----------
+sitemap.ts reads SERVICE_PATHS from the catalogue: 8 service URLs,
+including /services/airport-transportation (verified in /sitemap.xml).
+
+
+11. METADATA / SCHEMA
+---------------------
+  title       Airport Transportation in Metro Atlanta | Zenward Mobility
+  description "Pre-arranged transportation to and from the airport for older
+              adults, family-arranged travel and passengers with mobility
+              considerations. Request a quote and Zenward will review your
+              trip and contact you. Serving Metro Atlanta."
+  canonical / og:url  https://www.zenwardmobility.com/services/airport-transportation
+  JSON-LD     Service (name/serviceType "Airport Transportation", provider
+              Zenward Mobility, areaServed Metro Atlanta in Georgia) +
+              BreadcrumbList (Home > Services > Airport Transportation). No
+              ratings, prices, schedules or availability.
+
+
+12. RELATED SERVICES
+--------------------
+  Airport    -> Senior Medical, Wheelchair-Accessible, Medical Appointment
+  Senior     -> Medical Appointment, Wheelchair-Accessible, Airport
+                (Recurring replaced)
+  Wheelchair -> Medical Appointment, Dialysis, Airport (Recurring replaced;
+                dialysis still links to recurring)
+  All others unchanged. Every page keeps 2–3 links (test-enforced).
+
+
+13. FAQ (airport)
+-----------------
+  - Can I request transportation to or from the airport? (yes; reviewed,
+    then availability, details and pricing confirmed)
+  - Can a family member arrange an airport ride for someone else? (yes)
+  - Can I request wheelchair-accessible airport transportation? (yes;
+    describe mobility needs; reviewed before confirming)
+  - How far in advance should I request airport transportation? ("As early
+    as practical"; availability is confirmed after review; call if the trip
+    is soon. No minimum lead time invented.)
+FaqAccordion behaviour unchanged (4 panels in HTML).
+
+
+14. RESPONSIVE QA (local production build, headless Chrome, fresh profile)
+-------------------------------------------------------------------------
+  route                          390 Quote / Call (of 844)   overflow (all 5 widths)
+  /                              544-600 / 612-668           none
+  /services                      477-533 / 545-601           none
+  /services/airport-transportation 449-505 / 517-573         none
+  /services/senior-medical-...   461-517 / 529-585           none
+  /services/wheelchair-...       489-545 / 557-613           none
+One H1 on every route at every width; CTAs above the fold at 430, 768,
+1024 and 1440 too. Airport FAQ: 4 panels.
+Screenshots reviewed: airport 1440 + 390 first screens, homepage services
+at 1440 (4x2) and 390 (8-row grouped list), /services 1440 full (row 08
+equal).
+Touch targets: unchanged from 04C (the /services 27px heading links have
+44px "About this service" duplicates).
+
+
+15. TESTS / BUILD
+-----------------
+New tests (13):
+  src/lib/service-catalog.test.mjs (6): airport registered as 08 with its
+    label/path; the 7 medical labels and order; a route file exists for
+    every catalogue slug; the sitemap uses the catalogue SERVICE_PATHS (8,
+    incl. airport); the title stem "Airport Transportation in Metro
+    Atlanta" (market read from service-area.ts; service-pages.ts template
+    checked); related links (airport list, senior/wheelchair -> airport,
+    2–3, unique, valid, no self-links).
+  src/lib/request-intake/contract-gate.test.mjs (7): pending label; not in
+    SERVICE_TYPES / PUBLIC_SERVICE_TYPES / isServiceType /
+    isPublicServiceType; no form option; no ?service= preselection; the
+    Server Action checks isPublicServiceType before calling the adapter;
+    the airport catalogue entry is pending with a plain quote link; every
+    live entry maps to a public wire value and preselects it.
+Existing parity test (SERVICE_TYPES == Nemryn enum) still passes, unchanged.
+  npm test ......... 58/58 pass (45 existing + 13 new)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 23/23 pages (/services/airport-transportation
+                     static)
+  git diff --check . clean
+
+
+16. FILES MODIFIED
+------------------
+  A src/lib/service-catalog.ts
+  A src/lib/service-catalog.test.mjs
+  A src/lib/request-intake/contract-gate.test.mjs
+  A src/app/services/airport-transportation/page.tsx
+  M src/lib/request-intake/service-types.ts  (adds CONTRACT_PENDING_SERVICE_LABELS + gate doc only)
+  M src/lib/services.ts                      (catalogue identity; airport content; related; optional fields)
+  M src/components/public/ServicePage.tsx    (heroEyebrow / intakeNote / closingNote)
+  M src/app/sitemap.ts                       (SERVICE_PATHS from catalogue)
+  M src/app/page.tsx                         (8-service grid, helper cell removed, intro line)
+  M src/app/services/page.tsx                (intro, description, comment)
+  A docs/reports/ZW-WEB-04C1-airport-transportation-expansion.txt
+NOT modified: nemryn-mapping.ts, adapter.ts, actions.ts, tenancy.ts,
+types.ts, RequestTransportationForm.tsx, the contract doc, env files,
+legal pages, public/brand, the homepage hero.
+
+
+17. EXACT NEMRYN DEPENDENCY
+---------------------------
+Blocking full activation: Nemryn's public website intake must accept
+`serviceType: "airport_transportation"` (add it to its closed enum), and
+the change must be verified end-to-end (a labelled QA request accepted and
+visible with the airport service in Zenward's own Nemryn organization).
+Then, in Zenward-Web, one small change:
+  1. service-types.ts: add "airport_transportation" to SERVICE_TYPES,
+     PUBLIC_SERVICE_TYPES, SERVICE_TYPE_LABELS ("Airport Transportation")
+     and PUBLIC_SERVICE_PARAMS; remove it from
+     CONTRACT_PENDING_SERVICE_LABELS.
+  2. service-catalog.ts: airport -> live("airport-transportation",
+     "airport_transportation", [...]).
+  3. services.ts: remove the airport `intakeNote`.
+  4. Update the contract doc's serviceType list, the parity test's
+     NEMRYN_SERVICE_TYPES, public-services.test.mjs (9 types) and invert
+     contract-gate.test.mjs.
+No mapping, adapter or Server Action change is needed: serviceType is
+already sent as-is.
+
+
+18. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+  1. Owner: decided in §19; the Other path is not the final production
+     experience.
+  2. Owner/Nemryn: schedule the enum addition in §17. Until then airport
+     requests reach operators as `other` plus the customer's notes, or by
+     phone.
+  3. If approved, commit the 11 paths in §16, e.g. "Add Airport
+     Transportation service behind the intake contract gate".
+  4. Deployment remains blocked on 04A-exit B2 (new Nemryn integration plus
+     a verified QA request).
+
+19. OWNER DECISION (closing 04C1)
+---------------------------------
+"The temporary Other-service path is not approved as the final production
+experience. Airport Transportation must be activated only after Nemryn
+accepts serviceType=airport_transportation."
+
+What this means:
+  - APPROVED: the airport page and content architecture (§5), the
+    /services row 08 (§6), the homepage 4x2 service grid (§7), related links
+    (§12), metadata/schema (§11), sitemap (§10), and the contract gate with
+    its tests (§15).
+  - CONTRACT-BLOCKED: full production activation. The only intended
+    production flow is Airport Transportation -> serviceType
+    airport_transportation -> structured Nemryn intake. Until Nemryn
+    accepts that enum value (verified end-to-end, §17), airport stays out
+    of SERVICE_TYPES, PUBLIC_SERVICE_TYPES, the request form and ?service=
+    preselection. Adapter and mapping are unchanged.
+  - The airport page's interim `intakeNote` ("choose Other ... or call us")
+    remains in the gated code as committed, but it is NOT the intended
+    production experience. It is removed as part of activation (§17 step 3).
+    Before airport is promoted publicly (e.g. paid traffic or a production
+    deploy that features it), the owner should decide whether the page
+    keeps that note or points visitors to the phone line only.
+
+STOP. Committed locally; not pushed or deployed. 04D not started.

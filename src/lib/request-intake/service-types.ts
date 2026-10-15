@@ -126,6 +126,30 @@ export function resolveServiceParam(raw: unknown): PublicServiceType | undefined
     : undefined;
 }
 
+/**
+ * CONTRACT GATE (ZW-WEB-04C1). Public services Zenward offers that the Nemryn
+ * intake contract cannot carry yet. They have public pages and catalogue
+ * entries, but they are deliberately NOT in `SERVICE_TYPES`,
+ * `PUBLIC_SERVICE_TYPES`, `SERVICE_TYPE_OPTIONS` or `PUBLIC_SERVICE_PARAMS`.
+ * So they cannot be chosen on the form, preselected by `?service=`, accepted
+ * by the Server Action or sent to Nemryn.
+ *
+ * Why: Nemryn's `serviceType` is a closed enum (contract frozen at Nemryn
+ * c275ec5; docs/architecture/nemryn-trusted-request-intake-contract.md) and any
+ * other value is rejected with the generic 400. Mapping a pending service to
+ * another value (e.g. "other") would silently lose its structure.
+ *
+ * To activate one (after Nemryn's enum accepts it, verified end-to-end):
+ * move it into SERVICE_TYPES, PUBLIC_SERVICE_TYPES, SERVICE_TYPE_LABELS and
+ * PUBLIC_SERVICE_PARAMS, update the contract doc and the parity/gate tests,
+ * and switch its catalogue intake to `live` in src/lib/service-catalog.ts.
+ */
+export const CONTRACT_PENDING_SERVICE_LABELS = {
+  airport_transportation: "Airport Transportation",
+} as const;
+
+export type ContractPendingService = keyof typeof CONTRACT_PENDING_SERVICE_LABELS;
+
 export type TripFrequency = "one_time" | "recurring";
 
 /** The trip-frequency the form defaults to when arriving with a preselected service. */

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, ClipboardText, MapPin, Phone, Question } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CheckCircle, ClipboardText, MapPin, Phone } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { BrandImage } from "@/components/layout/BrandImage";
@@ -224,13 +224,15 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 3. Services — the seven approved services from the canonical taxonomy. */}
+      {/* 3. Services — the eight approved services from the canonical catalogue
+             (7 medical transportation services + Airport Transportation, 4x2 on desktop). */}
       <Section tone="white" id="services">
         <div className="max-w-[40rem]">
           <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Services</p>
           <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Transportation for essential care</h2>
           <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
-            Non-emergency transportation for scheduled medical care, one trip or a regular schedule.
+            Non-emergency transportation for scheduled medical care, one trip or a regular schedule, plus
+            pre-arranged airport rides.
           </p>
         </div>
         {/* Phones: one grouped list with dividers (not a wall of cards). sm+: a card grid. */}
@@ -260,24 +262,22 @@ export default function HomePage() {
               </li>
             );
           })}
-          <li className="flex flex-col justify-center gap-2 bg-brand-calm-mist p-md sm:rounded-lg sm:p-lg">
-            <Question className="hidden size-6 text-brand-care-navy lg:block" weight="regular" aria-hidden />
-            <p className={cn(typography.body, "font-semibold text-text-primary")}>Not sure which service fits?</p>
-            <p className={cn(typography.bodySmall, "text-text-secondary")}>
-              Choose Other on the request form, or call and we&rsquo;ll help.
-            </p>
-            <TextPhoneLink />
-          </li>
         </ul>
-        <p className={cn(typography.bodySmall, "mt-lg text-text-secondary")}>
+        <div className="mt-lg flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-xl">
           <Link
             href="/services"
-            className="inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline"
+            className={cn(
+              typography.bodySmall,
+              "inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline",
+            )}
           >
             Compare all transportation services
             <ArrowRight className="size-4" aria-hidden />
           </Link>
-        </p>
+          <p className={cn(typography.bodySmall, "flex flex-wrap items-center gap-x-2 text-text-secondary")}>
+            Not sure which service fits? <TextPhoneLink />
+          </p>
+        </div>
       </Section>
 
       {/* 4. How it works — an editorial timeline, not another card grid. */}

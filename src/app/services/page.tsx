@@ -20,13 +20,14 @@ const market = getDefaultMarket();
 
 export const metadata: Metadata = pageMetadata({
   title: `Non-Emergency Medical Transportation Services in ${market.name}`,
-  description: `Medical appointment, dialysis, rehabilitation, hospital discharge, recurring care, senior medical and wheelchair-accessible transportation in ${market.name}. Request a quote or call Zenward Mobility.`,
+  description: `Medical appointment, dialysis, rehabilitation, hospital discharge, recurring care, senior medical and wheelchair-accessible transportation in ${market.name}, plus airport transportation. Request a quote or call Zenward Mobility.`,
   path: "/services",
 });
 
 /**
- * The service catalogue (ZW-WEB-04C): an editorial, numbered list of the
- * seven approved services as equal peers, not a card grid. Labels and
+ * The service catalogue (ZW-WEB-04C; Airport Transportation added as 08 in
+ * ZW-WEB-04C1): an editorial, numbered list of the approved services as
+ * equal peers, not a card grid. Labels and
  * summaries come from src/lib/services.ts; the market from
  * src/lib/service-area.ts.
  */
@@ -77,7 +78,7 @@ export default function ServicesPage() {
         <div className="max-w-[40rem]">
           <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Transportation for essential care</h2>
           <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
-            Seven non-emergency services, each planned around the passenger&rsquo;s appointment or care schedule. Choose
+            Seven non-emergency medical transportation services, plus pre-arranged airport transportation. Choose
             the closest fit, or call and we&rsquo;ll help.
           </p>
         </div>

@@ -40,7 +40,9 @@ function Hero({ service }: { service: ServiceContent }) {
             <ArrowLeft className="size-4" aria-hidden />
             All services
           </Link>
-          <p className={cn(typography.eyebrow, "mt-3 text-brand-arrival-gold")}>Non-Emergency Medical Transportation</p>
+          <p className={cn(typography.eyebrow, "mt-3 text-brand-arrival-gold")}>
+            {service.heroEyebrow ?? "Non-Emergency Medical Transportation"}
+          </p>
           <h1 className={cn(typography.sectionTitle, "mt-3 text-balance text-white sm:text-[2.75rem] sm:leading-[52px]")}>
             {service.label} <span className="text-white/80">in {market.name}</span>
           </h1>
@@ -57,6 +59,9 @@ function Hero({ service }: { service: ServiceContent }) {
             </TrackedLinkButton>
             <CallButton onDark className="w-full sm:w-auto" />
           </div>
+          {service.intakeNote && (
+            <p className={cn(typography.bodySmall, "mt-4 max-w-[34rem] text-white/80")}>{service.intakeNote}</p>
+          )}
         </div>
         <BrandImage
           asset={service.image.asset}
@@ -269,7 +274,7 @@ export function ServicePage({ service }: { service: ServiceContent }) {
         body={service.ctaBody}
         requestHref={service.requestHref}
         event={{ name: "request_transportation_clicked", source: "service_page" }}
-        note="Zenward provides non-emergency medical transportation only. In a medical emergency, call 911."
+        note={service.closingNote ?? "Zenward provides non-emergency medical transportation only. In a medical emergency, call 911."}
       />
     </>
   );
