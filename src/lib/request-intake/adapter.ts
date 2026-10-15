@@ -12,7 +12,7 @@ import type { RequestSubmissionMeta, TransportationRequestInput, TransportationR
  * delivery destination can change later without touching the form or the
  * page.
  *
- * *** PRODUCTION PATH (CONNECTED, P1-PILOT-S4B-R3) ***
+ * *** PRODUCTION PATH (configured per deployment; unlinked by default) ***
  * Browser -> Server Action -> this adapter -> Nemryn HTTP endpoint. The
  * Nemryn call is server-to-server, so browser CORS is not the security
  * boundary for it (and Nemryn's CORS configuration is not loosened for it).
@@ -22,8 +22,10 @@ import type { RequestSubmissionMeta, TransportationRequestInput, TransportationR
  * `REQUEST_INTAKE_MODE=platform` and provide `PLATFORM_INTAKE_URL` /
  * `PLATFORM_INTAKE_INTEGRATION_ID` (server-only, never `NEXT_PUBLIC_`). This
  * app never reads or writes a database directly and never gives the browser
- * an organization_id / tenant_id to choose -- Nemryn resolves the Zenward
- * Mobility tenant from the opaque `integrationExternalId` server-side. See
+ * an organization_id / tenant_id to choose -- Nemryn resolves the owning
+ * organization from the opaque `integrationExternalId` server-side. No
+ * integration value is embedded in this source; with none configured, the
+ * unlinked adapter below fails closed. See
  * docs/architecture/request-intake-boundary.md.
  *
  * `integrationExternalId` is an OPAQUE PER-INTEGRATION IDENTIFIER, not a
@@ -82,11 +84,6 @@ const FAILURE_MESSAGE: Record<NemrynFailure, string> = {
   unconfirmed: MSG_RETRY,
 };
 
-/** Stub-only display value; the platform path shows no reference (Nemryn returns none). */
-function newReference(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
-}
-
 /** Operational metadata only — no request content, no envelope, no credential. */
 function logOutcome(
   level: "info" | "warn" | "error",
@@ -101,26 +98,19 @@ function logOutcome(
 }
 
 /**
- * Safe stub adapter. It performs no external calls, stores nothing, logs no
- * request content, and never touches a credential. It exists so the form has
- * something real to submit to before the trusted intake is available — it
- * acknowledges the submission but reports `delivered: false` so the UI can
- * tell the visitor to follow up by phone rather than implying a request is
- * sitting in someone's queue.
+ * The UNLINKED state: no Nemryn integration is configured for this site
+ * (`REQUEST_INTAKE_MODE` unset, `stub`, or unrecognised). It performs no
+ * external calls, stores nothing, logs no request content, and never touches a
+ * credential. It fails CLOSED: the visitor is told online requests are
+ * unavailable and to call, and the form keeps what they typed. It must never
+ * report acceptance, because nothing would receive the request.
  */
-class StubRequestIntakeAdapter implements RequestIntakeAdapter {
+class UnlinkedRequestIntakeAdapter implements RequestIntakeAdapter {
   async submit(): Promise<TransportationRequestResult> {
-    const referenceId = newReference("ZW-STUB");
-    if (process.env.NODE_ENV === "production") {
-      // No payload — just a signal for operators watching logs that the
-      // trusted intake is not yet wired. See docs/product/launch-readiness.md.
-      console.warn(
-        "[request-intake] running in STUB mode: a transportation request was acknowledged but NOT delivered anywhere.",
-      );
-    } else {
-      console.info(`[request-intake:stub] acknowledged ${referenceId} — nothing persisted or delivered.`);
-    }
-    return { ok: true, referenceId, delivered: false };
+    // No payload — just a signal for operators watching logs that no
+    // intake destination is configured.
+    console.warn("[request-intake] no intake destination configured: request NOT accepted; visitor asked to call.");
+    return { ok: false, delivered: false, error: MSG_UNAVAILABLE };
   }
 }
 
@@ -214,8 +204,8 @@ let cachedAdapter: RequestIntakeAdapter | undefined;
 /**
  * Builds a fresh adapter from the current environment (`REQUEST_INTAKE_MODE`,
  * `PLATFORM_INTAKE_URL`, `PLATFORM_INTAKE_INTEGRATION_ID`, optional
- * `PLATFORM_INTAKE_ORIGIN`). Defaults to the
- * stub — see REQUEST_INTAKE_MODE in .env.example. Exposed uncached so
+ * `PLATFORM_INTAKE_ORIGIN`). Defaults to the fail-closed
+ * unlinked adapter — see REQUEST_INTAKE_MODE in .env.example. Exposed uncached so
  * contract tests can exercise each configuration; the app itself uses
  * `getRequestIntakeAdapter`.
  */
@@ -226,7 +216,7 @@ export function createRequestIntakeAdapter(): RequestIntakeAdapter {
       return new PlatformRequestIntakeAdapter();
     case "stub":
     default:
-      return new StubRequestIntakeAdapter();
+      return new UnlinkedRequestIntakeAdapter();
   }
 }
 

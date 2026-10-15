@@ -1,0 +1,357 @@
+ZW-WEB — NEMRYN NEW-CUSTOMER INTEGRATION RESET
+Date: 2026-09-23
+Repository: /Users/datamatics/Zenward-Web (branch main, base 680f255)
+Scope: Zenward-Web only. Nemryn repository, Nemryn database, Supabase,
+Vercel environment and production deployment were NOT accessed or changed.
+Nothing committed, pushed or deployed.
+
+==================================================
+1. CURRENT ARCHITECTURE
+==================================================
+
+browser (RequestTransportationForm.tsx, client component)
+  -> Next.js Server Action  src/app/request-transportation/actions.ts
+       (whitelist rebuild, normalise, length caps, enum checks, honeypot,
+        fill-time guard, tenancy-field rejection)
+  -> getRequestIntakeAdapter()  src/lib/request-intake/adapter.ts
+       REQUEST_INTAKE_MODE selects:
+         platform -> PlatformRequestIntakeAdapter
+                     server-to-server POST to PLATFORM_INTAKE_URL
+                     body built by nemryn-mapping.ts (flat JSON,
+                     integrationExternalId from PLATFORM_INTAKE_INTEGRATION_ID,
+                     idempotencyKey = submissionId), Origin header =
+                     PLATFORM_INTAKE_ORIGIN or https://www.zenwardmobility.com
+         stub / unset / anything else -> unlinked adapter (see section 5)
+  -> Nemryn
+
+This IS the desired browser -> Zenward server -> Nemryn architecture.
+
+Browser code audit (source + built .next/static bundle, scanned after build):
+  integration ID ................. NONE
+  Nemryn URL / PLATFORM_INTAKE_* . NONE
+  Supabase credentials ........... NONE
+  service-role credentials ....... NONE
+  The only NEXT_PUBLIC_ variable read in src/ is NEXT_PUBLIC_SITE_URL.
+  The browser never sees an integration id, organization id or tenant id.
+
+No vercel.json and no .vercel/ link directory exist in the repo; there is no
+repo tooling that reads Vercel env values. The only env file is .env.example
+(template, no values). No .env.local or other real env file is present.
+
+==================================================
+2. OLD INTEGRATION REFERENCES
+==================================================
+
+Search for "<old integration id — redacted>" across the entire working tree (including
+.env*, docs, tests, src, .next build output) and across ALL git history
+(git log --all -S):  ZERO occurrences.
+
+The old identifier was never committed. It lives ONLY in the Vercel
+environment (see section 3).
+
+Other coupling terms (classification):
+
+  CODE
+    src/lib/request-intake/adapter.ts
+      reads REQUEST_INTAKE_MODE, PLATFORM_INTAKE_URL,
+      PLATFORM_INTAKE_INTEGRATION_ID, PLATFORM_INTAKE_ORIGIN (env only).
+      Hard-coded constant SITE_ORIGIN = https://www.zenwardmobility.com is
+      Zenward's OWN public site origin (default Origin header), not a Nemryn
+      tenant value; it is overridable with PLATFORM_INTAKE_ORIGIN.
+      "app.nemryn.com" appears only in doc comments.
+    src/lib/request-intake/nemryn-mapping.ts
+      pure mapping; "app.nemryn.com" in a doc comment only. No id, no URL
+      constant.
+  TEST
+    src/lib/request-intake/adapter.test.mjs
+      uses synthetic values only (https://app.nemryn.test/..., id
+      "zenward-web-int-123").
+    src/lib/request-intake/nemryn-mapping.test.mjs
+      NEMRYN_ALLOWED_KEYS / NEMRYN_SERVICE_TYPES test constants.
+  ENVIRONMENT
+    .env.example — variable names + empty values + prose only.
+  DOCUMENTATION (current architecture docs)
+    docs/architecture/nemryn-trusted-request-intake-contract.md
+    docs/architecture/request-intake-boundary.md
+    docs/product/launch-readiness.md
+    docs/product/marketing-scope.md
+  HISTORICAL REPORT (left untouched, per instruction)
+    docs/reports/WEB-P1-E2-completion-report.txt
+    docs/reports/ZW-WEB-01B-*, 02A-*, 02B-*, 02C1-*, 03A-*, 03B-*, 03B2-*
+    docs/reports/p1-pilot-s4b-r3-zenward-web-adapter-finalization.txt
+    docs/reports/zenward-public-nemt-positioning-cleanup-report.txt
+    (these name the variables and endpoint; none contains the old id)
+
+"app.zenwardmobility.com": appears only in a historical report
+(zenward-public-nemt-positioning-cleanup-report.txt). Not in code.
+
+==================================================
+3. CODE VS ENVIRONMENT
+==================================================
+
+The Nemryn connection is ALREADY fully environment-driven. No tenant-specific
+value is hard-coded, so the adapter was NOT rewritten and no new abstraction
+was added.
+
+The OLD connection exists only as Vercel environment values. Per the prior
+deployment report, Vercel Production is expected to hold:
+
+  REQUEST_INTAKE_MODE              = platform
+  PLATFORM_INTAKE_URL              = <redacted — Nemryn public intake URL>
+  PLATFORM_INTAKE_INTEGRATION_ID   = <redacted — old integration id>
+  PLATFORM_INTAKE_ORIGIN           = expected UNSET (optional)
+
+These were NOT read or modified (no Vercel access used). The owner should
+confirm the actual values in the Vercel dashboard.
+
+To put production in the UNLINKED state, the owner would either:
+  (a) remove PLATFORM_INTAKE_INTEGRATION_ID (platform mode then fails closed),
+      or
+  (b) set REQUEST_INTAKE_MODE=stub / remove it (unlinked adapter).
+Both are now safe (section 5). Until the owner does one of these, a
+deployment keeps using the old integration id. If that integration has been
+disabled in Nemryn, Nemryn returns a generic 400 and the visitor sees
+"We couldn't submit your request... or call us". That is also fail-closed,
+not a false success.
+
+==================================================
+4. SERVER-SIDE BOUNDARY
+==================================================
+
+- All intake configuration is read with process.env inside the server-only
+  adapter. None of it is NEXT_PUBLIC_.
+- The Server Action is the only thing the browser can call. It rejects any
+  caller-supplied organization/tenant field at any depth, and the adapter
+  re-checks the outgoing body for tenancy keys (defence in depth).
+- No database client, Supabase client, service-role key, RPC or organization
+  UUID exists anywhere in the repo.
+- Nemryn resolves the owning organization from the opaque
+  integrationExternalId server-side. Zenward-Web has no tenant branch.
+
+==================================================
+5. UNLINKED BEHAVIOR
+==================================================
+
+FINDING (fixed): with no integration configured (REQUEST_INTAKE_MODE unset,
+"stub" or unrecognised, which is the repo default), the old stub adapter
+returned { ok: true, delivered: false }. The form then showed a green
+"Request received — We have your details" screen with a reference number,
+while the request was delivered and stored NOWHERE. That was a false success
+and a silent discard.
+
+NEW behaviour (UnlinkedRequestIntakeAdapter, adapter.ts):
+  - returns { ok: false, delivered: false, error: MSG_UNAVAILABLE }
+    "Online requests are temporarily unavailable right now. Please call us to
+     arrange transportation."
+  - the form stays on screen with everything the visitor typed and shows the
+    message in its existing role="alert" error slot (no form/UX change)
+  - the page's "Prefer to arrange by phone?" Call CTA and the site header
+    phone link remain (2 x tel:+16789355489 in the rendered page)
+  - no reference number, no "Request received", no request_form_submitted
+    conversion event
+  - no fetch, nothing persisted; the log line has no request content and no
+    variable names:
+    "[request-intake] no intake destination configured: request NOT accepted;
+     visitor asked to call."
+  - no HTTP status, provider name, env variable name or stack trace reaches
+    the visitor
+
+REQUEST_INTAKE_MODE=platform with PLATFORM_INTAKE_URL or
+PLATFORM_INTAKE_INTEGRATION_ID missing (or a non-https URL) already failed
+closed with the same message. Unchanged.
+
+The form's delivered:false success branch (RequestTransportationForm.tsx) is
+now unreachable from any adapter. It was left in place so the form stays
+unchanged.
+
+Local development note: with no env configured, a local submit now shows the
+"call us" error instead of a success screen. This is intentional: there is no
+fake-success mode.
+
+==================================================
+6. ACQUISITION READINESS
+==================================================
+
+Audit of the current form / action / adapter / mapping:
+
+  utmSource ........ NOT captured
+  utmMedium ........ NOT captured
+  utmCampaign ...... NOT captured
+  utmContent ....... NOT captured
+  utmTerm .......... NOT captured
+  landingPath ...... NOT captured
+  submissionPath ... NOT captured
+  referrerHost ..... NOT captured
+  formVersion ...... NOT captured
+
+Nothing prohibited is collected either: no IP persistence, full referrer,
+full landing URL, cookies, fingerprinting, gclid or fbclid. The only URL
+parameter read is ?service= (allow-listed and resolved server-side).
+
+NOT IMPLEMENTED in this pass, deliberately. The only Nemryn contract
+available to this repo (docs/architecture/nemryn-trusted-request-intake-
+contract.md, frozen at Nemryn c275ec5) defines NO acquisition object, and it
+states that Nemryn rejects any body key outside its fixed set. Sending an
+"acquisition" key built from a guessed shape could make Nemryn reject EVERY
+request with a 400. The brief forbids relying on private Nemryn knowledge, so
+the exact published shape must come from the customer-facing contract that
+Nemryn shows during "Connect my existing form". That means:
+  - the top-level key name
+  - per-field types and max lengths
+  - the expected formVersion value
+  - whether landingPath / submissionPath include query strings (they should
+    not)
+
+Once that published contract is in hand, the change is small and fits the
+existing seams:
+  - browser: capture UTM params + landing path on first page view
+    (sessionStorage, try/catch), plus the submission path and the referrer
+    HOST only. Pass them as a separate optional argument to the Server Action.
+  - Server Action: whitelist + length-cap each field, drop anything else.
+  - nemryn-mapping.ts: attach the optional object only when non-empty.
+  - tests: allowed-keys test + "absent object when nothing captured".
+
+==================================================
+7. REQUIRED CUSTOMER-SUPPLIED VALUES
+==================================================
+
+From Nemryn -> Website Requests -> Connect my existing form (entered by the
+owner in Vercel as server-only env vars, NEVER NEXT_PUBLIC_, never committed):
+
+  REQUEST_INTAKE_MODE              platform
+  PLATFORM_INTAKE_URL              the intake endpoint Nemryn displays (https)
+  PLATFORM_INTAKE_INTEGRATION_ID   the NEW integration identifier Nemryn
+                                   displays
+  PLATFORM_INTAKE_ORIGIN           leave UNSET if the approved production URL
+                                   entered in Nemryn is
+                                   https://www.zenwardmobility.com; otherwise
+                                   set it to that approved origin exactly
+
+Value to give Nemryn as the approved production website URL:
+  https://www.zenwardmobility.com
+  (this is the Origin header Zenward-Web sends by default)
+
+==================================================
+8. FILES MODIFIED
+==================================================
+
+  src/lib/request-intake/adapter.ts
+    - StubRequestIntakeAdapter (ok:true, delivered:false) replaced by
+      UnlinkedRequestIntakeAdapter (ok:false, customer-safe "call us" error)
+    - removed the now-unused stub reference generator
+    - header comments no longer claim a live connection or name a tenant
+  src/lib/request-intake/adapter.test.mjs
+    - stub test now asserts fail-closed for stub / unset / unknown modes, no
+      fetch, no reference id, "call us" copy, and no request content or env
+      variable names in logs
+  .env.example
+    - REQUEST_INTAKE_MODE prose describes the unlinked fail-closed default.
+      Integration id is sourced from Website Requests -> Connect my existing
+      form. PLATFORM_INTAKE_ORIGIN is tied to the approved URL.
+  docs/architecture/request-intake-boundary.md
+    - stub section rewritten as the fail-closed unlinked state
+  docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt (this file)
+
+Not modified: the form, the page, the Server Action, nemryn-mapping.ts,
+branding, historical reports. The pre-existing untracked public/brand/ is not
+part of this change.
+
+Known stale doc (not changed; product status doc, flagged for the owner):
+docs/product/launch-readiness.md still labels the intake "Connected
+(P1-PILOT-S4B-R3)".
+
+==================================================
+9. TESTS
+==================================================
+
+  npx tsc --noEmit ............................. PASS
+  npm run lint (eslint) ........................ PASS
+  npm test (node --test) ....................... 45/45 pass
+  npm run build (intake env unset) ............. PASS (21 routes)
+
+Unconfigured-state checks (production build, next start, REQUEST_INTAKE_MODE /
+PLATFORM_INTAKE_URL / PLATFORM_INTAKE_INTEGRATION_ID unset):
+  GET /request-transportation ......... 200; heading, form and
+                                        "Submit Request" render; 2 tel: links
+                                        present; no intake env names / Nemryn
+                                        strings in HTML
+  POST Server Action (valid request) .. {"ok":false,"delivered":false,
+                                        "error":"Online requests are
+                                        temporarily unavailable right now.
+                                        Please call us to arrange
+                                        transportation."}
+  server log .......................... one content-free warning line
+  .next/static client bundle scan ..... no integration id, PLATFORM_INTAKE_*,
+                                        REQUEST_INTAKE_*,
+                                        integrationExternalId, Nemryn URL,
+                                        supabase or service-role strings
+  platform mode, missing vars ......... fails closed (existing unit test)
+
+==================================================
+10. NEXT MANUAL STEPS
+==================================================
+
+  1. Owner reviews this report and the diff; approves a commit.
+  2. Owner, in Nemryn: Website Requests -> Connect my existing form, exactly
+     as an unrelated NEMT customer would. Approved production URL:
+     https://www.zenwardmobility.com. Record the endpoint and integration
+     identifier Nemryn shows, plus the published acquisition contract if one
+     is shown.
+  3. Owner, in Vercel (Production): replace PLATFORM_INTAKE_INTEGRATION_ID
+     with the NEW value and confirm PLATFORM_INTAKE_URL matches what Nemryn
+     displays. Keep REQUEST_INTAKE_MODE=platform. Leave PLATFORM_INTAKE_ORIGIN
+     unset unless step 2 used a different origin. (Or, to go unlinked first:
+     remove the integration id; the site then fails closed.)
+  4. Only after explicit approval: deploy, then submit one clearly labelled
+     QA request and confirm it appears in Nemryn's Website Requests inbox.
+  5. Follow-up task: implement the optional acquisition object against the
+     published contract from step 2 (section 6).
+
+==================================================
+SUMMARY
+==================================================
+
+OLD INTEGRATION ID IN SOURCE:
+NONE
+
+OLD CONNECTION ENVIRONMENT DEPENDENCY:
+REQUEST_INTAKE_MODE=<redacted>, PLATFORM_INTAKE_URL=<redacted>,
+PLATFORM_INTAKE_INTEGRATION_ID=<redacted> (Vercel Production only; optional
+PLATFORM_INTAKE_ORIGIN expected unset). Not in repo, not in git history.
+
+BROWSER PRIVILEGED CREDENTIAL:
+NONE
+
+GENERIC SERVER ADAPTER:
+READY
+
+ACQUISITION PAYLOAD:
+NOT READY
+
+UNLINKED STATE:
+SAFE (after this change; previously UNSAFE — false "Request received")
+
+TSC:
+PASS
+
+LINT:
+PASS
+
+UNIT:
+45/45
+
+BUILD:
+PASS
+
+READY FOR NORMAL NEMRYN CUSTOMER CONNECTION:
+YES (connection values). Acquisition is an optional follow-up.
+
+BLOCKERS:
+1. Acquisition object: needs the published Nemryn customer contract (key
+   name, field limits, formVersion value). It is not available in this repo,
+   and a guessed shape risks every request being rejected.
+2. Changes are uncommitted and undeployed, pending owner approval.
+3. Vercel Production still holds the old integration values until the owner
+   replaces or removes them (not touched here, by instruction).
+
+STOP.

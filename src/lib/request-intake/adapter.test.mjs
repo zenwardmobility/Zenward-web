@@ -261,14 +261,21 @@ test("platform mode refuses a non-https URL and never calls fetch", async () => 
   assert.equal(calls.length, 0);
 });
 
-test("stub mode (explicit or default) delivers nothing and never calls fetch", async () => {
+test("unlinked (stub, default or unknown mode) fails closed: no false success, no fetch, no content logged", async () => {
   mockFetch(() => jsonResponse(200, { ok: true }));
   for (const mode of ["stub", undefined, "unknown-value"]) {
     if (mode === undefined) delete process.env.REQUEST_INTAKE_MODE;
     else process.env.REQUEST_INTAKE_MODE = mode;
+    delete process.env.PLATFORM_INTAKE_URL;
+    delete process.env.PLATFORM_INTAKE_INTEGRATION_ID;
     const result = await createRequestIntakeAdapter().submit(input(), { submissionId: "s" });
-    assert.equal(result.ok, true);
-    assert.equal(result.delivered, false);
+    assertCustomerSafe(result);
+    assert.equal(result.referenceId, undefined);
+    assert.match(result.error, /call us/i);
   }
   assert.equal(calls.length, 0);
+  const all = logs.join("\n");
+  for (const secret of ["PILOT-ZENWARD-WEBSITE-QA", "404-555-0142", "Real notes only.", "REQUEST_INTAKE_MODE", "PLATFORM_INTAKE"]) {
+    assert.equal(all.includes(secret), false, secret);
+  }
 });

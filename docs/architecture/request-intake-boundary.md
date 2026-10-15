@@ -20,20 +20,20 @@ Browser (form)
 
 The **Server Action is the boundary**, not the adapter and not the page. The browser never talks to a database, a third-party service, or the Zenward Platform directly — it always goes through the Server Action, which runs exclusively on the server.
 
-## The stub adapter
+## The unlinked (stub) adapter
 
-`REQUEST_INTAKE_MODE=stub` (the default — see `.env.example`; the right value for local development) selects a stub adapter that:
+`REQUEST_INTAKE_MODE=stub` (the default, and also what an unset or unrecognised value selects — see `.env.example`) is the **unlinked** state: no Nemryn integration is configured. It:
 
-- Validates the submission (the Server Action whitelists fields, normalises and length-caps every string, checks enum values, runs a honeypot + fill-time check) and returns `{ ok: true, delivered: false }` with a locally-generated reference id.
-- Persists nothing anywhere. Sends nothing to any external service. Logs no request content (only a mode warning in production). Never touches a credential.
+- Still runs every Server Action check (whitelist, normalisation, length caps, enum checks, honeypot + fill-time), then returns `{ ok: false, delivered: false }` with the customer-safe "Online requests are temporarily unavailable right now. Please call us to arrange transportation." message.
+- Persists nothing anywhere. Sends nothing to any external service. Logs no request content (only a one-line "no intake destination configured" warning). Never touches a credential.
 
-Because it reports `delivered: false`, the success screen tells the visitor to **also call** to confirm, rather than implying a request is queued — and the `request_form_submitted` analytics conversion does **not** fire. This keeps the site honest whenever no trusted intake is configured. The `platform` mode (below) fails closed — selecting it without `PLATFORM_INTAKE_URL` / `PLATFORM_INTAKE_INTEGRATION_ID` returns an honest "please call us" error, never a fake success.
+It **fails closed**: the visitor never sees "Request received" for a request nothing will receive, the form keeps what they typed, the page's call CTA stays visible, and the `request_form_submitted` conversion does not fire. The `platform` mode (below) fails closed the same way when selected without `PLATFORM_INTAKE_URL` / `PLATFORM_INTAKE_INTEGRATION_ID`.
 
 ## The platform adapter
 
 Turning delivery on is configuration, not a page/form change — the adapter interface is the seam:
 
-1. `PLATFORM_INTAKE_URL` = `https://app.nemryn.com/api/public-intake/website` and `PLATFORM_INTAKE_INTEGRATION_ID` = the opaque id Nemryn issued (server-only, never `NEXT_PUBLIC_`, never sent to the browser). The id is an identifier, **not** a credential; there is no bearer token.
+1. `PLATFORM_INTAKE_URL` = `https://app.nemryn.com/api/public-intake/website` and `PLATFORM_INTAKE_INTEGRATION_ID` = the opaque id shown in Nemryn → Website Requests → Connect my existing form (server-only, never `NEXT_PUBLIC_`, never sent to the browser). The id is an identifier, **not** a credential; there is no bearer token.
 2. `REQUEST_INTAKE_MODE=platform`.
 
 The call is **server-to-server** (Browser → Server Action → adapter → Nemryn), so browser CORS is not the security boundary for it. A positive acceptance returns `delivered: true`, which flips the success copy and enables the `request_form_submitted` conversion. Every non-acceptance (error status, unexpected success body, timeout, unreachable endpoint) returns `delivered: false` and a customer-safe message.
