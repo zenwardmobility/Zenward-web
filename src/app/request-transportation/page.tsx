@@ -8,9 +8,9 @@ import { cn } from "@/lib/cn";
 import { resolveServiceParam } from "@/lib/request-intake/service-types";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Request Transportation",
+  title: "Request a Transportation Quote",
   description:
-    "Request non-emergency medical transportation for appointments, treatments, discharge, or scheduled care. Zenward reviews every request and follows up to confirm availability.",
+    "Request a quote for non-emergency medical transportation to appointments, treatment, hospital discharge or recurring care. Zenward reviews every request and contacts you to confirm availability, next steps and pricing.",
   path: "/request-transportation",
 });
 
@@ -33,13 +33,15 @@ export default async function RequestTransportationPage({
   return (
     <>
       <Section tone="mist" narrow>
-        <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Request Transportation</p>
-        <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
-          Tell us about the trip you need
-        </h1>
+        <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Request a Quote</p>
+        <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Request a Transportation Quote</h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
-          This is a transportation request, not a guaranteed ride. Zenward will review the details and contact
-          you to confirm availability and next steps.
+          Tell us about the trip you need. Zenward will review the details and contact you to confirm
+          availability, next steps and pricing.
+        </p>
+        <p className={cn(typography.bodySmall, "mt-3 text-text-muted")}>
+          Submitting this form is a request, not a confirmed booking, and availability isn&rsquo;t guaranteed
+          until Zenward confirms it with you.
         </p>
 
         <div className="mt-6 flex flex-col gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-lg sm:flex-row sm:items-center sm:justify-between">

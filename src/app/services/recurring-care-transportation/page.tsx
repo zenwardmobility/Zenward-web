@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import { ServicePage } from "@/components/public/ServicePage";
 import { SERVICES } from "@/lib/services";
-import { pageMetadata } from "@/lib/seo";
+import { serviceMetadata } from "@/lib/service-pages";
 
 const service = SERVICES["recurring-care-transportation"];
 
-export const metadata: Metadata = pageMetadata({
-  title: service.metaTitle,
-  description: service.metaDescription,
-  path: service.path,
-});
+export const metadata: Metadata = serviceMetadata(service);
 
 export default function Page() {
   return <ServicePage service={service} />;

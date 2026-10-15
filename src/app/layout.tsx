@@ -32,6 +32,19 @@ export const metadata: Metadata = {
     title: siteName,
     description: siteDescription,
   },
+  // Browser identity (ZW-WEB-04C). The primary icon is src/app/icon.svg, a
+  // byte-for-byte copy of the locked public/brand/zenward-favicon.svg, which
+  // Next emits as <link rel="icon" type="image/svg+xml">. The locked PNGs
+  // below are fallbacks for browsers without SVG favicon support, plus the
+  // apple-touch icon. Never point these at regenerated artwork.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/brand/zenward-favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/brand/zenward-favicon-16.png", type: "image/png", sizes: "16x16" },
+    ],
+    apple: [{ url: "/brand/zenward-app-icon-192.png", type: "image/png", sizes: "192x192" }],
+  },
 };
 
 export default function RootLayout({

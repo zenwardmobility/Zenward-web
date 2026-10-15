@@ -44,15 +44,21 @@ export const PUBLIC_SERVICE_TYPES = [
 
 export type PublicServiceType = (typeof PUBLIC_SERVICE_TYPES)[number];
 
-/** Form labels, in the order they appear in the "Service needed" select. */
+/**
+ * Canonical PUBLIC service labels (ZW-WEB-04C), the single source for the
+ * request-form options and every service name on the site (src/lib/services.ts
+ * reads these). Display text only: the keys are the unchanged internal/wire
+ * values sent to Nemryn (e.g. "Wheelchair-Accessible Transportation" is still
+ * `wheelchair_transportation` on the wire).
+ */
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  medical_appointment: "Medical appointment",
-  dialysis: "Dialysis transportation",
-  rehabilitation: "Rehabilitation transportation",
-  hospital_discharge: "Hospital discharge transportation",
-  recurring_care: "Recurring care transportation",
-  senior_medical: "Senior medical transportation",
-  wheelchair_transportation: "Wheelchair transportation",
+  medical_appointment: "Medical Appointment Transportation",
+  dialysis: "Dialysis Transportation",
+  rehabilitation: "Rehabilitation Transportation",
+  hospital_discharge: "Hospital Discharge Transportation",
+  recurring_care: "Recurring Care Transportation",
+  senior_medical: "Senior Medical Transportation",
+  wheelchair_transportation: "Wheelchair-Accessible Transportation",
   other: "Other",
 };
 

@@ -34,7 +34,8 @@ test("the public form options are the eight approved services, wheelchair includ
     SERVICE_TYPE_OPTIONS.map((o) => o.value),
     ["medical_appointment", "dialysis", "rehabilitation", "hospital_discharge", "recurring_care", "senior_medical", "wheelchair_transportation", "other"],
   );
-  assert.ok(SERVICE_TYPE_OPTIONS.some((o) => o.value === "wheelchair_transportation" && o.label === "Wheelchair transportation"));
+  // Public label changed in ZW-WEB-04C; the wire value is unchanged.
+  assert.ok(SERVICE_TYPE_OPTIONS.some((o) => o.value === "wheelchair_transportation" && o.label === "Wheelchair-Accessible Transportation"));
 });
 
 test("every public type is a valid Nemryn type", () => {

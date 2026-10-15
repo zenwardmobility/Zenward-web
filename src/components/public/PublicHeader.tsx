@@ -33,7 +33,7 @@ export function PublicHeader() {
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-surface-elevated/95 backdrop-blur">
       <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-3 px-md sm:px-xl">
         <Link href="/" aria-label="Zenward Mobility — home" className="flex shrink-0 items-center" onClick={close}>
-          <ZenwardLogo height={32} priority />
+          <ZenwardLogo height={32} alt="" priority />
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-5 lg:flex xl:gap-7">

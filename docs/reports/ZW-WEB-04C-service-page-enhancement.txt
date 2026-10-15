@@ -1,0 +1,452 @@
+ZW-WEB-04C — SERVICE PAGE ENHANCEMENT + WHEELCHAIR PROMINENCE
+            + LOCKED ZENWARD BRAND IDENTITY WIRING
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL ONLY. Not committed, pushed or deployed. No intake adapter,
+Server Action, Nemryn mapping, analytics vendor, legal page or locked
+artwork change. Homepage hero image untouched (deferred per 04B2).
+
+
+1. STARTING GIT STATE
+---------------------
+Clean tree. HEAD 481a1a6 "Strengthen homepage hero for commercial clarity";
+origin/main d7782a3 (7 behind). git diff --check clean.
+Reports applied as requirements: 04A audit, 04A-exit, 04B, 04B2 (all
+authored in this session).
+
+
+2. LOCKED-BRAND ASSET AUDIT
+---------------------------
+public/brand/ (12 files, committed d76ca6f):
+  logo primary/inverse ........ SVG, viewBox 0 0 2048 682
+  symbol primary/inverse ...... SVG, viewBox 210 95 540 485
+  wordmark primary/inverse .... SVG, viewBox 790 185 1055 350
+  favicon ..................... SVG, viewBox 610 105 125 155
+  favicon PNG 16, 32 / app icons 192, 512, 512-maskable
+Logo artwork bbox (measured read-only in Chrome via getBBox): x 235, y 124,
+w 1579, h 429 inside the 2048x682 artboard, i.e. the artboard carries
+built-in clear space. The visible aspect (3.68) matches the old trimmed
+raster (1675x457 = 3.67).
+Logo references before 04C: ZenwardLogo.tsx (header, footer) used the
+raster public/images/zenward-mobility-logo-trimmed.png; the homepage
+Organization JSON-LD uses public/images/zenward-mobility-logo.png.
+
+
+3. PREVIOUS FAVICON / DEFAULT-ICON CAUSE
+----------------------------------------
+src/app/favicon.ico (25,931 bytes) was the stock create-next-app/Vercel
+black-triangle icon (visually confirmed in 04A). Next's App Router
+file-convention emitted it on every page as
+<link rel="icon" href="/favicon.ico" sizes="256x256">. There were no
+icon.*, apple-icon.* or manifest files and nothing in public/.
+
+
+4. BROWSER FAVICON IMPLEMENTATION
+---------------------------------
+  - src/app/icon.svg: byte-for-byte copy of public/brand/zenward-favicon.svg
+    (cp; SHA-256 9eb79247...c4a8e17... both; `cmp` identical). This is the
+    App Router's native icon convention.
+  - src/app/favicon.ico: REMOVED (git rm; staged deletion) so the default
+    icon can't compete.
+  - src/app/layout.tsx metadata.icons: /icon.svg (image/svg+xml), then the
+    locked /brand/zenward-favicon-32.png and -16.png as PNG fallbacks;
+    apple-touch icon = /brand/zenward-app-icon-192.png.
+  - src/app/manifest.ts: /manifest.webmanifest with the locked 192, 512 and
+    512-maskable app icons; theme Care Navy.
+  - next.config.ts rewrite: /favicon.ico serves the locked 32px PNG as-is
+    (for legacy clients that request /favicon.ico directly). No ICO was
+    generated.
+Emitted head (identical on / and service pages):
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+  <link rel="icon" href="/brand/zenward-favicon-32.png" type="image/png" sizes="32x32"/>
+  <link rel="icon" href="/brand/zenward-favicon-16.png" type="image/png" sizes="16x16"/>
+  <link rel="apple-touch-icon" href="/brand/zenward-app-icon-192.png" type="image/png" sizes="192x192"/>
+No favicon.ico reference remains (0 occurrences in the homepage HTML).
+
+
+5. HEADER LOGO MIGRATION
+------------------------
+ZenwardLogo now renders /brand/zenward-logo-primary.svg (next/image,
+unoptimized, so the SVG is served untouched). To keep the existing
+footprint despite the artboard's clear space, the component sizes a box
+to exactly the visible artwork (height prop = visible height) and
+positions the full SVG inside it with negative offsets taken from the
+measured bbox. The clear space overflows invisibly, nothing is clipped,
+and the SVG is scaled uniformly (exact viewBox aspect).
+Measured (local build): header logo box 117.8 x 32 at x=16 (390) and
+x=176 (1440). Previous raster: 117 x 32 at the same positions. Header
+height, nav spacing and colors are unchanged. Mobile header and mobile
+navigation share the same component.
+Accessibility: the header home link keeps aria-label "Zenward Mobility —
+home"; the logo image inside it now has alt="" so it isn't announced
+twice.
+
+
+6. FOOTER LOGO MIGRATION
+------------------------
+Footer (Care Navy) now uses /brand/zenward-logo-inverse.svg directly on
+navy, at 30px visible height (same as before), alt "Zenward Mobility"
+(not inside a link). This replaces the previous treatment: the raster logo
+on a white "chip". The chip treatment is removed from the component.
+The old raster logo files in public/images/ are KEPT (also used by the
+Organization JSON-LD) until final launch QA.
+
+
+7. BRAND INTEGRITY / HASH VERIFICATION
+--------------------------------------
+  Before 04C: all 12 public/brand files match the 04A-exit baseline
+              (diff of SHA-256 lists: identical); git shows no change.
+  After 04C:  all 12 match again; `git status public/brand` clean.
+  src/app/icon.svg == public/brand/zenward-favicon.svg (SHA-256 + cmp).
+  Served bytes (local next start) identical to source for
+  zenward-favicon.svg, logo-primary.svg, logo-inverse.svg, favicon-32/16,
+  app-icon-192, /icon.svg and /favicon.ico (= favicon-32.png).
+No asset was redrawn, optimised, recoloured, renamed or re-wrapped.
+
+
+8. CANONICAL SERVICE LABELS
+---------------------------
+Single source: SERVICE_TYPE_LABELS in src/lib/request-intake/service-types.ts
+(display text only; keys/wire values unchanged; Nemryn mapping doesn't read
+labels):
+  medical_appointment        Medical Appointment Transportation
+  dialysis                   Dialysis Transportation
+  rehabilitation             Rehabilitation Transportation
+  hospital_discharge         Hospital Discharge Transportation
+  recurring_care             Recurring Care Transportation
+  senior_medical             Senior Medical Transportation
+  wheelchair_transportation  Wheelchair-Accessible Transportation
+  other                      Other
+services.ts sets `label` from that map, and every surface uses it:
+homepage service list, /services, service-page H1 and metadata,
+related-service links, request-form options, Service JSON-LD. The old
+cardTitle/eyebrow/metaTitle fields are removed.
+Test update: public-services.test.mjs label assertion changed to
+"Wheelchair-Accessible Transportation"; the value assertion
+(wheelchair_transportation) is unchanged.
+
+
+9. /SERVICES CHANGES
+--------------------
+  - Mist intro: H1 "Non-Emergency Medical Transportation Services", market
+    sentence from config, Request a Quote (tracked "services_page") +
+    phone CTA, staff/walker photo.
+  - Practical-facts strip.
+  - Numbered editorial catalogue (01–07, ruled rows, not a card grid):
+    icon, label (h3 link), summary, "Good fit for" line, "About this
+    service" link (sr-only service name) and a per-service "Request a Quote"
+    (preselects ?service=; aria-label "Request a quote for <label>").
+    Wheelchair-Accessible Transportation is row 07 with equal treatment.
+  - Closing panel: "Not sure which service you need?"
+  - Metadata: "Non-Emergency Medical Transportation Services in Metro
+    Atlanta | Zenward Mobility" + BreadcrumbList JSON-LD.
+
+
+10. SHARED SERVICEPAGE ARCHITECTURE
+-----------------------------------
+One renderer (ServicePage.tsx), with per-service config driving
+variation:
+  1  Hero (navy gradient): All services link · eyebrow "Non-Emergency
+     Medical Transportation" · H1 "<label> in <market>" · short lede ·
+     Request a Quote (?service= preselected) + phone CTA · service photo
+     (right on desktop; below the CTAs on phones). Tighter phone padding.
+  2  PracticalFacts strip (new shared component)
+  3  Five content sections in a per-service order, alternating
+     white/mist: audience (+ "A good fit for"), coordinate, expect (4-step
+     timeline), considerations (NEW, service-specific), scenarios
+  4  FAQ (FaqAccordion: all answers in HTML, button/region wiring kept)
+  5  Related services (2–3 intentional links; tone alternates with the FAQ)
+  6  ClosingCta (NEW shared inset navy panel, same treatment as the
+     homepage close) + non-emergency/911 note
+  JSON-LD: Service + BreadcrumbList (src/lib/service-pages.ts).
+Each page differs in photo and crop, section order, considerations,
+scenarios, FAQ and related links: one system, not seven designs.
+
+
+11-17. PER-PAGE SUMMARY
+-----------------------
+11 Medical Appointment Transportation
+   Doctor/specialist/outpatient/diagnostic/follow-up visits. Considerations:
+   facility name, return timing varies, recurring visits. Photo: van +
+   walker. Related: Senior, Recurring, Wheelchair. FAQ includes "no
+   medical care during the trip".
+12 Dialysis Transportation
+   Repeating schedules, outbound and return trips, schedule changes.
+   Considerations: return timing talked through, schedules reviewed not
+   automatic, mobility needs. No punctuality promise, no monitoring. Photo:
+   van + walker (different crop). Related: Recurring, Wheelchair.
+13 Rehabilitation Transportation
+   Physical therapy, occupational therapy, series of visits.
+   Considerations: describe mobility needs (no lifting/transfer claim),
+   repeating plans, changes. Photo: staff + walker. Related: Recurring,
+   Medical Appointments, Wheelchair.
+14 Hospital Discharge Transportation
+   Scheduled non-emergency discharge; passenger/family/care-team
+   coordination; next destination. Considerations: non-emergency only (no
+   ambulance/stretcher), wheelchair-accessible trips on request, timing
+   changes. Photo: staff + walker (different crop). Related: Senior,
+   Wheelchair.
+15 Recurring Care Transportation
+   Repeated schedules (dialysis, therapy, ongoing care). Considerations:
+   "Reviewed and confirmed", "Not open-ended" (start/end date), changes
+   need a call. FAQ: "Will trips be booked automatically? No." Photo:
+   staff + walker (different crop). Related: Dialysis, Rehabilitation,
+   Wheelchair.
+16 Senior Medical Transportation
+   Older adults, family/caregiver coordination, clear communication.
+   Considerations: "Transportation only" (not home care, companion care or
+   nursing), who we talk to, mobility needs. Non-patronizing copy. Photo:
+   van + walker. Related: Medical Appointments, Wheelchair, Recurring.
+17 Wheelchair-Accessible Transportation (strongest upgrade)
+   H1 "Wheelchair-Accessible Transportation in Metro Atlanta"; lede:
+   "Zenward offers wheelchair-accessible transportation for scheduled,
+   non-emergency medical trips." The approved wheelchair/ramp photo
+   (heroDesktop asset) leads the hero. Considerations: describe mobility
+   needs, confirmed during review, not stretcher/ambulance (911). FAQ adds
+   "What should I tell you about the passenger's wheelchair?" (asks, claims
+   nothing). Related: Medical Appointments, Dialysis, Recurring (broad NEMT
+   kept visible).
+   NOT claimed: stretcher, lifting/transfers, door-through-door,
+   monitoring, oxygen, ADA, chair size/weight limits, securement, lifts. An
+   earlier draft said "seated wheelchair-accessible transportation"; the
+   word "seated" was removed in QA as an implied securement detail.
+
+
+18. IMAGE STRATEGY
+------------------
+Existing approved photos only; nothing generated or edited; next/image via
+BrandImage.
+  wheelchair ............ heroDesktop (wheelchair + ramp)
+  medical, senior, dialysis   vanWalkerAssist (crops 70/72/82%)
+  rehab, discharge, recurring staffWalkingAssist (crops center/60%/35%)
+  /services ............. staffWalkingAssist
+Only 4 approved photos exist for 8 pages, so reuse is unavoidable; varied
+crops reduce sameness. More real photography is an owner action (§35).
+Homepage hero image: unchanged (deferred).
+
+
+19. QUOTE-FUNNEL ALIGNMENT
+--------------------------
+"Request a Quote" is now the primary CTA on every service page (hero +
+closing), on /services (intro, every row, closing) and in the footer link.
+Destinations unchanged: /request-transportation?service=<allow-listed>.
+Preselection verified (the 680f255 behaviour; ?service=wheelchair_transportation
+page returns 200).
+
+
+20. REQUEST-PAGE WORDING
+------------------------
+/request-transportation (page copy and metadata only):
+  eyebrow "Request a Quote"; H1 "Request a Transportation Quote";
+  lede "Tell us about the trip you need. Zenward will review the details
+  and contact you to confirm availability, next steps and pricing.";
+  note "Submitting this form is a request, not a confirmed booking, and
+  availability isn't guaranteed until Zenward confirms it with you."
+  title "Request a Transportation Quote | Zenward Mobility".
+NOT changed: RequestTransportationForm (fields, the "Submit Request"
+button, success/error copy), Server Action, adapter, mapping, idempotency,
+service values. The form's options now show the canonical labels (§8).
+
+
+21. PHONE CONVERSION
+--------------------
+CallButton used in service heroes, the /services intro and ClosingCta
+("Call 678-935-5489" on phones, the number from 640px). PracticalFacts
+carries a "Call 678-935-5489" link. Header behaviour as in 04B. All values
+come from business.ts; no new phone constants.
+
+
+22. PRACTICAL REASSURANCE
+-------------------------
+PracticalFacts.tsx lists confirmed facts only: Serving <market> (from
+config) · Non-emergency medical transportation · Every request reviewed by
+a person · One-time and recurring requests · Family and caregiver requests
+welcome · Wheelchair-accessible transportation available · Call
+678-935-5489. No hours, response times, certifications, licensing,
+insurance, ratings, counts or guarantees. Used on all service pages and
+/services.
+
+
+23. FAQ CHANGES
+---------------
+Every service now has 4–5 service-specific questions (no more identical
+"How do I request transportation?" on every page). Booking-status
+questions are kept where they matter, worded per service. FaqAccordion is
+unchanged from 04B (all answers in HTML; verified 4–5 panels per page).
+
+
+24. RELATED-SERVICE LINKS
+-------------------------
+`related` is now a list of slugs (2–3), rendered with label + summary +
+icon:
+  Medical  -> Senior, Recurring, Wheelchair
+  Dialysis -> Recurring, Wheelchair
+  Rehab    -> Recurring, Medical, Wheelchair
+  Discharge-> Senior, Wheelchair
+  Recurring-> Dialysis, Rehab, Wheelchair
+  Senior   -> Medical, Wheelchair, Recurring
+  Wheelchair -> Medical, Dialysis, Recurring
+Scenario-card links were removed (the related row replaces them).
+
+
+25. METRO ATLANTA INTEGRATION
+-----------------------------
+Market read from src/lib/service-area.ts (getDefaultMarket / servingLine /
+areaServedJsonLd) in ServicePage, PracticalFacts, /services and
+service-pages.ts. No component or content string hard-codes the market. No
+counties or cities.
+
+
+26. METADATA / SCHEMA
+---------------------
+Service pages: title "<label> in Metro Atlanta | Zenward Mobility";
+description = service stem + "Serving Metro Atlanta."; canonical and
+og:url per page (verified on the wheelchair page).
+Service JSON-LD: name/serviceType = label, description = summary, url,
+provider Organization (name, url), areaServed (Place Metro Atlanta in State
+Georgia). BreadcrumbList Home > Services > label. /services:
+BreadcrumbList. No ratings, prices, availability, hours or reviews.
+
+
+27. BROWSER-BRAND VERIFICATION (local production build)
+-------------------------------------------------------
+  /icon.svg 200 image/svg+xml, bytes == locked favicon
+  /brand/zenward-favicon.svg 200, /brand/zenward-favicon-32.png 200
+  /favicon.ico 200 image/png, bytes == locked favicon-32 (rewrite)
+  /manifest.webmanifest 200 application/manifest+json
+  head on / and service pages: the icon links listed in §4; no favicon.ico
+  link
+  header logo: /brand/zenward-logo-primary.svg, alt "", box 117.8x32
+  footer logo: /brand/zenward-logo-inverse.svg, alt "Zenward Mobility"
+  Screenshots: logo not stretched or cropped (390 and 1440 headers, 1440
+  footer)
+Fresh-session check: every headless run used a new Chrome profile (no
+favicon cache). A real desktop browser may still show the old cached tab
+icon until its favicon cache refreshes. That's expected and not a site
+issue.
+
+
+28. MOBILE QA (390 / 430)
+-------------------------
+All 7 service pages: one H1, no overflow, Request a Quote and phone CTA on
+the first screen (390: Quote tops 421–489, Call bottoms 545–613 of 844).
+Service and market are the first content; the photo sits below the CTAs.
+/services 390: Quote 477–533, Call 545–601. Homepage unchanged from 04B2
+(544–600 / 612–668). /request-transportation 390: phone CTA 612–660.
+
+
+29. DESKTOP QA (768 / 1024 / 1440)
+----------------------------------
+No overflow on any of the 10 routes at any width; hero CTAs above the
+fold everywhere (1024: <= 617 of 768). Screenshots reviewed: wheelchair
+1440 hero (ramp photo prominent, balanced), /services 1440 full
+(editorial rows, closing panel, footer inverse logo), dialysis 1440 full
+(section alternation, considerations, FAQ, related, close).
+Note: the facts strip at 1440 shows 4 + 3 items. Rows with 2 related
+services leave the third grid column empty. Both are acceptable.
+
+
+30. ACCESSIBILITY
+-----------------
+One H1 per page; h2 sections; h3 items. FAQ keyboard controls unchanged.
+Factual alt text on every photo (0 images without alt). Logo: no
+duplicate announcement in the header link. Descriptive links ("About this
+service" + sr-only service name; per-service quote aria-labels include the
+visible "Request a Quote" text). Gold eyebrow on Care Navy is 7.4:1.
+Reduced motion: CSS transitions only.
+Touch targets: all CTAs are 44–56px. Exception: the /services service-name
+heading links are 27px tall, but each row also has a 44px "About this
+service" link to the same page (27px clears the WCAG 2.5.8 24px minimum).
+
+
+31. PERFORMANCE
+---------------
+No new libraries, fonts, video or client JS. ServicePage, /services,
+PracticalFacts and ClosingCta are server components. SVG logos are
+static, untouched files (~28 KB each, served unoptimized). Photos via
+next/image (AVIF/WebP). 22 static/dynamic routes (icon.svg and
+manifest added).
+
+
+32. CLAIM SCAN (rendered text of 13 routes)
+-------------------------------------------
+Terms: 24/7, always on time, guarantee*, licensed, insured, ADA, CPR,
+door-through-door, door-to-door, stretcher, oxygen, hydraulic, Medicaid,
+insurance, lift*, transfer*, Nemryn, platform, software, instant, free
+quote.
+Hits, all negations or disclaimers:
+  - "stretcher" (discharge FAQ/consideration, wheelchair FAQ/consideration,
+    homepage Why point): every instance says Zenward does NOT provide it.
+  - "guaranteed" (request page): "availability isn't guaranteed until
+    Zenward confirms it".
+No other matches. No Nemryn, platform or software wording.
+
+
+33. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+  npm test ......... 45/45 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 22/22 pages (intake env unset,
+                     NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com)
+Smoke (next start): /, /services, all 7 service pages,
+/request-transportation (+?service=wheelchair_transportation),
+/healthcare-providers, /about, /contact: all 200; /icon.svg, /favicon.ico,
+/brand/* and /manifest.webmanifest as in §27.
+
+
+34. FILES MODIFIED
+------------------
+  D src/app/favicon.ico                       (default Vercel icon; staged deletion)
+  A src/app/icon.svg                          (byte copy of locked favicon)
+  A src/app/manifest.ts
+  M src/app/layout.tsx                        (metadata.icons)
+  M next.config.ts                            (/favicon.ico rewrite)
+  M src/components/brand/ZenwardLogo.tsx      (locked SVGs, footprint-preserving)
+  M src/components/public/PublicHeader.tsx    (logo alt="")
+  M src/components/public/PublicFooter.tsx    (inverse logo; "Request a Quote" link)
+  M src/lib/request-intake/service-types.ts   (canonical labels only)
+  M src/lib/request-intake/public-services.test.mjs (label assertion)
+  M src/lib/services.ts                       (restructured content)
+  A src/lib/service-pages.ts                  (metadata + JSON-LD helpers)
+  A src/components/public/PracticalFacts.tsx
+  A src/components/public/ClosingCta.tsx
+  M src/components/public/ServicePage.tsx
+  M src/app/services/page.tsx
+  M src/app/services/*/page.tsx (7)           (serviceMetadata)
+  M src/app/page.tsx                          (label/summary; wheelchair FAQ wording)
+  M src/app/request-transportation/page.tsx   (quote framing, metadata)
+  A docs/reports/ZW-WEB-04C-service-page-enhancement.txt
+NOT modified: public/brand/*, public/images/*, adapter.ts, nemryn-mapping.ts,
+actions.ts, RequestTransportationForm.tsx, analytics/events.ts,
+privacy/terms, env files, homepage hero.
+
+
+35. REMAINING OWNER FACTS
+-------------------------
+  - Wheelchair vehicles: access type (ramp/lift), securement, own-chair
+    travel, size/weight limits (none claimed).
+  - Pricing follow-up: "confirm availability, next steps and pricing" now
+    appears on the request page and service steps. Confirm the follow-up
+    really includes pricing.
+  - Hours / phone answering hours / typical response time (not shown).
+  - More real photography (vehicle interior, ramp detail, drivers):
+    4 photos across 8 pages.
+  - County/city coverage within Metro Atlanta (not shown).
+  - Brand doc: docs/design/brand-assets.md still describes the raster
+    logo, the chip treatment and the wheelchair hero; update it (04E).
+
+
+36. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+  1. Owner review: service-page layout (wheelchair page especially), the
+     /services catalogue, the footer moving from a raster chip to the
+     inverse SVG, and the "pricing" wording (§35).
+  2. Commit as one change, staging exactly the paths in §34 (the
+     favicon.ico deletion is already staged by git rm). Suggested message:
+     "Enhance service pages and wire locked Zenward brand identity".
+  3. Deployment still blocked on 04A-exit B2 (new Nemryn integration plus
+     a verified QA request).
+
+STOP. Not committed, pushed or deployed. 04D not started.

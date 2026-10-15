@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname),
   },
   agentRules: false,
+  // Legacy clients that request /favicon.ico directly (without reading the
+  // <link rel="icon"> tags) get the locked 32px Zenward favicon PNG, served
+  // as-is from public/brand. No ICO is generated (ZW-WEB-04C).
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/brand/zenward-favicon-32.png" }];
+  },
   images: {
     // Approved production photography is served locally from public/images
     // (see docs/design/brand-assets.md) and optimized by next/image on

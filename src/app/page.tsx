@@ -113,9 +113,9 @@ const FAQ_ITEMS = [
       "Yes. You can request transportation for yourself, for a family member, or as a caregiver. The request form asks for your relationship to the passenger so we follow up with the right person.",
   },
   {
-    question: "Does Zenward provide wheelchair transportation?",
+    question: "Does Zenward offer wheelchair-accessible transportation?",
     answer:
-      "Yes. Zenward provides wheelchair transportation for non-emergency medical trips. Tell us about the passenger's mobility and assistance needs when you submit the request so our team can review the trip details and confirm the transportation arrangement.",
+      "Yes. Zenward offers wheelchair-accessible transportation for scheduled, non-emergency medical trips. Tell us about the passenger's mobility and assistance needs when you submit the request so our team can review the trip details and confirm the transportation arrangement.",
   },
   {
     question: "Can I request recurring transportation?",
@@ -248,13 +248,13 @@ export default function HomePage() {
                   </span>
                   <span className="flex flex-1 flex-col lg:mt-4">
                     <span className={cn(typography.body, "flex items-start justify-between gap-2 font-semibold text-text-primary")}>
-                      {service.eyebrow}
+                      {service.label}
                       <ArrowRight
                         className="mt-1.5 size-4 shrink-0 text-brand-interactive-teal transition-transform duration-base group-hover:translate-x-0.5"
                         aria-hidden
                       />
                     </span>
-                    <span className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{service.cardDescription}</span>
+                    <span className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{service.summary}</span>
                   </span>
                 </Link>
               </li>
