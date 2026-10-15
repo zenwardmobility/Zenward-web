@@ -1,0 +1,585 @@
+ZW-WEB-04A-EXIT — PRODUCTION ALIGNMENT + CLEAN HANDOFF TO 04B
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: inspection + validation only. Nothing committed, pushed, deployed,
+staged, reset, restored, stashed, cleaned or discarded. No source, copy,
+analytics, legal, brand or intake file was edited. The only file written is
+this report.
+
+Inputs read in full:
+  docs/reports/ZW-WEB-04A-google-ads-website-readiness-audit.txt
+  docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt
+  docs/reports/ZW-WEB-03B2-wheelchair-intake-contract-1-1.txt
+  docs/reports/p1-pilot-s4b-r3-zenward-web-adapter-finalization.txt
+  git show 680f255 (stat + code diff), git diff (uncommitted change)
+
+
+==================================================================
+1. STARTING GIT STATE
+==================================================================
+
+git status:
+  On branch main. Your branch is ahead of 'origin/main' by 1 commit.
+  Changes not staged:
+    modified: .env.example
+    modified: docs/architecture/request-intake-boundary.md
+    modified: src/lib/request-intake/adapter.test.mjs
+    modified: src/lib/request-intake/adapter.ts
+  Untracked:
+    docs/reports/ZW-WEB-04A-google-ads-website-readiness-audit.txt
+    docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt
+    public/brand/
+  Nothing staged.
+
+git log --oneline -12:
+  680f255 Connect Zenward structured request intake to Nemryn
+  d7782a3 Send site Origin on the server-to-server Nemryn intake call
+  8f1526f Connect Zenward transportation requests to Nemryn
+  541181c Document ZW-WEB-03B production deployment
+  ac4a47f Strengthen Zenward medical transportation positioning
+  cb615f5 Document ZW-WEB-03A production deployment
+  7ccf813 Add dedicated Zenward service pages
+  19ee3f0 Fill in production verification results in van image report
+  3793072 Update Zenward van image phone number
+  5cc2b40 Update Zenward vehicle imagery phone number
+  03b851d Fill in production verification results in phone number report
+  bd20b38 Update Zenward Mobility phone number
+
+git diff --stat:
+  .env.example                                 | 21 ++++++------
+  docs/architecture/request-intake-boundary.md | 12 +++----
+  src/lib/request-intake/adapter.test.mjs      | 13 ++++++--
+  src/lib/request-intake/adapter.ts            | 48 +++++++++++-----------------
+  4 files changed, 47 insertions(+), 47 deletions(-)
+
+git diff --check: clean (exit 0).
+
+
+==================================================================
+2. CURRENT HEAD / ORIGIN-MAIN RELATIONSHIP
+==================================================================
+
+  HEAD (local main) ......... 680f25567dc4672d54d3d9be4057bf1eb855fc1b
+  origin/main (tracking) .... d7782a3d3cd5791f6bbce48fff5a097607bfcd28
+  remote main (ls-remote) ... d7782a3d3cd5791f6bbce48fff5a097607bfcd28
+  ahead/behind .............. 0 behind, 1 ahead (680f255)
+
+A push is a plain fast-forward. No divergence, no force needed.
+
+Production (read-only GET on 2026-10-15, recorded in 04A) matches d7782a3:
+recurring form live ("Trip frequency", One-time / Recurring), 6 public
+services + Other, no wheelchair option, /services/wheelchair-transportation
+404, 14-URL sitemap.
+
+
+==================================================================
+3. CLASSIFICATION OF EVERY DIRTY / UNTRACKED / UNPUSHED PATH
+==================================================================
+
+A. Committed 680f255 website/service work (unpushed), 19 files:
+     README.md
+     docs/architecture/nemryn-trusted-request-intake-contract.md
+     docs/product/launch-readiness.md
+     docs/product/marketing-scope.md
+     docs/reports/ZW-WEB-03B-deployment-report.txt
+     docs/reports/ZW-WEB-03B-why-specialized-medical-transportation.txt
+     docs/reports/ZW-WEB-03B2-wheelchair-intake-contract-1-1.txt
+     docs/reports/p1-pilot-s4b-r3-zenward-web-adapter-finalization.txt
+     src/app/page.tsx
+     src/app/request-transportation/actions.ts
+     src/app/request-transportation/page.tsx
+     src/app/services/page.tsx
+     src/app/services/wheelchair-transportation/page.tsx   (new)
+     src/components/public/ServicePage.tsx
+     src/lib/request-intake/public-services.test.mjs
+     src/lib/request-intake/recurring.ts                   (comment only)
+     src/lib/request-intake/service-types.ts
+     src/lib/request-intake/types.ts                       (comment only)
+     src/lib/services.ts
+
+B. Uncommitted Nemryn integration / reset work:
+     .env.example
+     docs/architecture/request-intake-boundary.md
+     src/lib/request-intake/adapter.ts
+     src/lib/request-intake/adapter.test.mjs
+     docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt (untracked)
+
+C. Locked Zenward brand assets (untracked):
+     public/brand/zenward-app-icon-192.png
+     public/brand/zenward-app-icon-512-maskable.png
+     public/brand/zenward-app-icon-512.png
+     public/brand/zenward-favicon-16.png
+     public/brand/zenward-favicon-32.png
+     public/brand/zenward-favicon.svg
+     public/brand/zenward-logo-inverse.svg
+     public/brand/zenward-logo-primary.svg
+     public/brand/zenward-symbol-inverse.svg
+     public/brand/zenward-symbol-primary.svg
+     public/brand/zenward-wordmark-inverse.svg
+     public/brand/zenward-wordmark-primary.svg
+     (public/brand/.DS_Store exists but is gitignored by .gitignore:24,
+      so it is not a candidate for commit.)
+
+D. ZW-WEB-04A audit/report (untracked):
+     docs/reports/ZW-WEB-04A-google-ads-website-readiness-audit.txt
+     docs/reports/ZW-WEB-04A-exit-production-alignment.txt (this file)
+
+E. Unrelated / unknown: NONE.
+
+Gitignored local artefacts, not part of any commit: .next/ (rebuilt by the
+validation in §8), tsconfig.tsbuildinfo, next-env.d.ts, node_modules/,
+.DS_Store files. No .env.local or other real env file exists.
+
+
+==================================================================
+4. 680F255 CONTENTS AND VALIDATION
+==================================================================
+
+Commit: 680f255 "Connect Zenward structured request intake to Nemryn"
+(2026-09-21; 19 files, +872/-113). Commit message and the 03B2/R3 report
+headers both record it as the owner-approved coordinated release of
+ZW-WEB-03B2 on top of the R3 adapter.
+
+Checklist (what's in 680f255 vs what's already live):
+
+  Item                              Where                              State
+  --------------------------------  ---------------------------------  -----------------
+  Wheelchair transportation         services.ts entry + SERVICE_ORDER  in 680f255
+  Wheelchair service page           services/wheelchair-transportation in 680f255
+                                    /page.tsx (new)
+  Service taxonomy                  service-types.ts PUBLIC_SERVICE_   in 680f255
+                                    TYPES + PUBLIC_SERVICE_PARAMS add
+                                    wheelchair_transportation
+  Wheelchair selector option        SERVICE_TYPE_OPTIONS derives from  in 680f255
+                                    PUBLIC_SERVICE_TYPES
+  Service preselection              request-transportation/page.tsx    in 680f255
+                                    resolveServiceParam(); ServicePage
+                                    CTAs use service.requestHref
+  Recurring request UI              RequestTransportationForm,         ALREADY LIVE
+                                    RecurringScheduleFields,           (8f1526f);
+                                    SegmentedChoice                    unchanged here
+  Recurring schedule mapping        recurring.ts, nemryn-mapping.ts    ALREADY LIVE
+                                                                       (8f1526f);
+                                                                       comment only here
+  Sitemap inclusion                 sitemap.ts derives from            in 680f255 (via
+                                    SERVICE_PATHS (unchanged file)     services.ts)
+  Final structured request fields   nemryn-mapping.ts (passengerName,  ALREADY LIVE
+                                    serviceType, recurringSchedule)    (8f1526f +
+                                                                       d7782a3)
+  Server-side acceptance of         actions.ts isPublicServiceType     in 680f255 (via
+  wheelchair                        (comment edit; behaviour from the  service-types)
+                                    widened public set)
+  Tests                             public-services.test.mjs flipped   in 680f255
+                                    to "wheelchair is public"
+
+680f255 does NOT touch adapter.ts, nemryn-mapping.ts, tenancy.ts,
+RequestTransportationForm.tsx or RecurringScheduleFields.tsx
+(git diff d7782a3 680f255 on those paths is empty). The only change to what
+goes over the wire is that "wheelchair_transportation" becomes a possible
+serviceType value. Nemryn's enum already accepts it (wire-enum parity test).
+
+Validation of the EXACT committed state (git archive 680f255 exported to the
+session scratchpad, so the working tree was not touched; node_modules
+APFS-cloned; next-env.d.ts copied because it is gitignored and generated):
+  npm test ........ 45/45 pass, 0 fail
+  npx tsc ......... PASS (after adding the generated next-env.d.ts. The
+                    first run without it produced six "Cannot find module
+                    *.jpg/*.png" errors. Environmental, not a code defect)
+  npm run lint .... PASS
+  npm run build ... PASS: compiled, TypeScript finished, 21/21 pages;
+                    /services/wheelchair-transportation prerendered static;
+                    /request-transportation dynamic. (A first attempt with a
+                    symlinked node_modules hit a Turbopack "symlink points out
+                    of the filesystem root" panic. Environmental, fixed by
+                    copying node_modules.)
+  Built output .... sitemap.xml 15 URLs incl. /services/wheelchair-
+                    transportation; wheelchair page H1 "Wheelchair
+                    transportation for scheduled medical care".
+  next start ...... /services/wheelchair-transportation 200;
+                    /request-transportation?service=wheelchair_transportation
+                    renders <option value="wheelchair_transportation"
+                    selected>Wheelchair transportation; ?service=__proto__
+                    preselects nothing.
+
+One caveat that matters for release order: 680f255 still contains the OLD
+stub adapter (StubRequestIntakeAdapter returns {ok:true, delivered:false,
+referenceId "ZW-STUB-..."}). The form then shows "Request received — We have
+your details... please also call", even though nothing was delivered.
+Production doesn't reach that path while REQUEST_INTAKE_MODE=platform, but
+it's the false-success path the reset work removes (see §5).
+
+VERDICT: 680f255 is RELEASABLE as product work. It should go out in the same
+push as the fail-closed adapter commit (§9), not on its own.
+
+
+==================================================================
+5. FAIL-CLOSED ADAPTER AUDIT (uncommitted category B)
+==================================================================
+
+Why it exists:
+  The new-customer integration reset (ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-
+  RESET, 2026-09-23) prepares Zenward to disconnect from the old Nemryn
+  integration and reconnect the way any NEMT customer does. That pass found
+  that the UNLINKED state (REQUEST_INTAKE_MODE unset / "stub" / unknown) shows
+  a false "Request received" plus a reference number while delivering and
+  storing nothing. Going unlinked, even briefly, would silently discard real
+  requests, so the unlinked state had to fail closed before any reset.
+
+  Context from the R3 report: on 2026-09-20 production delivered a QA
+  request (Nemryn returned 200 {"ok":true}), but it landed in an
+  organization that was neither of the two known QA orgs. The owning org was
+  never verified. That's the problem the reset addresses.
+
+Files changed:
+  src/lib/request-intake/adapter.ts
+    - StubRequestIntakeAdapter -> UnlinkedRequestIntakeAdapter; submit()
+      now returns { ok:false, delivered:false, error: MSG_UNAVAILABLE }
+      ("Online requests are temporarily unavailable right now. Please call
+      us to arrange transportation.")
+    - removes the stub-only newReference() helper (no other caller; tsc
+      clean)
+    - one content-free warning log line; no payload, no env names
+    - header comments: "CONNECTED, P1-PILOT-S4B-R3" -> "configured per
+      deployment; unlinked by default"; "the Zenward Mobility tenant" ->
+      "the owning organization"; "No integration value is embedded in this
+      source"
+  src/lib/request-intake/adapter.test.mjs
+    - stub test rewritten: for "stub", unset and "unknown-value" -> customer-
+      safe error, no referenceId, /call us/ copy, zero fetch calls, and no
+      QA name/phone/notes/env-var names in captured logs
+  .env.example (comments only; REQUEST_INTAKE_MODE=stub value unchanged)
+    - describes the fail-closed unlinked default; says the integration id
+      comes from Nemryn -> Website Requests -> "Connect my existing form";
+      ties PLATFORM_INTAKE_ORIGIN to the approved URL entered in Nemryn
+  docs/architecture/request-intake-boundary.md
+    - stub section rewritten as the fail-closed unlinked state; same
+      self-service sourcing of the integration id
+
+Answers:
+  Prevents a false "Request received" without real delivery?  YES.
+    After the change, the only `ok: true` in adapter.ts is
+    `return { ok: true, delivered: true }` (line 194), reachable only when
+    Nemryn answers exactly 200 {"ok":true}. Every Server Action early return
+    and every other adapter path is ok:false. The form's success screen
+    renders only on result.ok, so "Request received" now requires a genuine
+    downstream acknowledgement. The conversion event still fires only on
+    delivered === true.
+    Residual (not a defect today): RequestTransportationForm.tsx still has a
+    delivered:false success branch ("We have your details... please also
+    call") that no adapter can now reach. Recommend removing it in a later
+    intake-scoped change, not in 04B.
+  Changes the public Nemryn payload?  NO. PlatformRequestIntakeAdapter and
+    nemryn-mapping.ts are untouched; the diff hunks are the stub class, its
+    helper and comments.
+  Changes service taxonomy?  NO. service-types.ts / services.ts untouched.
+  Affects the self-service Nemryn model?  POSITIVELY, and only in docs/
+    comments. It removes "CONNECTED"/"Zenward tenant" language and points
+    configuration at the same "Connect my existing form" flow any customer
+    uses. No runtime coupling is added.
+  Tests pass?  YES. 45/45 on the working tree, including "unlinked (stub,
+    default or unknown mode) fails closed: no false success, no fetch, no
+    content logged".
+
+The change matches the required principle: delivered success only after a
+real acknowledgement; unlinked/unconfigured fails safely and directs the
+customer to call; nothing is fabricated.
+
+Behaviour difference to note: with no env configured, LOCAL development
+submissions now show the "call us" error instead of a success screen. That's
+intentional.
+
+
+==================================================================
+6. NEMRYN-INDEPENDENCE ASSESSMENT
+==================================================================
+
+Checked in src/ (excluding tests):
+  hard-coded organization / tenant ids ...... NONE. Every organization_id /
+                                              tenant_id occurrence is a
+                                              rejection guard (tenancy.ts
+                                              deny-list) or a comment saying
+                                              no such field exists
+  integration id in source / git history .... NONE (env only; the reset
+                                              report also searched history)
+  QA org names (e.g. "Siloan") .............. NONE in src
+  database / Supabase / service-role ........ NONE (comment-only mentions
+                                              stating they are NOT used)
+  Zenward-specific Nemryn behaviour ......... NONE. The adapter is a generic
+                                              "website form -> Nemryn public
+                                              intake" client configured by
+                                              REQUEST_INTAKE_MODE /
+                                              PLATFORM_INTAKE_URL /
+                                              PLATFORM_INTAKE_INTEGRATION_ID /
+                                              PLATFORM_INTAKE_ORIGIN
+  automatic integration provisioning ........ NONE
+  Nemryn URL ................................ env-supplied; app.nemryn.com
+                                              appears only in comments
+  Browser exposure .......................... none of the above is
+                                              NEXT_PUBLIC_ (the reset report
+                                              scanned the client bundle)
+
+One site-specific constant: SITE_ORIGIN = "https://www.zenwardmobility.com"
+in adapter.ts, the default Origin header. That's Zenward's OWN public
+origin (what any customer's website sends as itself), overridable with
+PLATFORM_INTAKE_ORIGIN. It's not a Nemryn tenant value. Acceptable.
+
+RESULT: INDEPENDENT. Zenward-Web connects to Nemryn the same way any NEMT
+customer would.
+
+
+==================================================================
+7. BRAND-ASSETS PRESERVATION STATUS
+==================================================================
+
+public/brand/: 12 asset files, untracked, untouched by this phase and by
+04A. Not referenced by any code (src has no "public/brand" reference; the
+favicon is still src/app/favicon.ico). Not renamed, re-encoded, optimized or
+installed.
+
+SHA-256 at 2026-10-15 (baseline for later integrity checks):
+  64b0f6b954fd947ebca4d8dfc33830faa01e2999b6cf71ce4578ea83dd04407b  zenward-app-icon-192.png
+  69ed26bfbbbec0addc8ea9eb566b2983b788137a25e0966abe5007f2829f5384  zenward-app-icon-512-maskable.png
+  da1f69a9733286210cd355d215e5e54a597b394ec910b2fa8b03a71f8d85ce4d  zenward-app-icon-512.png
+  2c50c9d799b49c553c920137829aabc30964e011dff6f9e3bf57304ff9105ed1  zenward-favicon-16.png
+  81fd464ae61e55ac173a189588c780393f59ad69e5f148fe05f1c019ebeefb4e  zenward-favicon-32.png
+  9eb79247740426605d51ef204a7914d93f8324c87988ace607fe1783a4c69078  zenward-favicon.svg
+  15ee92bc72423c43416cb905ebd1041c4a8e17fd393d4507de4fa03f73b6d8af  zenward-logo-inverse.svg
+  1e7f62049b40b20f6ab2a6403363f43c2d498667a9b4ea53ce52fbc123d25ff7  zenward-logo-primary.svg
+  aa33a38570ec2890f25021dea1cc936fc52c95cb94afde589fcb3a4ffd734f2e  zenward-symbol-inverse.svg
+  42316200d26f0c3a34abfcd09bc95eb55e6db968b6b63f1f46ad5a9f603b15b1  zenward-symbol-primary.svg
+  76e48abe89839207e26fa1d3ed39994455cc122d57105415b7a8151ba94abb00  zenward-wordmark-inverse.svg
+  007674839f112150e0bc665484d6f965b4aa13957272c673d6be11fc7b0383d3  zenward-wordmark-primary.svg
+
+Risk: while untracked, a `git clean -fd` would delete them permanently. See
+§9 commit C3 (commit as-is, unwired), which is preservation, not
+installation.
+
+
+==================================================================
+8. TEST / TYPECHECK / LINT / BUILD RESULTS
+==================================================================
+
+Working tree (680f255 + uncommitted category B), run in the repository with
+REQUEST_INTAKE_MODE / PLATFORM_INTAKE_URL / PLATFORM_INTAKE_INTEGRATION_ID
+unset and NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com:
+
+  npm test ............. PASS  45 tests, 45 pass, 0 fail
+  npx tsc --noEmit ..... PASS  (no output)
+  npm run lint ......... PASS
+  npm run build ........ PASS  compiled; 21/21 pages;
+                               /services/wheelchair-transportation static;
+                               /request-transportation dynamic
+
+Committed state 680f255 alone (scratch export): see §4. All PASS; the only
+anomalies were environmental (gitignored next-env.d.ts, symlinked
+node_modules) and are explained there.
+
+No failures needed repair. git status was identical before and after the
+validation runs (the build only rewrote the gitignored .next/).
+
+
+==================================================================
+9. EXACT RECOMMENDED COMMIT PLAN (for owner approval; NOT executed)
+==================================================================
+
+Answers:
+  A. Push 680f255?  YES, but only together with C1 below in the same push,
+     so no deployment ever ships wheelchair work with the old false-success
+     stub.
+  B. Commit the fail-closed adapter change first?  YES. Commit it before
+     pushing. (It goes on top of 680f255. History is not rewritten; "first"
+     means "before the push", and the push deploys the tip.)
+  C. One commit or separate?  SEPARATE. 680f255 stays as-is (product work).
+     The intake safety change is its own commit, so it can be reverted or
+     reviewed on its own. Brand assets and audit docs get their own commits.
+     That keeps intake, brand and docs out of the 04B history.
+
+PRE-STEP (owner): the git author identity is malformed. Existing commits are
+authored as
+  “maaklingit config --global user.email maaklinapp@gmail.comgit config user.name “maaklin
+i.e. a pasted command line with smart quotes ended up as user.name. Before
+making new commits, set it correctly, e.g.:
+  git config user.name "maaklin"
+  git config user.email "maaklinapp@gmail.com"
+(Owner's choice of name. Existing history is not rewritten.)
+
+C1 — intake safety (category B)
+  git add .env.example \
+          docs/architecture/request-intake-boundary.md \
+          src/lib/request-intake/adapter.ts \
+          src/lib/request-intake/adapter.test.mjs \
+          docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt
+  Suggested message: "Fail closed when no Nemryn integration is configured"
+  (body: unlinked/stub/unknown mode returns a call-us error, never "Request
+  received"; no payload or taxonomy change; integration id sourced from
+  Nemryn's Connect my existing form)
+
+C2 — ZW-WEB-04A reports (category D)
+  git add docs/reports/ZW-WEB-04A-google-ads-website-readiness-audit.txt \
+          docs/reports/ZW-WEB-04A-exit-production-alignment.txt
+  Suggested message: "Add ZW-WEB-04A readiness audit and exit report"
+
+C3 — locked brand assets, NOT wired (category C)
+  git add public/brand
+  (.DS_Store is excluded automatically by .gitignore. Verify with
+   `git diff --cached --name-only` that exactly the 12 files listed in §7
+   are staged.)
+  Suggested message: "Add locked Zenward brand asset set (not yet installed)"
+  Optional. If the owner prefers to keep brand files out of git until the
+  brand-installation phase, skip C3 and simply never run `git clean`.
+  Recommended: commit, because untracked is the only way they can be lost.
+
+Before each commit:  git diff --cached --check
+Before the push, on the final tree: npm test; npx tsc --noEmit;
+npm run lint; npm run build. Once C1-C3 are made, the committed tree is
+byte-identical to the working tree validated in §8, so results should
+match.
+
+Do NOT include in any commit: .next/, tsconfig.tsbuildinfo, next-env.d.ts,
+any .env.local, .DS_Store.
+
+
+==================================================================
+10. EXACT RECOMMENDED PUSH / DEPLOYMENT PLAN (NOT executed)
+==================================================================
+
+E. Can production safely be redeployed?
+   CODE: YES. All checks pass. The platform adapter and wire mapping are
+   unchanged from what's live (d7782a3); the only new wire value is
+   serviceType "wheelchair_transportation", which Nemryn's enum accepts.
+   REQUEST PATH: the deployment does NOT change it. Vercel will build with
+   whatever Production env is already set (per the reset report: platform
+   mode with the OLD integration id). Where those requests end up was never
+   verified (§5 context). The deploy is safe; the request path's state
+   remains UNKNOWN until the owner verifies it. Don't treat a green deploy as
+   proof that requests reach Zenward.
+
+Recommended sequence:
+
+  1. Owner, Nemryn: Website Requests -> "Connect my existing form", as any
+     NEMT customer. Approved website URL: https://www.zenwardmobility.com.
+     Record the intake URL and the NEW integration id. Also record any
+     published acquisition (UTM/gclid) contract.
+  2. Owner, Vercel -> zenward-web -> Settings -> Environment Variables ->
+     Production:
+       REQUEST_INTAKE_MODE            = platform
+       PLATFORM_INTAKE_URL            = <exact URL Nemryn displays, https>
+       PLATFORM_INTAKE_INTEGRATION_ID = <NEW id from step 1>
+       PLATFORM_INTAKE_ORIGIN         = unset (unless step 1 used another
+                                        origin)
+     Also note CONTACT_INTAKE_MODE (stub vs email) for the record.
+     No redeploy needed here; step 4 deploys.
+  3. Owner approves C1, C2 (and C3); commits are made as in §9.
+  4. git push origin main
+     (fast-forward d7782a3 -> 680f255 -> C1 -> C2 [-> C3]; never --force).
+     Vercel deploys the tip.
+  5. Post-deploy verification (read-only first):
+       - GitHub/Vercel status for the tip commit = success
+       - /services/wheelchair-transportation 200; H1 correct
+       - /request-transportation?service=wheelchair_transportation
+         preselects "Wheelchair transportation"
+       - sitemap.xml lists 15 URLs incl. the wheelchair page
+       - all 7 service pages 200; every tel: link = tel:+16789355489
+  6. ONE clearly labelled synthetic QA request on the production form
+     (e.g. passenger "ZW-WEB-04A-EXIT-QA"), then:
+       - customer sees the DELIVERED "Request received" variant
+       - the request appears in Nemryn -> Website Requests for ZENWARD's
+         own organization, with serviceType and (if recurring) the schedule
+         structured
+       - delete/close the QA request per Nemryn's normal process
+     If the form shows "Online requests are temporarily unavailable" or
+     "couldn't submit", the env is wrong or the integration inactive. Fix
+     the env and redeploy. No code change is needed.
+
+Fallback if step 1 can't happen yet:
+  (a) Push C1-C3 with env unchanged and run step 6 anyway to find out where
+      requests currently go; or
+  (b) Deliberately go UNLINKED (remove PLATFORM_INTAKE_INTEGRATION_ID or set
+      REQUEST_INTAKE_MODE=stub, then redeploy). With C1 deployed, the site
+      honestly tells visitors to call. Without C1 it would show a false
+      success, which is why C1 must ship with or before any unlinking.
+  Either way: no paid traffic until step 6 passes.
+
+
+==================================================================
+11. REMAINING OWNER ACTIONS
+==================================================================
+
+  1. Fix git user.name / user.email (§9 pre-step).
+  2. Approve C1 (fail-closed), C2 (reports), C3 (brand assets, optional).
+  3. Nemryn: connect the website via "Connect my existing form"; obtain the
+     NEW integration id (and acquisition contract, if published).
+  4. Vercel Production env: set/replace the four intake variables (§10
+     step 2). Confirm CONTACT_INTAKE_MODE and whether provider enquiries are
+     actually delivered by email.
+  5. Approve the push; verify the deployment and run the single QA request
+     (§10 steps 4-6), confirming receipt in Zenward's own Nemryn
+     organization.
+  6. Decide whether the old integration should be deactivated in Nemryn
+     once the new one is verified (kill switch: is_active = false on the
+     OLD integration only).
+  7. Later, not blocking 04B: update docs/product/launch-readiness.md, which
+     still says the intake is "Connected (P1-PILOT-S4B-R3)" (stale per the
+     reset report). Also the 04A owner questions (market, hours, etc.).
+
+
+==================================================================
+12. 04B READINESS
+==================================================================
+
+Gate (from the brief)                                    Status
+-------------------------------------------------------  ---------------------
+Intended wheelchair/service state committed              MET (680f255)
+No ambiguous intake work mixed into the tree             NOT MET: category B
+                                                         is uncommitted until
+                                                         C1 is approved and
+                                                         made
+Current tests/build pass                                 MET (45/45, tsc,
+                                                         lint, build; working
+                                                         tree and 680f255)
+public/brand preserved                                   MET (untouched;
+                                                         hashes in §7)
+04A audit available                                      MET (on disk;
+                                                         commit in C2)
+Remaining Nemryn integration action documented           MET (§10, §11)
+Marketing work can proceed without touching intake code  MET. 04B scope
+                                                         (homepage) is
+                                                         page.tsx, HomeHero,
+                                                         header/footer;
+                                                         no intake files
+04B must not hide a broken production request path       OPEN: production
+                                                         request routing is
+                                                         unverified (§10 E).
+                                                         Must be resolved
+                                                         before any 04B
+                                                         DEPLOY, though not
+                                                         before local 04B
+                                                         work starts
+
+04B READINESS: BLOCKED. Only owner actions are needed; no engineering work
+remains.
+
+
+==================================================================
+13. BLOCKERS
+==================================================================
+
+  B1 (blocks starting 04B): the fail-closed adapter change (category B, 5
+     paths) is uncommitted. Starting 04B on this tree would mix intake work
+     into homepage changes. Clears when the owner approves and C1 is
+     committed. C2/C3 are recommended at the same time.
+
+  B2 (blocks any 04B production deploy, not 04B local work): the production
+     request path is unverified. Vercel still holds the old integration id,
+     and its receiving organization was never confirmed. Clears when the
+     §10 sequence is complete and the QA request is confirmed in Zenward's
+     own Nemryn organization.
+
+  Housekeeping (not a blocker, fix before the next commit): malformed git
+  author identity (§9 pre-step).
+
+Once B1 clears, 04B is READY to begin locally. Push 680f255 + C1 (+ C2/C3)
+before or alongside the first 04B deploy, and clear B2 before any 04B change
+reaches production.
+
+STOP. Nothing committed, pushed or deployed. ZW-WEB-04B not started.

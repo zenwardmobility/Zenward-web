@@ -1,0 +1,1488 @@
+ZW-WEB-04A — GOOGLE ADS WEBSITE READINESS AUDIT
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: AUDIT ONLY. No website, intake, Nemryn, environment or deployment
+changes. Nothing committed, pushed or deployed. The only file written is this
+report.
+
+Method: full read of every route, shared component, content module, intake
+and analytics module, and the product/architecture/brand docs; plus read-only
+HTTP GETs against production (https://www.zenwardmobility.com) to confirm
+what is actually live. No form was submitted to production.
+
+Classification keys used throughout:
+  P0  must fix before paid traffic
+  P1  should fix for the initial campaign
+  P2  valuable after the campaign starts
+  P3  future optimization
+  04B Homepage hierarchy and messaging
+  04C Service-page enhancement + wheelchair service prominence
+  04D Google Ads landing pages + local relevance + conversion measurement
+  04E Trust layer + launch QA / remaining readiness
+
+This is an engineering/product audit, not legal advice. Every item marked
+LEGAL or OWNER needs that review before it is acted on.
+
+
+==================================================================
+1. EXECUTIVE VERDICT
+==================================================================
+
+NOT READY for paid Google Search traffic.
+
+The site is honest, calm, well-engineered and on-brand. The request flow is
+privacy-careful and fails closed. The seven-service taxonomy is clean in
+source. Those are solid foundations to build on; this is enhancement work,
+not a rebuild.
+
+But nine things block a responsible paid launch:
+
+  1. PRODUCTION IS BEHIND SOURCE. Commit 680f255 (wheelchair service,
+     recurring form, final Nemryn mapping) is committed locally but NOT
+     pushed. Live checks on 2026-10-15:
+       /services/wheelchair-transportation ............ 404
+       request form "Service needed" options .......... 6 + Other
+                                                        (no wheelchair)
+       ?service=wheelchair_transportation ............. ignored
+       sitemap.xml .................................... 14 URLs, no
+                                                        wheelchair page
+     A wheelchair ad today would land on a 404 or on a form that does not
+     list the service.
+
+  2. REQUEST DELIVERY IN PRODUCTION IS UNVERIFIED. Per the uncommitted
+     ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET report, Vercel Production
+     still holds the OLD Nemryn integration id. If that integration was
+     disabled, every online request currently fails with "We couldn't submit
+     your request... call us". Paying for clicks into a form that cannot
+     deliver is the most expensive failure mode. No end-to-end QA request
+     into the new Nemryn integration is recorded.
+
+  3. NO GEOGRAPHY ANYWHERE. The site is deliberately geography-neutral
+     (docs/product/marketing-scope.md). No page, title, description, schema
+     or FAQ says where Zenward operates; the homepage FAQ answer is "expanding
+     service availability by market". Metro Atlanta is NOT documented as
+     confirmed anywhere in this repo (see §7). A local-intent searcher cannot
+     tell whether Zenward serves them, and Google cannot either.
+
+  4. NO CONVERSION MEASUREMENT. analytics/events.ts dispatch() is a no-op in
+     production. No GA4, Google Ads tag, GTM or other vendor is installed. No
+     event exists for phone clicks or for provider enquiry submissions.
+
+  5. PHONE IS NOT ON THE FIRST SCREEN. On mobile the header shows only the
+     logo and a hamburger; the hero's two CTAs are "Request Transportation"
+     and "Talk to Our Team" (a contact FORM). The phone number first appears
+     in the banner below the hero. The desktop header has no phone number.
+     For an NEMT audience that skews toward older adults and caregivers,
+     the call is likely the main conversion path.
+
+  6. NO LANDING PAGES MATCH SEARCH INTENT LOCALLY. No campaign pages exist.
+     The service pages are good but have no local context, no imagery, and
+     generic titles ("Dialysis Transportation | Zenward Mobility").
+
+  7. PRIVACY POLICY CONTRADICTS CURRENT AND PLANNED PRACTICE. /privacy says
+     "We do not use a third party to process the detailed contents of
+     transportation requests through this website" (requests now go to
+     Nemryn, a separate CRM/operations service), and "no advertising or
+     cross-site tracking cookies" (the Google Ads conversion tag sets
+     advertising cookies). Both /privacy and /terms say "pre-launch draft".
+
+  8. HEALTHCARE ADVERTISING BOUNDARIES ARE NOT DEFINED. Page URLs
+     (/services/dialysis-transportation, ?service=wheelchair_transportation)
+     and the current conversion event parameter (hasReturnTrip) carry
+     health-adjacent or trip context. Before any tag is installed, the owner
+     plus a specialist must decide what may be sent to Google (§13).
+
+  9. BROWSER IDENTITY IS THE DEFAULT. src/app/favicon.ico is the
+     create-next-app / Vercel black-triangle icon (confirmed visually; 25,931
+     bytes). Branded favicon and app icons exist in public/brand/ but are
+     untracked and not wired. It's a small detail, but it is visible in
+     every browser tab.
+
+Fix order: release and verify the existing work (1, 2, 9). Get owner
+decisions on geography, measurement and privacy (3, 4, 7, 8). Then 04B-04D
+make the first screen, the service pages and the landing pages fit paid
+search (5, 6).
+
+
+==================================================================
+0. REPOSITORY STATE (prerequisite)
+==================================================================
+
+git status (2026-10-15):
+  Branch main, AHEAD of origin/main by 1 commit.
+  Modified (unstaged):
+    .env.example
+    docs/architecture/request-intake-boundary.md
+    src/lib/request-intake/adapter.test.mjs
+    src/lib/request-intake/adapter.ts
+  Untracked:
+    docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt
+    public/brand/   (12 files: favicon 16/32/svg, app icons 192/512/
+                     512-maskable, logo/symbol/wordmark primary + inverse)
+
+git log --oneline -10:
+  680f255 Connect Zenward structured request intake to Nemryn   <- NOT PUSHED
+  d7782a3 Send site Origin on the server-to-server Nemryn intake call
+  8f1526f Connect Zenward transportation requests to Nemryn
+  541181c Document ZW-WEB-03B production deployment
+  ac4a47f Strengthen Zenward medical transportation positioning
+  cb615f5 Document ZW-WEB-03A production deployment
+  7ccf813 Add dedicated Zenward service pages
+  19ee3f0 Fill in production verification results in van image report
+  3793072 Update Zenward van image phone number
+  5cc2b40 Update Zenward vehicle imagery phone number
+
+Production baseline: origin/main = d7782a3. Live behaviour matches d7782a3:
+6 public services, no wheelchair route/option, 14-URL sitemap. No recorded
+deployment report exists for 8f1526f / d7782a3, and Vercel was not
+accessed, so "d7782a3 is live" is inferred from behaviour.
+
+Unfinished work (documented, NOT touched):
+  a. 680f255: complete ZW-WEB-03B2 release (wheelchair service, recurring
+     schedule, final Nemryn mapping). Committed and unpushed.
+  b. Uncommitted "unlinked adapter" change (4 files): the stub adapter now
+     fails closed ("Online requests are temporarily unavailable... call us")
+     instead of showing a false "Request received". The reset report says
+     this is pending owner approval.
+  c. Untracked public/brand/ icon and logo set. Not referenced by any code.
+  d. Vercel Production env still holds the old Nemryn integration id (per
+     the reset report). Owner action.
+
+Nothing was modified, reset, stashed, cleaned or discarded.
+
+
+==================================================================
+2. CURRENT ROUTE INVENTORY
+==================================================================
+
+Route                                      Class                 Source  Prod
+-----------------------------------------  --------------------  ------  ----
+/                                          homepage              yes     200
+/services                                  services overview     yes     200
+/services/medical-appointments             service page          yes     200
+/services/dialysis-transportation          service page          yes     200
+/services/rehabilitation-transportation    service page          yes     200
+/services/hospital-discharge-transportation service page         yes     200
+/services/recurring-care-transportation    service page          yes     200
+/services/senior-medical-transportation    service page          yes     200
+/services/wheelchair-transportation        service page          yes     404 (!)
+/request-transportation                    request flow          yes     200
+/healthcare-providers                      provider page         yes     200
+/contact                                   contact               yes     200
+/about                                     about                 yes     200
+/privacy                                   legal                 yes     200
+/terms                                     legal                 yes     200
+/sitemap.xml, /robots.txt                  utility               yes     200
+/opengraph-image.jpg                       utility               yes     200
+/favicon.ico                               utility (default)     yes     200
+/#how-it-works                             anchor, not a route   -       -
+(any unknown path)                         Next default 404      -       404
+
+Not present:
+  service-area/local pages ...... none (/locations/atlanta -> 404)
+  campaign/landing pages ........ none
+  resources/content ............. none
+  custom not-found page ......... none (Next default "404: This page could
+                                  not be found." inside the site shell, with
+                                  no CTA or phone)
+  manifest / apple-touch-icon ... none (/manifest.webmanifest 404,
+                                  /apple-touch-icon.png 404)
+
+Redirects (production): apex -> 308 -> https://www. ; http -> 308 -> https.
+Correct.
+
+MISSING ROUTES
+
+A. Organic / service discovery
+   - /locations/metro-atlanta (or the confirmed market name): one service-
+     area hub page. Gated on owner confirmation (§20). P1, 04D.
+   - Optional, P2: a standalone /how-it-works page (today it's a homepage
+     anchor in the nav, so ads and organic search can't land on it).
+   - Not recommended now: per-city/per-county pages, a blog, or a
+     "resources" section. Those would be thin content without verified
+     local facts.
+
+B. Google Ads conversion
+   - Four campaign landing pages (§8). P0, 04D.
+   - Custom not-found page with phone + Request CTA. P1, 04E.
+   - No separate thank-you route. Keep the in-page success state (see §12:
+     a thank-you URL containing a service name would leak health context to
+     analytics).
+
+C. Metro Atlanta / local intent
+   - The service-area hub (A). Each campaign landing page also carries
+     local context. No thin city pages.
+
+
+==================================================================
+3. HOMEPAGE FINDINGS
+==================================================================
+
+Source: src/app/page.tsx, src/components/public/HomeHero.tsx. Sections in
+order (as committed in 680f255; production differs only in the wheelchair
+link and FAQ item):
+
+ #  Section                                  Tone          Assessment
+ -- ---------------------------------------  ------------  --------------------
+ 1  Hero: eyebrow "Non-Emergency Medical      navy photo    Strong photo; H1 is a
+    Transportation"; H1 "Care that gets you                 tagline, not a
+    there."; lede; Request + Talk to Our                    service statement.
+    Team                                                    No geography, no
+                                                            phone.
+ 2  Overlap banner "Need transportation?"    white card    Good. First phone
+    Request + Call                                          CTA. On mobile it
+                                                            sits below the fold.
+ 3  "What you can count on" — 4 principle    white         Generic. Abstract
+    cards                                                   claims, no proof.
+ 4  "Getting to care should feel more         mist          Good image use.
+    certain" + 3 bullets                                    Overlaps 3 and 9.
+ 5  Patients & Families + Request CTA        white         Good caregiver
+                                                            relevance.
+ 6  Why Medical Transportation (ruled list)  mist          Good editorial
+                                                            treatment. Overlaps
+                                                            3/4/9 in substance.
+ 7  For Healthcare Providers (4 cards)       navy          Fine. Comes BEFORE
+                                                            the service list.
+ 8  "Transportation for essential care" —    white         Services arrive at
+    6 cards + wheelchair text link + no-                    section 8. Wheelchair
+    ambulance line                                          is a text line, not
+                                                            a card.
+ 9  From request to arrival (4 steps)        mist          Clear.
+10  Dependability is in the details (4)      white         Repetitive with 3/4/6.
+11  For Healthcare Organizations CTA         navy-grad     Second provider
+                                                            section.
+12  Need medical transportation? final CTA   navy          Good. Third dark band
+                                                            in a row (7 aside,
+                                                            11->12 adjacent).
+13  FAQ (6 items)                            white         "Where does Zenward
+                                                            operate?" doesn't
+                                                            answer the question.
+
+FIVE-SECOND TEST (Google Search visitor, first screen)
+
+  Q1 What does Zenward do?
+     PARTIAL. The small gold eyebrow says "Non-Emergency Medical
+     Transportation", but the large H1 is the tagline. The lede ("Dependable
+     medical transportation for appointments, treatments, discharge journeys,
+     and scheduled care") does the work, but it is the third thing read.
+
+  Q2 Does Zenward serve my area?
+     NO. Nowhere on the page, in metadata or in schema.
+
+  Q3 Does Zenward provide the transportation type I need?
+     PARTIAL. The lede lists four categories. Wheelchair is visible only in
+     the photograph; no text above the fold mentions it. The service list is
+     section 8.
+
+  Q4 Can I call someone?
+     DESKTOP: PARTIAL. Not in the header or hero; it's in the overlap banner,
+     which usually shows above the fold at >=800px viewport height.
+     MOBILE: NO. Header = logo + hamburger. Hero min-height is 33rem plus the
+     72px header, so the banner's Call button lands below the first screen
+     on a 390x844 device. The phone is in the hamburger menu.
+
+  Q5 How do I request transportation?
+     YES. "Request Transportation" is the primary hero CTA.
+
+  Q6 Is submitting the form a confirmed booking?
+     PARTIAL. The overlap banner says "reviews every request and follows up
+     to confirm". The explicit "not a confirmed booking" wording is in
+     section 6 and the FAQ. It is clear on the request page itself.
+
+DETAILED HOMEPAGE FINDINGS
+
+  H-01 (P0, 04B) No phone CTA on the mobile first screen or in the desktop
+       header. Add a persistent tap-to-call to the header (both sizes) and
+       make the hero's secondary CTA "Call 678-935-5489" for transportation
+       intent. Keep "Talk to Our Team" for provider intent elsewhere.
+  H-02 (P0, 04B/04D) No geography. After owner confirmation, state the
+       market in the hero support line, the overlap banner, the FAQ answer,
+       the title/description and the schema.
+  H-03 (P1, 04B) H1 is a tagline. Keep "Care that gets you there." as the
+       brand line, but make the H1 (or the line directly attached to it)
+       name the service plainly (e.g. "Non-emergency medical transportation
+       in <confirmed market>"). Copy to be decided in 04B.
+  H-04 (P1, 04B/04C) The service list comes too late (section 8). Searchers
+       need to see the transportation types early. Move the services grid
+       up, right after the overlap banner.
+  H-05 (P1, 04C) Wheelchair transportation is a sentence under six cards,
+       not a seventh card. The homepage hard-codes its own 6-item SERVICES
+       array instead of using SERVICE_ORDER from src/lib/services.ts, so the
+       homepage and /services have drifted. Make it a peer card, without
+       making it the headline service.
+  H-06 (P1, 04B) Repetition. Four sections make the same abstract promise
+       ("clear communication / reviewed by a person / respectful / built
+       around the appointment"): 3, 4, 6 and 10. Consolidate to one
+       reassurance section and one editorial "why" section.
+  H-07 (P1, 04B) Two separate provider sections (7 and 11) push the family
+       path down. For paid traffic, keep one provider band and move it below
+       services and process.
+  H-08 (P2, 04B) Three heavy dark bands close together (11 navy-gradient,
+       12 navy; 7 navy above). This flattens the rhythm and weakens the
+       final CTA's contrast.
+  H-09 (P1, 04B) The FAQ "Where does Zenward operate?" answer reads as
+       pre-launch. Replace it with the confirmed area plus "call to confirm
+       your trip".
+  H-10 (P2, 04B) Recurring care appears in four places (6, 8, 9, 10), but
+       the homepage never shows the actual mechanism (Recurring option on the
+       form, schedule review). A one-line "Regular trips? Describe your
+       schedule once" with a link would cover it.
+  H-11 (P1, 04B) Family/caregiver relevance is good (section 5, FAQ) but
+       sits below the first screen. A short "for yourself or someone you
+       care for" line near the hero CTA would carry it.
+  H-12 (P2, 04B) Footer: phone and both CTAs present (good). No location
+       line and no hours (owner facts). Footer CTA links are untracked.
+  H-13 (P1, 04D) Homepage has no metadata export, so it has no
+       rel=canonical and no og:url (confirmed live). Title is the bare
+       "Zenward Mobility".
+
+
+==================================================================
+4. SERVICE TAXONOMY FINDINGS
+==================================================================
+
+Authoritative sources (all consistent with each other in source):
+  docs/product/marketing-scope.md "Services presented (approved list)" —
+    seven services, wheelchair owner-confirmed 2026-09-19, explicit
+    do-not-claim list.
+  src/lib/services.ts — SERVICES (7) + SERVICE_ORDER + SERVICE_PATHS.
+  src/lib/request-intake/service-types.ts — SERVICE_TYPES (7 + other),
+    PUBLIC_SERVICE_TYPES (7 + other), PUBLIC_SERVICE_PARAMS (7).
+
+Where the seven services appear (committed source):
+
+  Service            services.ts  /services  Home cards  Form option  ?service=  Sitemap
+  -----------------  -----------  ---------  ----------  -----------  ---------  -------
+  Medical appts      yes          yes        yes         yes          yes        yes
+  Dialysis           yes          yes        yes         yes          yes        yes
+  Rehabilitation     yes          yes        yes         yes          yes        yes
+  Hospital discharge yes          yes        yes         yes          yes        yes
+  Recurring care     yes          yes        yes         yes          yes        yes
+  Senior medical     yes          yes        yes         yes          yes        yes
+  Wheelchair         yes          yes (7th,  NO - text   yes          yes        yes
+                                  wide)      link only
+
+Production: wheelchair is absent from every column (see §1 item 1).
+
+Naming drift (P1, 04C). Each service has three or four names across the
+site:
+  "Dialysis visits" (home card) / "Dialysis Visits" (/services card) /
+    "Dialysis Transportation" (page) / "Dialysis transportation" (form)
+  "Recurring scheduled care" / "Recurring Scheduled Care" / "Recurring Care
+    Transportation" / "Recurring care transportation"
+  "Medical appointments" / "Medical Appointments" / "Transportation to
+    Medical Appointments" / "Medical appointment"
+  "Rehabilitation appointments" / "Rehabilitation Appointments" /
+    "Rehabilitation Transportation"
+  "Wheelchair Transportation" everywhere. The brief and likely search
+    phrasing say "wheelchair-accessible transportation"; the owner
+    confirmation says "wheelchair transportation". Owner to confirm the
+    preferred public label (§20).
+Recommendation: one canonical public label per service, defined in
+services.ts and used by the cards, form labels and landing pages.
+
+No taxonomy item claims ambulance, stretcher, emergency, medical care,
+oxygen, lifting/transfer, door-through-door, Medicaid or insurance. Several
+pages explicitly deny ambulance/stretcher/emergency. Clean.
+
+
+==================================================================
+5. PER-SERVICE-PAGE ASSESSMENT
+==================================================================
+
+All seven pages share one renderer (src/components/public/ServicePage.tsx):
+navy-gradient hero (back link, eyebrow, H1, lede, Request + Call, "at a
+glance" panel) -> 4 sections in per-page order (audience / coordinate /
+expect / scenarios) -> FAQ (5) + up to 2 related links -> navy CTA band
+(Request + Call + 911 line).
+
+Shared strengths:
+  + Plain, honest, specific copy; strong "request is not a booking"
+    discipline.
+  + Request and Call CTAs in the hero and at the close. The phone link is a
+    48px+ button. Request preselects the service via ?service=.
+  + Family/caregiver/coordinator audiences are named on every page.
+  + Real FAQs that answer real objections.
+  + Unique title, description and canonical (confirmed live for dialysis).
+
+Shared weaknesses (apply to every page):
+  S-01 (P0 for ad destinations, 04C/04D) No local relevance. No market,
+       area or "serving ..." line in copy, title or description.
+  S-02 (P1, 04C) No imagery. Each page is icon + text only, with one navy
+       hero band. Visually thin next to the homepage; reads as templated.
+       The wheelchair/ramp photograph fits the wheelchair page especially
+       well.
+  S-03 (P1, 04C) FAQ answers are mostly absent from the HTML. FaqAccordion
+       renders only the open item (index 0); the others exist only in the
+       React payload. That weakens crawlability, and on-page "find" can't
+       see them. Use <details>/<summary> or render all answers and hide them
+       with CSS.
+  S-04 (P2, 04C) No structured data on service pages (no Service,
+       BreadcrumbList). FAQPage rich results are limited by Google to
+       authoritative government/health sites, so that markup is low-value;
+       do not prioritise it.
+  S-05 (P1, 04C) Titles are generic and local-less: "Dialysis
+       Transportation | Zenward Mobility". Add the confirmed market once
+       approved.
+  S-06 (P1, 04C) No trust/reassurance block (who Zenward is, how fast
+       someone responds, hours). Depends on owner facts (§20).
+  S-07 (P1, 04C) Mobile: the hero stacks back link, eyebrow, H1, long
+       lede, then two full-width CTAs, then the glance panel. The CTAs land
+       around the bottom of the first screen. Shorten the lede on mobile or
+       move the CTAs up.
+  S-08 (P2, 04C) Related links are capped at 2, and dialysis and rehab
+       don't link to wheelchair. Fine for SEO restraint; slightly weak for
+       wheelchair discovery.
+  S-09 (P1, 04D) The service-page Request CTA event uses source
+       "service_page" with no way to tell which page. That's acceptable
+       given §13. Do NOT add the service name to ad-platform events.
+
+Per page:
+
+  /services/medical-appointments
+    Intent match: good for "medical appointment transportation". H1
+    "Transportation to your medical appointments". Depth good. Related:
+    wheelchair only. Safe for paid traffic after S-01/S-05 (+ local).
+    -> ENHANCE.
+
+  /services/dialysis-transportation
+    Intent match: strong ("dialysis transportation"). Excellent
+    recurring/return-trip handling ("treatment end times can vary").
+    Related: recurring only (no wheelchair). Health-sensitive URL (§13).
+    Safe for paid traffic after local + measurement boundaries. -> ENHANCE.
+
+  /services/rehabilitation-transportation
+    Intent: good. Lower search volume; not a launch ad group. -> ENHANCE
+    (P2).
+
+  /services/hospital-discharge-transportation
+    Intent: good for families and discharge planners. "send the request as
+    early as you can" is good. Same-day discharge capability unknown (owner).
+    Not a launch ad group. -> ENHANCE.
+
+  /services/recurring-care-transportation
+    Intent: weak search term on its own; a strong supporting page for
+    dialysis/rehab. Defaults the form to Recurring (good). -> ENHANCE (P2).
+
+  /services/senior-medical-transportation
+    Intent: good ("senior medical transportation", "transportation for
+    elderly to doctor"). Care-organization audience included. Possible
+    secondary ad group. -> ENHANCE.
+
+  /services/wheelchair-transportation (source only; 404 in production)
+    Intent: strong for "wheelchair transportation" / "wheelchair van
+    transportation". Copy is careful: no lifting/transfer/door-through-door
+    claims, 911 FAQ. Lacks: the ramp-van photograph, any vehicle
+    description (owner must confirm ramp/lift, securement; §20), and local
+    context. -> RELEASE (680f255) then ENHANCE. P0 to release before any
+    wheelchair ad.
+
+None of the seven pages needs replacement. All need enhancement.
+
+
+==================================================================
+6. WHEELCHAIR-SERVICE ASSESSMENT
+==================================================================
+
+Checklist (committed source @680f255 / production @d7782a3):
+
+  Location                      Source                        Production
+  ----------------------------  ----------------------------  ----------
+  Taxonomy (wire enum)          yes                           yes
+  Public taxonomy               yes                           NO
+  Services overview             yes (7th, wide, last)         NO
+  Homepage                      text link under cards; FAQ    photo only
+                                item; hero/OG photo
+  Service page                  yes                           404
+  Request selector              "Wheelchair transportation"   NO
+  URL preselection              ?service=wheelchair_          ignored
+                                transportation
+  Sitemap                       yes (via SERVICE_PATHS)       NO
+  Metadata                      title/description present     n/a
+  Internal links                from medical, discharge,      none
+                                recurring, senior (related);
+                                scenario links back out
+  Healthcare-provider page      not mentioned                 not mentioned
+  Structured data               none                          none
+
+Discrepancies:
+  W-01 (P0, 04C) Not released. Push/deploy 680f255 (owner approval), then
+       verify all production rows above.
+  W-02 (P1, 04C) Homepage presents it as an afterthought line, not a peer
+       card. Make it the seventh card with equal weight. Do NOT lead the
+       hero with it: the brief says wheelchair is one important service
+       within broad NEMT.
+  W-03 (P1, 04C) The /services card is last and rendered "wide". That makes
+       it visually different, but because it's last, a reader may skim past
+       it. Acceptable; revisit order in 04C.
+  W-04 (P1, 04C) The page doesn't use the wheelchair/ramp photography,
+       which is the most on-topic asset the site has.
+  W-05 (P1, OWNER) Vehicle facts are unconfirmed: ramp vs lift, wheelchair
+       securement, whether the passenger rides in their own chair, whether a
+       companion may ride, any chair size/weight limits. The page correctly
+       claims none of these. Search users will want them.
+  W-06 (P2, 04C) Provider page lists audiences/value props but never
+       mentions that wheelchair trips can be requested for patients.
+
+Balance check: the hero photograph (wheelchair + ramp) plus a wheelchair
+landing page and ad group is enough prominence. The H1, the eyebrow and the
+homepage service order should stay broad NEMT. That avoids looking
+wheelchair-only.
+
+
+==================================================================
+7. LOCAL / METRO ATLANTA READINESS
+==================================================================
+
+What the repository documents about geography:
+  - CURRENT POLICY: geography-neutral. marketing-scope.md says no state,
+    region, county or city appears in site copy, metadata or structured
+    data; rollout is tracked in platform decision ZD-016 (not in this repo).
+    business.ts has a comment explaining the deliberate absence of
+    serviceArea.
+  - HISTORICAL: "Georgia" was the launch market (README.md line 3 still
+    says "launching in Georgia"; WEB-P1-E2 had areaServed: Georgia). It was
+    removed in WEB-GEOGRAPHY-NEUTRAL-POSITIONING / ZW-WEB-01E.
+  - marketing-scope.md "Future local SEO model" names /locations/atlanta
+    only as an EXAMPLE of a page to create "only after operations in that
+    market are real".
+  - The business phone (678) is a Metro Atlanta area code. That's a
+    telephone fact, not a service-area confirmation.
+
+=> Metro Atlanta is NOT confirmed as a service area in this repository.
+   Georgia is documented only historically, and was deliberately withdrawn.
+   No city or county coverage is documented. Everything below assumes the
+   owner will confirm the market. Until they do, local copy cannot be
+   written under the brief's own rule.
+
+Current geographic signals (all absent):
+  homepage market reference ......... none ("expanding by market")
+  service-area page ................. none
+  city/market content ............... none
+  address/location signals .......... none (no address published; schema is
+                                      deliberately Organization, not
+                                      LocalBusiness)
+  local metadata .................... none
+  schema areaServed ................. deliberately omitted
+  footer location context ........... none
+  sitemap local routes .............. none
+  Google Business Profile link ...... none (existence unknown)
+
+What's missing for Metro Atlanta acquisition:
+  L-01 (P0, OWNER) Confirm the market and its boundary: which counties
+       and/or cities are served, and what happens to out-of-area requests.
+       This also drives Google Ads location targeting. If the Ads geo-target
+       is wider than the real service area, the spend is wasted and the
+       experience is poor.
+  L-02 (P0, OWNER/04D) Decide how to reconcile with the geography-neutral
+       policy in marketing-scope.md. The marketing-scope model ("neutral
+       brand + market pages once operations are real") is compatible with a
+       Metro Atlanta hub page and Atlanta campaign pages. What needs a
+       decision is whether the homepage and service pages may also name the
+       market. Recommendation: allow a single "Serving <confirmed market>"
+       line sitewide (hero support line, footer, FAQ), keep the brand line
+       neutral, and put detailed area content on the hub page.
+  L-03 (P1, 04D) /locations/metro-atlanta hub: confirmed area list (only
+       confirmed counties/cities), how requests work, all services, phone,
+       request CTA. One page, not a page per city.
+  L-04 (P1, 04D) Schema: add areaServed only with the confirmed areas.
+       Keep Organization unless a public address is confirmed (then consider
+       LocalBusiness with a service-area business configuration; owner).
+  L-05 (P1, OWNER) Google Business Profile: does one exist, and is it a
+       service-area business? Site name, phone and area should match it.
+  L-06 (P2, 04E) Update stale docs (README "launching in Georgia",
+       marketing-scope geography section) once the decision is made.
+
+
+==================================================================
+8. GOOGLE ADS LANDING-PAGE GAP
+==================================================================
+
+Current state: NO dedicated campaign landing pages. The ten public routes
+are general site pages. Service pages are the closest match, but they're
+indexable, nav-heavy, local-less and not built around a single ad promise.
+They shouldn't be treated as campaign pages yet.
+
+Minimum launch architecture (recommendation, not implemented):
+
+  Four campaign pages, one per high-intent ad group, built from one shared
+  landing template with genuinely distinct content per page:
+
+    LP1  Non-emergency medical transportation, <market>   (core / broad)
+    LP2  Wheelchair transportation, <market>
+    LP3  Dialysis transportation, <market>
+    LP4  Medical appointment transportation, <market>
+
+  Path: e.g. /atlanta/non-emergency-medical-transportation, or a neutral
+  campaign prefix. URL wording is a §13 decision: descriptive URLs help
+  relevance, but they put the service name into every analytics page view.
+  Owner + specialist to choose.
+
+  Indexing: noindex campaign pages (they would duplicate the service
+  pages) and keep the enhanced service pages as the organic targets.
+  Alternatively, make LP1 the indexable /locations hub and noindex
+  LP2-LP4. Either way, avoid two indexable pages competing for the same
+  query.
+
+  Shared template, top to bottom:
+    1. Compact header: logo, tap-to-call (always visible), Request button.
+       Reduced nav (no full menu) to cut distraction. Keep a link home.
+    2. Hero: H1 = service + market in plain words; one support line with
+       the broad-NEMT context; Request (preselected service) + Call; one
+       line "A request is reviewed and confirmed by Zenward; it is not an
+       instant booking."
+    3. Who it's for (patients, families, caregivers, care coordinators).
+    4. How it works (3-4 steps, same truth as today).
+    5. What Zenward does / does not do (non-emergency only; 911 line).
+    6. Service-specific block: wheelchair = mobility-details-in-request +
+       confirmed vehicle facts only; dialysis = recurring schedule and
+       return-trip timing; appointments = return trip, family requester.
+    7. Service area (confirmed list) + "call to confirm your trip".
+    8. Short FAQ (4-5, all answers rendered).
+    9. Related services row (keeps broad-NEMT visible, so the wheelchair
+       page doesn't read as wheelchair-only).
+   10. Closing CTA band + legal links (Privacy, Terms) in the footer.
+
+  Not recommended for launch: rehab, discharge, recurring and senior ad
+  groups (lower or ambiguous search volume; add after data); city-by-city
+  pages; dynamic keyword insertion into the H1.
+
+  Classification: LP1-LP4 = P0, 04D (each page that receives spend must
+  exist and be locally relevant). Expanding beyond four = P2.
+
+
+==================================================================
+9. CONVERSION-PATH MAP
+==================================================================
+
+PATH A — Search -> landing/service page -> Request -> successful request
+
+  Google ad
+    -> /services/<x> (today) or LP (future)
+         hero CTA "Request Transportation" (TrackedLinkButton,
+         event request_transportation_clicked {source:"service_page"})
+    -> /request-transportation?service=<allow-listed>
+         server resolves ?service= -> preselects the select
+         phone card "Prefer to arrange by phone?" above the form
+         form focus -> request_form_started (once)
+    -> submit -> Server Action (whitelist, caps, honeypot, 2.5s min fill,
+         tenancy rejection) -> adapter
+         platform + valid config + Nemryn 200 {"ok":true}
+           -> "Request received" + "Zenward will review..."
+           -> request_form_submitted {hasReturnTrip} (no-op today)
+         any failure -> inline red error, form kept, "call us" in text
+  Breakpoints:
+    - wheelchair ad -> 404 in production (W-01)
+    - production delivery unverified (§1 item 2)
+    - conversion not measured (dispatch no-op)
+
+PATH B — Search -> landing/service page -> phone call
+
+  Google ad (or call asset in the ad itself)
+    -> page -> tap "Call 678-935-5489" (tel:+16789355489)
+  Breakpoints:
+    - homepage mobile first screen has no call button (H-01)
+    - NO analytics event exists for any tel: click (none of the 8-13 tel
+      links on a page are tracked)
+    - no call-answering hours published (owner)
+  Phone hrefs: all from business.ts, all tel:+16789355489, correct E.164.
+  Live homepage: 8 tel: links; dialysis page: 6. Consistent.
+
+PATH C — Healthcare provider -> provider page -> contact/conversation
+
+  Homepage provider band ("Talk to Zenward", event provider_cta_clicked)
+    or nav "Healthcare Providers"
+    -> /healthcare-providers (hero + closing "Talk to Zenward")
+    -> /contact (generic form; topic NOT preselected to "provider")
+    -> submitContactMessage -> contact adapter
+         CONTACT_INTAKE_MODE=email + Resend 2xx -> "Message received"
+         stub (production state UNKNOWN) -> "This message wasn't sent...
+           please call"
+  Breakpoints:
+    - production contact mode unverified; if stub, every provider enquiry
+      is turned away (honestly) to the phone
+    - no "provider enquiry submitted" event
+    - provider page has no phone CTA at all (only "Talk to Zenward" ->
+      form)
+    - topic not preselected from the provider CTA
+
+CTA consistency audit:
+  "Request Transportation"  -> /request-transportation everywhere. Good.
+  "Talk to Our Team" / "Talk to Zenward" -> /contact. Two labels for one
+    destination. Minor (P3).
+  Header desktop: "Talk to Our Team" + "Request Transportation". No phone.
+  Header mobile: hamburger only. Request, Talk and Call are inside the menu.
+  Footer: phone + Request + Talk (untracked links).
+  /services closing CTA: request_transportation_clicked {source:"other"}
+    although a "services_page" source exists (P2, 04D).
+
+Navigation distractions on paid paths: the full 5-link nav plus two header
+buttons on every page. Acceptable on service pages; reduce on campaign LPs.
+
+
+==================================================================
+10. REQUEST-FORM READINESS
+==================================================================
+
+Source: src/components/public/RequestTransportationForm.tsx,
+src/app/request-transportation/{page,actions}.ts, adapter.ts.
+
+Fields (one-time): service*, frequency, your name*, relationship*,
+phone*, email, passenger name*, return trip*, pickup*, destination*,
+preferred date, preferred time, assistance notes, additional notes.
+(Recurring swaps date/time/return for days*, start date*, end date,
+appointment time, return expected*.) 8 required in one-time mode.
+
+Strengths:
+  + Service preselection by allow-listed ?service= (server-resolved).
+  + Clear "not a confirmed booking" copy above and below the form.
+  + Phone alternative card above the form.
+  + Stable submissionId for idempotent retries; network failure keeps the
+    form intact.
+  + Success state focuses a role=status panel; errors use role=alert.
+  + Conversion gated on delivered === true.
+  + No browser storage of form content (privacy-correct; also means no
+    "dropped form" recovery, which is the right trade-off here).
+
+Findings:
+  R-01 (P0, 04E) Verify production delivery end-to-end with a labelled QA
+       request into the NEW Nemryn integration before spend (§1 item 2).
+  R-02 (P0, 04E) Decide and land the uncommitted fail-closed "unlinked"
+       adapter change. Committed code (680f255) still has the stub path
+       that shows "Request received — We have your details" while
+       delivering nothing. It isn't reachable in production while
+       platform mode is configured, but it is one env-var mistake away.
+  R-03 (P1, 04D) Error state has no clickable phone link. Errors say "call
+       us" as plain text; the call card is above the form and usually
+       scrolled out of view on mobile. Add a tel: button next to the
+       role=alert message.
+  R-04 (P2, 04D) Form length is reasonable for NEMT. Possible friction
+       reducers, without dropping operational fields: group into "Who /
+       Where / When" with headings; make "Passenger's name" optional when
+       relationship = self (currently required with help text "If different
+       from you", which contradicts itself).
+  R-05 (P2, 04D) Required-field indication relies on the browser/asterisk
+       convention of the Input component; spot-check visually in 04E.
+  R-06 (P2, 04E) The success panel has no "what happens next / when"
+       (response time, hours). Owner facts needed.
+  R-07 (P3) No date min validation (past dates accepted). Low risk; staff
+       review every request.
+  R-08 (P1, 04D) No acquisition data (UTM/gclid/landing path) reaches
+       Nemryn. That blocks offline conversion import and lead-source
+       reporting. Blocked on Nemryn's published acquisition contract (per
+       the reset report). Don't guess the shape.
+
+
+==================================================================
+11. PHONE-CONVERSION READINESS
+==================================================================
+
+  + Single source (business.ts), correct tel:+16789355489, accessible
+    labels, 48px targets.
+  + Phone appears on the request page, contact page, service pages (hero +
+    close), homepage banner + 2 more homepage CTAs, footer, mobile menu.
+  - P0 (04B) Not on the homepage mobile first screen. No persistent
+    header call button at any size (H-01).
+  - P0 (04D) No click-to-call event. Recommend a dedicated
+    phone_call_clicked {source} event with a placement source only.
+  - P1 (04B/04D) Healthcare-provider page has no phone CTA.
+  - P1 (OWNER) Call-answering hours and after-hours handling are not
+    stated anywhere. Paid calls outside hours that go unanswered waste
+    spend; Ads call assets can be scheduled to answering hours once those
+    are known.
+  - P2 (OWNER/04D) Google forwarding numbers / website call conversions
+    would swap the displayed number. The number is printed on the van in
+    two photographs, so a swapped number on the page next to a different
+    number in the photo would look inconsistent. Recommend: measure calls
+    via call assets (in-ad) plus the tel: click event first, and decide on
+    number swapping later.
+
+
+==================================================================
+12. ANALYTICS / CONVERSION MEASUREMENT AUDIT
+==================================================================
+
+Search results (src, docs, package.json, live HTML):
+  gtag / Google Analytics / GA4 / Google Ads / GTM / googletagmanager
+    ............. none installed (GA4 named only in a comment)
+  Plausible / PostHog ...... comment only
+  dataLayer ............... none
+  @vercel/analytics ........ not a dependency; no /_vercel/insights in live
+                             HTML
+  "conversion" ............. comments/docs only
+
+Infrastructure present:
+  src/lib/analytics/events.ts — typed AnalyticsEvent union, no generic
+  escape hatch, track() never throws, dispatch() = console.debug in dev and
+  NOTHING in production.
+
+Events defined and where they fire:
+  request_transportation_clicked {source}
+      fires: hero, overlap banner, patients_families, why_medical_
+      transportation, final_cta, service_page, services ("other")
+      does NOT fire: header, mobile_nav, footer (they use plain LinkButton /
+      Link even though those source values exist in the union)
+  request_form_started            on first focus inside the request form
+  request_form_submitted {hasReturnTrip}  only when delivered === true
+  provider_cta_clicked {source}   homepage provider band x2 (both
+                                  "homepage"), provider page x2
+  contact_started {topic}         hero "Talk to Our Team" CLICK (topic
+                                  general) and contact form first focus;
+                                  two meanings under one name
+
+Can the four required business events be measured today?
+  transportation request submitted successfully ... DEFINED, gated
+                                                    correctly, NOT SENT
+                                                    anywhere
+  call CTA clicked ................................ NOT DEFINED
+  provider enquiry submitted ...................... NOT DEFINED (contact
+                                                    form fires nothing on
+                                                    success; no topic
+                                                    split)
+  transportation form started ..................... DEFINED, NOT SENT
+
+Privacy posture of the event layer: GOOD. No field in the union can carry
+passengerName, requesterName, email, phone, pickup, destination, dates,
+times, notes, recurring schedule or tenant/integration ids. The guard is
+structural (types), not a convention.
+
+Measurement findings:
+  M-01 (P0, 04D) Choose and install the measurement vendor(s) inside
+       dispatch(). Minimum for Ads: a Google Ads conversion action for
+       request_form_submitted and for phone_call_clicked. GA4 is optional
+       (see §13 on page-path exposure).
+  M-02 (P0, 04D) Add phone_call_clicked {source} and route every tel: link
+       through one tracked component (PhoneCtaButton exists; most tel:
+       links are hand-rolled <a>).
+  M-03 (P1, 04D) Add provider_enquiry_submitted, fired only when the contact
+       adapter reports delivered === true AND topic === "provider". Topic
+       is a business category, not health data. Acceptable.
+  M-04 (P1, 04D) Remove hasReturnTrip from the advertising conversion
+       payload. It's trip detail with no bidding value. Keep the event
+       parameter-free for ad platforms.
+  M-05 (P1, 04D) Wire header/mobile_nav/footer CTAs through
+       TrackedLinkButton; fix /services source "other" -> "services_page";
+       split contact_started into contact_cta_clicked vs
+       contact_form_started.
+  M-06 (P1, 04D) Strip query strings (?service=...) from any page_location
+       / page URL sent to analytics or ads. The allow-listed service value
+       is health-adjacent.
+  M-07 (P2, 04D) Offline conversion import / lead quality: needs gclid/UTM
+       carried to Nemryn (R-08). Blocked on Nemryn's published contract.
+
+serviceType in advertising event parameters — RECOMMENDATION: EXCLUDE.
+  Reasoning: values such as "dialysis", "wheelchair_transportation",
+  "rehabilitation" or "hospital_discharge" reveal a likely health condition
+  or disability of a specific visitor. Sent with an ad click id, that
+  amounts to telling an advertising platform "this identifiable browser is
+  arranging dialysis transport". The bidding gain is small: campaign and
+  ad-group structure already tells Google which keyword drove the click.
+  Keep service-level reporting first-party (Nemryn request records), not in
+  ad platforms. Don't vary conversion values by service either.
+
+
+==================================================================
+13. HEALTHCARE ADVERTISING / PRIVACY RISKS
+==================================================================
+
+(Engineering/product assessment, not legal advice. Items marked LEGAL need
+specialist review.)
+
+Health-adjacent signals on the site today:
+  - Route names: /services/dialysis-transportation, /rehabilitation-...,
+    /hospital-discharge-..., /wheelchair-transportation, /senior-medical-...
+  - Query: /request-transportation?service=dialysis (etc.)
+  - Event parameter: hasReturnTrip (trip detail, low sensitivity)
+  - Form content (never sent to analytics; correct today)
+
+Risks once advertising tags are added:
+  A-01 (P0, LEGAL/OWNER) Ad tags collect page URLs by default. A tag
+       firing on /services/dialysis-transportation sends the URL to Google.
+       Options: (a) fire the Ads tag only on conversion, with a
+       query-stripped, generic page path; (b) use neutral campaign LP paths;
+       (c) accept descriptive URLs with remarketing and personalization
+       disabled. Needs an owner decision with specialist input.
+  A-02 (P0, 04D) Do NOT build remarketing/audience lists around dialysis
+       visitors, wheelchair visitors, medical conditions, mobility or
+       disability status, or any other health signal. Google's personalized
+       advertising policy restricts health-based audiences in any case.
+       Recommended: no remarketing for launch at all. Turn off GA4 Google
+       Signals and ads-personalization sharing if GA4 is used.
+  A-03 (P0, 04D) Enhanced Conversions / user-provided data must stay OFF.
+       It works by hashing and sending email/phone, which is the exact data
+       the brief forbids. Same for Customer Match uploads.
+  A-04 (P0, LEGAL) HIPAA applicability is unknown. Whether Zenward is a
+       covered entity or business associate (e.g. if it bills Medicaid or
+       contracts with covered providers) changes how strictly tracking on
+       pages describing health services must be treated (HHS guidance on
+       online tracking technologies). It is also unknown whether state
+       consumer-health privacy laws apply. Specialist review required
+       before tags go live.
+  A-05 (P1, LEGAL) Consent/cookie banner: the privacy page currently
+       promises no advertising cookies; Google Ads tags set them. Decide
+       whether a notice/consent mechanism is needed (and whether to use
+       Google Consent Mode).
+  A-06 (P1, 04D) Ad copy and LP copy must keep within the existing claim
+       discipline (no insurance, Medicaid, guaranteed availability or
+       on-time, licensing). Google treats unsupported claims as misleading.
+  A-07 (P1, OWNER) Photography authenticity: confirm the hero/van photos
+       show real Zenward vehicles and staff, or are clearly approved
+       representative imagery. The van shows the brand and phone number; if
+       those vehicles don't exist as shown, that is a misrepresentation risk
+       in a paid-ads context.
+  A-08 (P2, 04D) Analytics data retention: set the minimum retention
+       period that still gives useful trends.
+
+Safe-by-design items already in place (keep): typed event union; no PII in
+URLs; ?service= allow-list; conversion gated on real delivery; no browser
+storage of form content.
+
+
+==================================================================
+14. TRUST / PROFESSIONALISM AUDIT
+==================================================================
+
+Factual trust signals currently available:
+  + Real business phone, consistently shown, also printed on the van in
+    photography (brand-assets.md)
+  + Clear business identity: brand name, logo, tagline, NEMT category
+  + Clear non-emergency boundaries (911 lines; no ambulance/stretcher)
+  + Request review process ("reviewed by a person", "not a booking")
+    consistently explained
+  + Healthcare-provider workflow described (discharge, recurring)
+  + Wheelchair transportation owner-confirmed (source; not live)
+  + Four approved photographs: wheelchair + ramp van, walker + van, staff
+    walking with passenger
+
+Not available (do NOT invent; owner to supply if true):
+  - service area / market
+  - legal entity name, business address, years operating
+  - hours of operation / phone hours
+  - typical response time to a request
+  - advance notice / same-day policy
+  - vehicle facts (ramp/lift, securement, fleet description)
+  - driver screening/training practices
+  - licensing, permits, insurance coverage
+  - testimonials, reviews, Google Business Profile rating
+  - pricing / payment methods
+  - named provider relationships
+
+Where the site feels:
+  THIN        /about (hero + one paragraph + 3 value cards; no story, no
+              place, no people, no vehicles). /healthcare-providers (4
+              sections, chip list, no process, no phone). Service pages
+              (no imagery).
+  GENERIC     Homepage sections 3 and 10 (abstract "count on" /
+              "dependability" cards that any provider could write).
+  REPETITIVE  Homepage reassurance repeated 4x; provider pitch 2x; "Care
+              that gets you there." is the H1 of both / and /about.
+  UNFINISHED  Default Vercel favicon; default 404 page; homepage without
+              canonical/og:url; branded icons sitting untracked.
+  TEMPLATE-   Seven service pages with identical structure, icon-only, the
+  LIKE        same navy hero; differences are only text.
+  PRE-LAUNCH  "expanding service availability by market" (FAQ, About);
+              "Deliberate about how we grow" (About); "pre-launch draft"
+              (Privacy, Terms); "as is while the service is launching"
+              (Terms); "Content on this site may change as the service
+              launches" (Terms).
+
+Trust findings:
+  T-01 (P1, 04E) Rebuild /about around verifiable facts (who, where, why,
+       the vehicles, how requests are handled). Owner content required.
+  T-02 (P1, 04E) Add a restrained "practical facts" block (area, hours,
+       how to reach us, response expectation) used on home, LPs and the
+       request success state, once the owner confirms the facts.
+  T-03 (P1, 04E) Replace the favicon with the branded set in public/brand/;
+       add apple-touch-icon and a manifest.
+  T-04 (P1, 04E) Custom not-found page with phone + Request + services.
+  T-05 (P2, 04E) Reviews: only if a real Google Business Profile with real
+       reviews exists. Link out rather than reproduce, and don't seed.
+  T-06 (P2, 04E) Healthcare-provider page: add a simple "how a referral
+       works" sequence, a phone CTA, and the contact form with topic
+       preselected.
+
+
+==================================================================
+15. LEGAL / PRIVACY LAUNCH BLOCKERS
+==================================================================
+
+/privacy (src/app/privacy/page.tsx, "Last updated August 31, 2026")
+
+  LP-01 (P0, LEGAL) STALE/CONFLICTING: "We do not use a third party to
+        process the detailed contents of transportation requests through
+        this website." Requests are now delivered server-to-server to
+        Nemryn, a separate operations/CRM service. Needs rewording (without
+        Nemryn branding or software language on the public site, e.g.
+        "our scheduling and operations service provider").
+  LP-02 (P0, LEGAL) CONFLICTS WITH ADS: "This site aims to use
+        privacy-conscious, aggregate analytics and no advertising or
+        cross-site tracking cookies." A Google Ads conversion tag makes
+        this untrue.
+  LP-03 (P1, LEGAL) "We do not sell your information, and we do not use it
+        for advertising." Probably still true for form data, but must be
+        re-checked against the final measurement design (A-01 to A-03).
+  LP-04 (P1, LEGAL) "Service providers" lists hosting and email only.
+        Needs the operations/CRM provider and any analytics/ads providers.
+  LP-05 (P1, LEGAL) Retention: "Specific retention periods are being
+        finalized." Unresolved.
+  LP-06 (P1, LEGAL) "This is a pre-launch draft pending final legal
+        review" (top) plus the closing disclaimer paragraph. Visible to
+        paid visitors; reads unfinished.
+  LP-07 (P2, LEGAL) "What this policy covers" excludes "any separate
+        Zenward operations system". That's ambiguous now that website
+        submissions flow directly into one.
+
+/terms (src/app/terms/page.tsx)
+
+  LT-01 (P1, LEGAL) "pre-launch draft pending final legal review", "provided
+        'as is' while the service is launching, and details are still being
+        finalized", "Content on this site may change as the service
+        launches and develops". Pre-launch wording.
+  LT-02 (P1, LEGAL/OWNER) No legal entity name anywhere on the site
+        (Terms, Privacy, footer). Who the contracting party is should be
+        explicit. Advertiser verification also expects consistency.
+  LT-03 (P2, LEGAL) No cancellation/no-show, payment, or liability terms.
+        Correctly omitted until counsel decides (marketing-scope says so).
+        Note only.
+
+Other launch blockers:
+  - Both legal pages: "Last updated August 31, 2026". Update when revised.
+  - docs/product/launch-readiness.md still says the intake is "Connected".
+    Stale per the reset report (internal doc; P2, 04E).
+
+
+==================================================================
+16. SEO / TECHNICAL FINDINGS
+==================================================================
+
+  Item               State                                         Rating
+  -----------------  --------------------------------------------  ------
+  Title template     "%s | Zenward Mobility"; single suffix         OK
+  Homepage title     "Zenward Mobility" only (no service/market)    P1 04B
+  Descriptions       unique per page; no locality                   P1 04C/D
+  Canonical          all inner pages via pageMetadata(); HOMEPAGE   P1 04D
+                     HAS NONE (confirmed live)
+  og:url             inner pages yes; homepage none                 P2 04D
+  Domain             NEXT_PUBLIC_SITE_URL drives canonical/OG/
+                     sitemap/robots/JSON-LD; live = https://www.    OK
+                     zenwardmobility.com; apex + http 308 -> www
+  seo.ts comment     says production domain "not yet confirmed       P3 04E
+                     (ZD-027)". Stale.
+  robots.txt         allow all + sitemap                            OK
+  sitemap            env-driven; lastModified = build time on       P3
+                     every URL (noisy)
+  Sitemap content    live: 14 URLs, no wheelchair (W-01)            P0 04C
+  Structured data    homepage Organization + ContactPoint only;     P2 04C/D
+                     no areaServed (deliberate); logo points to an
+                     842 KB PNG; no Service/Breadcrumb
+  OG/Twitter         1200x630 image + alt; good                     OK
+  Favicon            default Vercel triangle (confirmed visually)   P1 04E
+  apple-touch/
+  manifest           absent                                         P2 04E
+  Internal links     services <-> pages good; no breadcrumbs;       P2
+                     nav "How It Works" is an anchor
+  Broken routes      /services/wheelchair-transportation 404 in     P0 04C
+                     prod (linked from nothing live, but will be an
+                     ad target)
+  404                Next default UI inside shell, noindex          P1 04E
+  Indexability       all pages indexable incl. /request-            OK
+                     transportation (acceptable)
+  Viewport           width=device-width, initial-scale=1            OK
+  Headings           one H1 per page; FAQ answers mostly not in     P1 04C
+                     DOM (S-03)
+  Accessibility      labelled inputs, role=alert/status, focus      OK
+                     management, 48px targets, reduced-motion;
+                     accordion lacks aria-controls                  P3
+  Performance        hero next/image priority, AVIF/WebP, sizes     OK
+                     per breakpoint; fonts self-hosted; little
+                     client JS. Logo masters 578-842 KB PNG served
+                     through next/image (fine)
+  Dup content        "Care that gets you there." H1 on / and /about P2 04B
+
+
+==================================================================
+17. VISUAL / BRAND FINDINGS
+==================================================================
+
+Preserve (approved): logo (as-is, chip on navy), Care Navy / Route Teal /
+Arrival Gold / Calm Mist palette, Manrope + Inter, the art-directed hero and
+its scrims, the overlap request banner, rounded BrandImage framing,
+white/mist/navy section rhythm, phosphor light icons.
+
+Assessment:
+  professional ............ YES (calm, consistent, no SaaS tropes)
+  human ................... PARTIAL (three people photos carry it; the
+                            service and provider pages have none)
+  transportation-specific . PARTIAL (the van shows in 2 photos; no
+                            vehicle detail elsewhere)
+  healthcare-appropriate .. YES (restrained, no clinical overclaiming)
+  visually substantial .... NO outside the homepage (icon-card pages)
+  cohesive ................ YES
+
+Opportunities (no new brand system, no logo work):
+  V-01 (P1, 04C) Put photography on service pages and LPs: wheelchair/ramp
+       on wheelchair; van + walker on appointments/senior; staff walking on
+       discharge/recurring. The current four assets are enough for launch.
+       Additional REAL photos (vehicle interior, ramp detail, driver at the
+       door) are an owner action.
+  V-02 (P1, 04B) Editorial hierarchy on the homepage: hero -> request
+       banner -> services -> how it works -> one reassurance/why section ->
+       families -> providers -> FAQ -> final CTA. That's fewer, more
+       deliberate sections.
+  V-03 (P2, 04B) Whitespace rhythm: break up the run of dark bands near the
+       end; give the final CTA the only solid-navy close.
+  V-04 (P2, 04C) Service-page variety: alternate one image-led section per
+       page so the seven pages stop reading as one template.
+  V-05 (P1, 04E) A restrained proof/reassurance strip of verified facts
+       only (area, hours, "every request reviewed by a person", phone). No
+       numbers, badges or logos that can't be backed up.
+  V-06 (P2, 04B/04C) Intentional CTA areas: one primary CTA band per page,
+       plus persistent header call/request. Fewer mid-page duplicate
+       buttons.
+
+
+==================================================================
+18. P0 / P1 / P2 / P3 ISSUE TABLE
+==================================================================
+
+ID     Pri  Phase  Finding
+-----  ---  -----  ------------------------------------------------------------
+W-01   P0   04C    680f255 not pushed: wheelchair page 404, not in form,
+                   preselection ignored, missing from sitemap in production
+R-01   P0   04E    Production request delivery to the NEW Nemryn integration
+                   unverified; old integration id still in Vercel
+R-02   P0   04E    Decide/land uncommitted fail-closed unlinked adapter;
+                   committed stub still shows false "Request received"
+L-01   P0   OWNER  Confirm market (Metro Atlanta?) + county/city boundary +
+                   out-of-area handling
+L-02   P0   04D    Reconcile geography-neutral policy with local acquisition
+H-01   P0   04B    No phone CTA on homepage mobile first screen / any header
+H-02   P0   04B    Homepage states no geography
+S-01   P0   04C/D  Ad-destination pages have no local relevance
+LP1-4  P0   04D    No campaign landing pages (4 needed for launch)
+M-01   P0   04D    No measurement vendor; dispatch() is a no-op in production
+M-02   P0   04D    No phone_call_clicked event; tel: links untracked
+A-01   P0   LEGAL  Decide what page URLs may reach ad platforms
+A-02   P0   04D    No health-based remarketing/audiences (policy + brief)
+A-03   P0   04D    Enhanced Conversions / user-provided data OFF
+A-04   P0   LEGAL  HIPAA / health-privacy applicability for tracking
+LP-01  P0   LEGAL  Privacy says no third party processes request contents
+LP-02  P0   LEGAL  Privacy promises no advertising cookies
+H-03   P1   04B    H1 is a tagline, not a service statement
+H-04   P1   04B    Services appear only at section 8
+H-05   P1   04C    Wheelchair is a text line, not a peer card; homepage list
+                   hard-coded and drifting from SERVICE_ORDER
+H-06   P1   04B    Four repeated reassurance sections
+H-07   P1   04B    Two provider sections push the family path down
+H-09   P1   04B    FAQ "Where does Zenward operate?" non-answer
+H-11   P1   04B    Family/caregiver line not near the hero CTA
+H-13   P1   04D    Homepage: no canonical, no og:url, bare title
+S-02   P1   04C    Service pages have no imagery
+S-03   P1   04C    FAQ answers not in the DOM (accordion renders open item
+                   only)
+S-05   P1   04C    Service titles/descriptions generic and local-less
+S-06   P1   04C    No trust/practical-facts block on service pages
+S-07   P1   04C    Mobile service hero pushes CTAs to the fold
+TAX    P1   04C    Service naming drift across cards/pages/form
+W-02   P1   04C    Wheelchair prominence on homepage (peer card, not hero)
+W-04   P1   04C    Wheelchair page lacks the wheelchair/ramp photo
+W-05   P1   OWNER  Wheelchair vehicle facts unconfirmed
+R-03   P1   04D    Form error state has no tel: button
+R-08   P1   04D    No UTM/gclid to Nemryn (blocked on published contract)
+M-03   P1   04D    No provider_enquiry_submitted event
+M-04   P1   04D    Drop hasReturnTrip from ad conversion payload
+M-05   P1   04D    Header/footer/mobile CTAs untracked; wrong /services
+                   source; contact_started has two meanings
+M-06   P1   04D    Strip ?service= from analytics page URLs
+A-05   P1   LEGAL  Consent/cookie notice decision
+A-06   P1   04D    Ad + LP copy within claim discipline
+A-07   P1   OWNER  Confirm photography depicts real Zenward vehicles/staff
+PH-1   P1   04B    Provider page has no phone CTA
+PH-2   P1   OWNER  Phone answering hours / after-hours handling
+C-01   P1   04E    Production contact-form mode unverified (stub = provider
+                   enquiries turned away)
+L-03   P1   04D    /locations/<market> hub page
+L-04   P1   04D    areaServed schema (confirmed areas only)
+L-05   P1   OWNER  Google Business Profile existence/config
+T-01   P1   04E    /about thin; rebuild on verified facts
+T-02   P1   04E    Practical-facts block (area, hours, response)
+T-03   P1   04E    Default Vercel favicon; wire public/brand icons
+T-04   P1   04E    Default 404 page
+LP-03  P1   LEGAL  Re-verify "not used for advertising"
+LP-04  P1   LEGAL  Service-provider list incomplete
+LP-05  P1   LEGAL  Retention unresolved
+LP-06  P1   LEGAL  "pre-launch draft" visible on Privacy
+LT-01  P1   LEGAL  Pre-launch wording in Terms
+LT-02  P1   OWNER  No legal entity name on site
+V-01   P1   04C    Photography on service pages/LPs
+V-02   P1   04B    Homepage editorial hierarchy
+V-05   P1   04E    Verified-facts reassurance strip
+H-08   P2   04B    Run of dark bands near the end
+H-10   P2   04B    Recurring mechanism not shown on homepage
+H-12   P2   04B    Footer lacks location/hours (owner facts)
+S-04   P2   04C    No Service/Breadcrumb schema
+S-08   P2   04C    Dialysis/rehab don't link to wheelchair
+W-03   P2   04C    Wheelchair last on /services
+W-06   P2   04C    Provider page doesn't mention wheelchair
+R-04   P2   04D    Form grouping; passenger-name-when-self contradiction
+R-05   P2   04E    Visual check of required-field indicators
+R-06   P2   04E    Success state lacks "when you'll hear from us"
+M-07   P2   04D    Offline conversion import (after R-08)
+A-08   P2   04D    Minimum analytics retention
+PH-3   P2   OWNER  Forwarding-number decision vs number on van photos
+LP-07  P2   LEGAL  Ambiguous "operations system" exclusion
+LT-03  P2   LEGAL  Cancellation/payment/liability terms (note)
+T-05   P2   04E    Real reviews only, via GBP
+T-06   P2   04E    Provider referral sequence + topic preselect
+L-06   P2   04E    Stale geography docs (README etc.)
+SEO-1  P2   04D    og:url on homepage
+SEO-2  P2   04E    Manifest / apple-touch-icon
+SEO-3  P2   04B    Duplicate H1 on / and /about
+V-03   P2   04B    Whitespace rhythm
+V-04   P2   04C    Service-page layout variety
+V-06   P2   04B/C  Intentional CTA areas
+DOC-1  P2   04E    launch-readiness.md says intake "Connected" (stale)
+ROUTE  P2   04D    Optional standalone /how-it-works
+R-07   P3   -      No past-date validation
+SEO-4  P3   04E    seo.ts stale "domain not confirmed" comment
+SEO-5  P3   -      Sitemap lastModified = build time
+A11Y-1 P3   -      Accordion aria-controls
+CTA-1  P3   04B    "Talk to Our Team" vs "Talk to Zenward" label drift
+
+
+==================================================================
+19. RECOMMENDED 04B / 04C / 04D / 04E BACKLOG
+==================================================================
+
+PRE-PHASE (owner, before 04B starts — not engineering phases):
+  - Approve and push/deploy 680f255; approve the uncommitted unlinked-
+    adapter change (W-01, R-02).
+  - Connect the new Nemryn integration in Vercel; submit and confirm one
+    labelled QA request (R-01).
+  - Answer §20 (minimum: market, hours, response time, wheelchair vehicle
+    facts, legal entity name, photo authenticity).
+  - Engage legal/privacy review on A-01, A-04, A-05, LP-01..LP-06.
+
+ZW-WEB-04B — Homepage hierarchy and messaging
+  P0  Persistent tap-to-call in header (mobile + desktop); hero secondary
+      CTA = Call (H-01)
+  P0  Confirmed market in hero support line, banner, FAQ (H-02, H-09)
+  P1  Service-plain H1 (or attached line); keep tagline (H-03)
+  P1  Section order: hero -> banner -> services -> how it works -> why
+      (merged reassurance) -> families -> providers (one) -> FAQ -> final
+      CTA (H-04, H-06, H-07, V-02)
+  P1  Family/caregiver line near the hero CTA (H-11)
+  P1  Provider page phone CTA (PH-1)
+  P2  Dark-band rhythm, recurring one-liner, footer location/hours, H1
+      dedupe with /about, CTA label consistency (H-08, H-10, H-12, SEO-3,
+      CTA-1, V-03, V-06)
+
+ZW-WEB-04C — Service-page enhancement + wheelchair prominence
+  P0  Verify wheelchair live everywhere after release (W-01 checklist)
+  P0  Local context on every page that will receive spend (S-01)
+  P1  Homepage services grid from SERVICE_ORDER; wheelchair as peer card
+      (H-05, W-02)
+  P1  Canonical public label per service (TAX)
+  P1  Photography per page; wheelchair/ramp photo on wheelchair page
+      (S-02, W-04, V-01)
+  P1  Render all FAQ answers in the DOM (S-03)
+  P1  Local titles/descriptions (S-05)
+  P1  Practical-facts block (S-06) — shares component with T-02
+  P1  Mobile hero: CTAs higher (S-07)
+  P2  Service/Breadcrumb schema; dialysis/rehab -> wheelchair link;
+      provider page wheelchair mention; layout variety (S-04, S-08, W-06,
+      V-04)
+
+ZW-WEB-04D — Google Ads landing pages + local relevance + measurement
+  P0  Geography policy update + LP1-LP4 on one shared template, reduced
+      nav, persistent call (L-02, §8)
+  P0  Vendor wiring inside dispatch(); Ads conversion actions for
+      request_form_submitted and phone_call_clicked (M-01, M-02)
+  P0  Privacy-safe tag configuration: no remarketing, no Enhanced
+      Conversions, no serviceType, query-stripped URLs, Signals off
+      (A-02, A-03, M-06; A-01 per legal decision)
+  P1  provider_enquiry_submitted; drop hasReturnTrip; fix untracked/
+      mislabelled CTAs (M-03, M-04, M-05)
+  P1  Tel: button in the form error state (R-03)
+  P1  /locations/<market> hub; areaServed; homepage canonical/og:url
+      (L-03, L-04, H-13, SEO-1)
+  P1  UTM/gclid -> Nemryn once its acquisition contract is published (R-08)
+  P2  Offline conversion import; form grouping; retention; optional
+      /how-it-works (M-07, R-04, A-08, ROUTE)
+
+ZW-WEB-04E — Trust layer + launch QA / remaining readiness
+  P0  End-to-end production QA: request delivered to Nemryn; conversion
+      fires once and only on delivery; every tel: link; every ?service=;
+      sitemap; 404s (R-01 verification)
+  P0  Legal page revisions landed (after counsel) (LP-01, LP-02)
+  P1  Branded favicon/icons from public/brand; custom 404 (T-03, T-04)
+  P1  /about rebuilt on verified facts; practical-facts strip (T-01, T-02,
+      V-05)
+  P1  Verify production contact-form delivery (C-01)
+  P1  Remaining legal wording: pre-launch lines, providers list, retention,
+      entity name (LP-03..LP-06, LT-01, LT-02)
+  P2  Provider referral sequence + topic preselect; reviews only if real;
+      success-state expectations; manifest; stale docs (T-05, T-06, R-06,
+      SEO-2, DOC-1, L-06, SEO-4)
+
+
+==================================================================
+20. UNKNOWN BUSINESS FACTS REQUIRING OWNER CONFIRMATION
+==================================================================
+
+Geography
+   1. Is Metro Atlanta the confirmed launch market? Exact counties and/or
+      cities served? (Repo documents only a withdrawn "Georgia" reference.)
+   2. How are out-of-area requests handled (decline, case-by-case, partner)?
+   3. May the homepage/service pages name the market, or only market pages
+      (geography-neutral policy decision)?
+   4. Is there a Google Business Profile? Service-area business or public
+      address?
+
+Operations
+   5. Phone answering hours; after-hours handling (voicemail? callback?).
+   6. Typical time to respond to an online request.
+   7. Advance-notice requirement; same-day availability (yes/no/sometimes).
+   8. Days/hours trips operate.
+   9. Can a companion/caregiver ride along?
+  10. Round-trip / wait-time policy (platform ZD-020).
+  11. Can recurring arrangements be set up as standing schedules after
+      confirmation?
+  12. Same-day hospital discharge pickups: offered?
+  13. Languages spoken by staff.
+
+Wheelchair
+  14. Preferred public label: "wheelchair transportation" or "wheelchair-
+      accessible transportation"?
+  15. Vehicle access type (ramp/lift) and securement; does the passenger
+      ride in their own wheelchair?
+  16. Any wheelchair size/weight limits, or power-chair limitations?
+
+Business identity / trust
+  17. Legal entity name (for Terms/Privacy/footer and ad-account
+      consistency).
+  18. Public business address (or deliberately none).
+  19. Year founded / founder story the owner is willing to publish.
+  20. Do the current photos depict real Zenward vehicles and staff?
+  21. Are more real photos available (vehicle interior, ramp, drivers)?
+  22. Licensing/permits/insurance that may be stated publicly (documented
+      only).
+  23. Driver screening/training that may be stated publicly.
+  24. Real reviews/testimonials and consent to show them.
+
+Payment
+  25. Payment model (private pay? facility-billed?) and whether pricing is
+      published. Insurance/Medicaid remain unclaimed unless confirmed.
+
+Systems / compliance
+  26. Approval to push/deploy 680f255 and the uncommitted adapter change.
+  27. Production contact-form mode (CONTACT_INTAKE_MODE) and monitored
+      inbox.
+  28. New Nemryn integration connected in Vercel? QA request verified?
+  29. Measurement choice: Google Ads tag only, or GA4 too? GTM or direct?
+  30. Google Ads account and conversion actions owner.
+  31. HIPAA status (covered entity / business associate?) and state
+      privacy-law review: specialist.
+  32. Consent/cookie notice requirement: specialist.
+  33. Will Nemryn publish an acquisition (UTM/gclid) contract?
+
+
+==================================================================
+21. FILES INSPECTED
+==================================================================
+
+Source
+  src/app/layout.tsx
+  src/app/page.tsx
+  src/app/robots.ts
+  src/app/sitemap.ts
+  src/app/favicon.ico (converted to PNG in scratchpad for visual check)
+  src/app/opengraph-image.alt.txt
+  src/app/about/page.tsx
+  src/app/contact/page.tsx
+  src/app/contact/actions.ts
+  src/app/healthcare-providers/page.tsx
+  src/app/privacy/page.tsx
+  src/app/terms/page.tsx
+  src/app/request-transportation/page.tsx
+  src/app/request-transportation/actions.ts
+  src/app/services/page.tsx
+  src/app/services/wheelchair-transportation/page.tsx
+  (other six services/*/page.tsx: same 16-line wrapper pattern, confirmed by
+  listing and the shared ServicePage renderer)
+  src/components/brand/ZenwardLogo.tsx
+  src/components/layout/PublicLayout.tsx
+  src/components/layout/Section.tsx
+  src/components/layout/BrandImage.tsx
+  src/components/public/HomeHero.tsx
+  src/components/public/PublicHeader.tsx
+  src/components/public/PublicFooter.tsx
+  src/components/public/PhoneCtaButton.tsx
+  src/components/public/TrackedLinkButton.tsx
+  src/components/public/ServicePage.tsx
+  src/components/public/FaqAccordion.tsx
+  src/components/public/RequestTransportationForm.tsx
+  src/components/public/RecurringScheduleFields.tsx (labels/required)
+  src/components/public/ContactForm.tsx
+  src/lib/business.ts
+  src/lib/services.ts
+  src/lib/seo.ts
+  src/lib/images.ts
+  src/lib/analytics/events.ts
+  src/lib/forms/guard.ts
+  src/lib/contact-intake/adapter.ts
+  src/lib/request-intake/service-types.ts
+  src/lib/request-intake/adapter.ts (incl. uncommitted diff)
+  src/lib/request-intake/adapter.test.mjs (uncommitted diff)
+  next.config.ts, package.json, .env.example (incl. uncommitted diff)
+
+Docs
+  README.md
+  docs/product/launch-readiness.md
+  docs/product/marketing-scope.md
+  docs/design/brand-assets.md
+  docs/architecture/request-intake-boundary.md (uncommitted diff)
+  docs/reports/ZW-WEB-NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.txt
+  docs/reports/ZW-WEB-03B-deployment-report.txt (first 80 lines)
+  docs/reports/* (grep for geography, analytics, conversion)
+
+Directories listed
+  public/images/, public/brand/, docs/design/source-assets/,
+  docs/design/references/, src/app/
+
+Git
+  git status, git log --oneline -10, git log origin/main, git diff,
+  git show --stat 680f255 / 8f1526f / d7782a3,
+  git log --follow on the wheelchair page
+
+Production (read-only GET, 2026-10-15)
+  /, /services, /services/wheelchair-transportation (404),
+  /services/dialysis-transportation, /request-transportation
+  (?service=wheelchair_transportation), /healthcare-providers, /privacy,
+  /locations/atlanta (404), /does-not-exist (404), /robots.txt,
+  /sitemap.xml, /manifest.webmanifest (404), /icon.svg (404),
+  /apple-touch-icon.png (404), apex and http redirects.
+  No form was submitted.
+
+
+==================================================================
+22. CONFIRMATION — ZERO IMPLEMENTATION CHANGES
+==================================================================
+
+  - No source, component, content, style, config, environment, test or
+    asset file was created, edited, moved or deleted.
+  - No Nemryn code, configuration or data was accessed or modified.
+  - Intake behaviour untouched. The pre-existing uncommitted changes
+    (.env.example, request-intake-boundary.md, adapter.ts,
+    adapter.test.mjs) and untracked items (public/brand/, the reset report)
+    were left exactly as found: not staged, reset, stashed, cleaned or
+    discarded.
+  - No build, install, dev server or test run was performed in the repo.
+  - No commit, push or deploy. No Vercel access.
+  - Production was read with HTTP GET only; nothing was submitted.
+  - The single file added by this audit:
+      docs/reports/ZW-WEB-04A-google-ads-website-readiness-audit.txt
+    (Scratch copies of fetched HTML and the favicon PNG went to the session
+    scratchpad outside the repository.)
+
+STOP. ZW-WEB-04B not started.
