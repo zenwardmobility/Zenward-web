@@ -1,146 +1,116 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  HandHeart,
-  ShieldCheck,
-  ChatCircleText,
-  ClipboardText,
-  Stethoscope,
-  Heartbeat,
-  CalendarCheck,
-  Hospital,
-  FirstAidKit,
-  Phone,
-  MapPinLine,
-  CalendarDots,
-  UsersThree,
-  CheckCircle,
-  ArrowRight,
-} from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CheckCircle, Phone, Question } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 import { BrandImage } from "@/components/layout/BrandImage";
 import { HomeHero } from "@/components/public/HomeHero";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
+import { CallButton } from "@/components/public/CallButton";
 import { LinkButton } from "@/components/ui/LinkButton";
-import { buttonClassNames } from "@/components/ui/buttonStyles";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
 import { business } from "@/lib/business";
-import { absoluteUrl, siteName, siteUrl } from "@/lib/seo";
-import { SERVICES as SERVICE_PAGES } from "@/lib/services";
+import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
+import { SERVICES, SERVICE_ORDER } from "@/lib/services";
+import { getServiceArea, homeMetadataCopy, serviceAreaFaqAnswer, servingLine } from "@/lib/service-area";
 
-const TRUST_PRINCIPLES = [
-  {
-    icon: ChatCircleText,
-    title: "Clear communication",
-    description: "You know what to expect before, during, and after every trip we coordinate.",
-  },
-  {
-    icon: HandHeart,
-    title: "Drivers focused on the trip",
-    description: "Transportation coordinated around the passenger's scheduled care and confirmed trip details.",
-  },
-  {
-    icon: ClipboardText,
-    title: "Careful coordination",
-    description: "Every request is reviewed by a person before a trip is scheduled.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Respect and dignity",
-    description: "Every passenger is treated with the patience and care they deserve.",
-  },
-];
+/*
+ * Homepage (ZW-WEB-04B). Conversion hierarchy, top to bottom:
+ *   hero -> quick request/call band -> services -> how it works -> why Zenward
+ *   -> patients & families -> healthcare providers -> FAQ -> final CTA
+ * Claim discipline: docs/product/marketing-scope.md. Nothing here adds a
+ * capability, metric, credential or geography that is not already confirmed.
+ */
 
-const PROVIDER_BENEFITS = [
-  {
-    icon: CalendarCheck,
-    title: "Appointment-led scheduling",
-    description:
-      "Rides are arranged around when your patient needs to arrive — one visit or a recurring schedule.",
-  },
-  {
-    icon: Hospital,
-    title: "Discharge coordination",
-    description:
-      "Share the discharge details and Zenward coordinates transportation to the patient's next destination, so transport isn't what holds up a bed.",
-  },
-  {
-    icon: ChatCircleText,
-    title: "Clear communication with your team",
-    description: "Your team and the passenger know the pickup plan, and hear from us if anything changes.",
-  },
-  {
-    icon: UsersThree,
-    title: "One coordination contact",
-    description:
-      "A consistent point of contact for your team's transportation — not a different number every time.",
-  },
-];
+const homeCopy = homeMetadataCopy();
 
-const SERVICES = [
-  { icon: Stethoscope, title: "Medical appointments", description: "Routine and specialist visits, on schedule.", href: SERVICE_PAGES["medical-appointments"].path },
-  { icon: Heartbeat, title: "Dialysis visits", description: "Dependable, recurring transportation for ongoing treatment.", href: SERVICE_PAGES["dialysis-transportation"].path },
-  { icon: FirstAidKit, title: "Rehabilitation appointments", description: "Consistent transportation for recovery and therapy visits.", href: SERVICE_PAGES["rehabilitation-transportation"].path },
-  { icon: Hospital, title: "Hospital discharge transportation", description: "Coordinated transportation following a hospital stay.", href: SERVICE_PAGES["hospital-discharge-transportation"].path },
-  { icon: CalendarCheck, title: "Recurring scheduled care", description: "Regular transportation arranged around a recurring care schedule.", href: SERVICE_PAGES["recurring-care-transportation"].path },
-  { icon: HandHeart, title: "Senior medical transportation", description: "Transportation for older adults attending medical care.", href: SERVICE_PAGES["senior-medical-transportation"].path },
+// Gives the homepage its own canonical + og:url (it previously had neither).
+// The root layout's "%s | Zenward Mobility" template does not apply to the
+// root page itself, so the full title is set as `absolute`.
+export const metadata: Metadata = {
+  ...pageMetadata({ title: homeCopy.title, description: homeCopy.description, path: "/" }),
+  title: { absolute: `${homeCopy.title} | ${siteName}` },
+};
+
+const PROCESS_STEPS = [
+  {
+    title: "Send a request",
+    description: "Online or by phone: the passenger, pickup, destination and timing, plus any mobility or assistance needs.",
+  },
+  {
+    title: "Zenward reviews it",
+    description: "A member of our team reviews the trip details before anything is confirmed.",
+  },
+  {
+    title: "We confirm with you",
+    description:
+      "We contact the person who made the request to confirm availability and details. A request is not a booking until we confirm it.",
+  },
+  {
+    title: "The trip takes place",
+    description: "Transportation is arranged according to the confirmed trip details.",
+  },
 ];
 
 const WHY_POINTS = [
   {
-    title: "Built around the appointment",
+    title: "Reviewed by a person",
+    description:
+      "Every request is reviewed by the Zenward team before transportation is confirmed. Mobility and assistance needs are part of that review.",
+  },
+  {
+    title: "Planned around the appointment",
     description:
       "Requests are considered in the context of scheduled care, including the appointment time and whether a return trip is needed.",
   },
   {
-    title: "Reviewed before it is confirmed",
-    description:
-      "A submitted request is reviewed by Zenward before transportation is confirmed. It is not a booking until we say so.",
-  },
-  {
-    title: "Clear about who is arranging the trip",
-    description:
-      "Family members, caregivers, and care teams can help arrange the trip where appropriate, and Zenward confirms details with the person making the request.",
+    title: "Clear communication",
+    description: "You get pickup information as it is confirmed, and a point of contact if plans change.",
   },
   {
     title: "Room for recurring care",
     description:
-      "Repeated appointments, such as dialysis or rehabilitation, can be discussed as part of the transportation arrangement.",
-    link: { href: SERVICE_PAGES["recurring-care-transportation"].path, label: "Recurring care transportation" },
+      "Repeated appointments, such as dialysis or rehabilitation, can be described once and discussed as a regular arrangement.",
+    link: { href: SERVICES["recurring-care-transportation"].path, label: "Recurring care transportation" },
+  },
+  {
+    title: "Non-emergency, and clear about it",
+    description:
+      "Zenward provides non-emergency medical transportation only. It does not provide ambulance, stretcher or emergency transportation. In an emergency, call 911.",
   },
 ];
 
-const PROCESS_STEPS = [
-  { title: "Request", description: "Submit the passenger, pickup, destination, and timing — online or by phone." },
-  { title: "Coordination", description: "Zenward reviews the details and confirms availability with you." },
-  { title: "Ride", description: "A driver is assigned and the transportation takes place according to the confirmed trip details." },
-  { title: "Arrival", description: "The passenger reaches the confirmed destination." },
+const ARRANGERS = [
+  { title: "For yourself", description: "Request your own ride to an appointment, treatment or therapy visit." },
+  {
+    title: "For a family member",
+    description: "Arrange transportation for a parent, spouse or relative. Zenward follows up with you.",
+  },
+  {
+    title: "As a caregiver",
+    description: "Coordinate trips for someone in your care, including appointments that repeat.",
+  },
 ];
 
-const DEPENDABILITY = [
-  { title: "Rider communication", description: "You get pickup information as it is confirmed, and a point of contact if plans change." },
-  { title: "Appointment-led timing", description: "Trips are scheduled around when the passenger needs to arrive, not the other way around." },
-  { title: "Consistency", description: "The same dependable coordination for a one-time visit or a regular transportation schedule." },
-  { title: "Respectful service", description: "Trip details and mobility or assistance needs are reviewed before transportation is confirmed." },
+const PROVIDER_POINTS = [
+  { title: "Appointment-led scheduling", description: "Rides arranged around when the patient needs to arrive, for one visit or a recurring schedule." },
+  { title: "Discharge coordination", description: "Share the discharge details and Zenward coordinates transportation to the patient's next destination." },
+  { title: "One point of contact", description: "A consistent contact for your team's transportation requests, so you know who to call." },
 ];
 
 const FAQ_ITEMS = [
   {
-    question: "Is this emergency transportation?",
+    question: "Is submitting a request a confirmed booking?",
     answer:
-      "No. Zenward provides non-emergency medical transportation only. If you are experiencing a medical emergency, call 911.",
+      "No. A request tells Zenward what transportation you need. Our team reviews it and contacts you, and the trip is confirmed only once we have confirmed availability and details with you.",
   },
   {
-    question: "Can a family member or caregiver request transportation?",
+    question: "Can a family member or caregiver arrange transportation?",
     answer:
-      "Yes. You can request transportation for yourself, for a family member, or as a caregiver. The request form asks for your relationship to the passenger so we can follow up with the right person.",
-  },
-  {
-    question: "Does submitting a request confirm the ride?",
-    answer:
-      "No. A request tells Zenward what transportation you need. It is not a confirmed ride until our team follows up to confirm availability and next steps.",
+      "Yes. You can request transportation for yourself, for a family member, or as a caregiver. The request form asks for your relationship to the passenger so we follow up with the right person.",
   },
   {
     question: "Does Zenward provide wheelchair transportation?",
@@ -148,25 +118,32 @@ const FAQ_ITEMS = [
       "Yes. Zenward provides wheelchair transportation for non-emergency medical trips. Tell us about the passenger's mobility and assistance needs when you submit the request so our team can review the trip details and confirm the transportation arrangement.",
   },
   {
-    question: "Can a healthcare facility request transportation for a patient?",
+    question: "Can I request recurring transportation?",
     answer:
-      "Yes. Clinics, dialysis centers, rehabilitation providers, senior care organizations, and hospital discharge teams coordinate patient transportation with Zenward. See the Healthcare Providers page or talk to our team.",
+      "Yes. Choose Recurring on the request form and tell us the days of the week and start date. Zenward reviews the schedule you requested and confirms with you what it can arrange. The form does not book trips automatically.",
   },
   {
-    question: `Where does Zenward operate?`,
-    answer: `Zenward is expanding service availability by market. Contact our team or submit a transportation request to confirm availability for your trip.`,
+    question: "What kinds of appointments does Zenward provide transportation to?",
+    answer:
+      "Scheduled, non-emergency medical care: doctor and specialist visits, dialysis, rehabilitation and therapy, transportation after a hospital discharge, and other recurring care. Choose the closest service on the request form, or Other.",
+  },
+  {
+    question: "Is this emergency transportation?",
+    answer:
+      "No. Zenward provides non-emergency medical transportation only. If you are experiencing a medical emergency, call 911.",
+  },
+  {
+    question: "Where does Zenward operate?",
+    answer: serviceAreaFaqAnswer(),
   },
 ];
 
 // Conservative, accurate schema.org type — see docs/product/marketing-scope.md
-// "Structured data". Zenward is a transportation company, not a medical
-// provider, so `MedicalBusiness` would overstate the relationship; `LocalBusiness`
-// implies a verified physical premises we don't publish. `Organization` with a
-// `ContactPoint` covers exactly what is verified: name, phone, url, logo. No
-// `areaServed` — the public brand is geography-neutral and no broad service
-// territory is formally published (availability is confirmed per request); do
-// not add a state or country here without a verified operational basis. No
-// address, hours, rating, or price range.
+// "Structured data". `Organization` with a `ContactPoint` covers exactly what is
+// verified: name, phone, url, logo. `areaServed` is emitted only once a service
+// area is owner-confirmed in src/lib/service-area.ts. No address, hours, rating,
+// or price range.
+const serviceArea = getServiceArea();
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -175,6 +152,7 @@ const organizationJsonLd = {
     "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care.",
   url: siteUrl,
   logo: absoluteUrl("/images/zenward-mobility-logo.png"),
+  ...(serviceArea ? { areaServed: serviceArea.name } : {}),
   contactPoint: {
     "@type": "ContactPoint",
     telephone: business.phoneHref.replace("tel:", ""),
@@ -183,26 +161,43 @@ const organizationJsonLd = {
   },
 };
 
+function TextPhoneLink({ onDark = false, className }: { onDark?: boolean; className?: string }) {
+  return (
+    <a
+      href={business.phoneHref}
+      className={cn(
+        typography.bodySmall,
+        "inline-flex min-h-11 items-center gap-2 font-semibold underline-offset-4 hover:underline",
+        onDark ? "text-white" : "text-brand-care-navy",
+        className,
+      )}
+    >
+      <Phone className={cn("size-4", onDark ? "text-brand-arrival-gold" : "text-brand-interactive-teal")} weight="fill" aria-hidden />
+      Call {business.phoneDisplay}
+    </a>
+  );
+}
+
 export default function HomePage() {
+  const serving = servingLine();
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
 
       {/* 1. Hero */}
       <HomeHero />
 
-      {/* 2. Immediate request / reassurance banner — overlaps the hero as one system */}
+      {/* 2. Quick request / call band — overlaps the hero as one system. */}
       <div className="relative z-10 -mt-14 px-md sm:-mt-16 sm:px-xl lg:-mt-20">
         <div className="mx-auto max-w-6xl">
           <div className="rounded-lg bg-surface-elevated p-lg shadow-md ring-1 ring-brand-care-navy/10 sm:p-xl">
             <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className={cn(typography.subsectionTitle, "text-text-primary")}>Need transportation?</p>
-                <p className={cn(typography.body, "mt-1 max-w-[34rem] text-text-secondary")}>
-                  Tell us about the trip. Zenward reviews every request and follows up to confirm.
+                <h2 className={cn(typography.subsectionTitle, "text-text-primary")}>Need transportation?</h2>
+                <p className={cn(typography.body, "mt-1 max-w-[36rem] text-text-secondary")}>
+                  {serving && <span className="font-medium text-text-primary">{serving} </span>}
+                  Every request is reviewed before availability is confirmed.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -211,352 +206,229 @@ export default function HomePage() {
                   size="lg"
                   event={{ name: "request_transportation_clicked", source: "reassurance_strip" }}
                 >
-                  Request Transportation
+                  Request a Quote
                 </TrackedLinkButton>
-                <a
-                  href={business.phoneHref}
-                  aria-label={`Call Zenward at ${business.phoneDisplay}`}
-                  className={buttonClassNames("secondary", "lg", false)}
-                >
-                  <Phone className="size-4" weight="fill" aria-hidden />
-                  Call {business.phoneDisplay}
-                </a>
+                <CallButton variant="secondary" />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Trust principles */}
-      <Section tone="white">
-        <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>What you can count on</h2>
-        <div className="mt-2xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-4">
-          {TRUST_PRINCIPLES.map((principle) => (
-            <div key={principle.title} className="rounded-lg border border-border-subtle p-lg">
-              <principle.icon className="size-8 text-brand-interactive-teal" weight="light" aria-hidden />
-              <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{principle.title}</p>
-              <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{principle.description}</p>
-            </div>
-          ))}
+      {/* 3. Services — the seven approved services from the canonical taxonomy. */}
+      <Section tone="white" id="services">
+        <div className="max-w-[40rem]">
+          <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Services</p>
+          <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Transportation for essential care</h2>
+          <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
+            Non-emergency transportation for scheduled medical care, one trip or a regular schedule.
+          </p>
         </div>
+        {/* Phones: one grouped list with dividers (not a wall of cards). sm+: a card grid. */}
+        <ul className="mt-2xl grid grid-cols-1 divide-y divide-border-subtle overflow-hidden rounded-lg border border-border-subtle sm:grid-cols-2 sm:gap-lg sm:divide-y-0 sm:overflow-visible sm:rounded-none sm:border-0 lg:grid-cols-4">
+          {SERVICE_ORDER.map((slug) => {
+            const service = SERVICES[slug];
+            return (
+              <li key={slug}>
+                <Link
+                  href={service.path}
+                  className="group flex h-full gap-4 bg-surface-elevated p-md transition-colors duration-base hover:bg-surface-app sm:rounded-lg sm:border sm:border-border-subtle sm:p-lg sm:hover:border-brand-interactive-teal/50 lg:flex-col lg:gap-0"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-calm-mist text-brand-care-navy">
+                    <service.icon className="size-6" weight="regular" aria-hidden />
+                  </span>
+                  <span className="flex flex-1 flex-col lg:mt-4">
+                    <span className={cn(typography.body, "flex items-start justify-between gap-2 font-semibold text-text-primary")}>
+                      {service.eyebrow}
+                      <ArrowRight
+                        className="mt-1.5 size-4 shrink-0 text-brand-interactive-teal transition-transform duration-base group-hover:translate-x-0.5"
+                        aria-hidden
+                      />
+                    </span>
+                    <span className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{service.cardDescription}</span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+          <li className="flex flex-col justify-center gap-2 bg-brand-calm-mist p-md sm:rounded-lg sm:p-lg">
+            <Question className="hidden size-6 text-brand-care-navy lg:block" weight="regular" aria-hidden />
+            <p className={cn(typography.body, "font-semibold text-text-primary")}>Not sure which service fits?</p>
+            <p className={cn(typography.bodySmall, "text-text-secondary")}>
+              Choose Other on the request form, or call and we&rsquo;ll help.
+            </p>
+            <TextPhoneLink />
+          </li>
+        </ul>
+        <p className={cn(typography.bodySmall, "mt-lg text-text-secondary")}>
+          <Link
+            href="/services"
+            className="inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline"
+          >
+            Compare all transportation services
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </p>
       </Section>
 
-      {/* 4. Getting to care should feel more certain */}
-      <Section tone="mist">
-        <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
-          <BrandImage
-            asset={brandImages.vanWalkerAssist}
-            aspect="video"
-            objectPosition="center 42%"
-          />
+      {/* 4. How it works — an editorial timeline, not another card grid. */}
+      <Section tone="mist" id="how-it-works">
+        <div className="grid grid-cols-1 gap-xl lg:grid-cols-[1fr_1.3fr] lg:gap-3xl">
           <div>
-            <h2 className={cn(typography.sectionTitle, "text-text-primary")}>
-              Getting to care should feel more certain
-            </h2>
+            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>How It Works</p>
+            <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>From request to arrival</h2>
             <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
-              Missing a ride can mean missing an appointment, a treatment, or a chance to come home. Zenward
-              coordinates the trip so it is one less thing to worry about.
+              A request starts a conversation with our team. Nothing is booked until Zenward confirms the details
+              with you.
             </p>
-            <ul className="mt-6 flex flex-col gap-4">
-              {[
-                { icon: MapPinLine, text: "Clear pickup information, confirmed ahead of the trip." },
-                { icon: CalendarDots, text: "Coordination led by the appointment time, not guesswork." },
-                { icon: ChatCircleText, text: "Communication throughout the trip, from pickup to arrival." },
-              ].map((item) => (
-                <li key={item.text} className="flex gap-3">
-                  <item.icon className="mt-0.5 size-5 shrink-0 text-brand-interactive-teal" weight="bold" aria-hidden />
-                  <span className={cn(typography.body, "text-text-secondary")}>{item.text}</span>
-                </li>
-              ))}
-            </ul>
+            <p className={cn(typography.bodySmall, "mt-4 text-text-secondary")}>Prefer to talk it through?</p>
+            <TextPhoneLink />
           </div>
+          <ol className="relative">
+            {PROCESS_STEPS.map((step, index) => (
+              <li key={step.title} className="relative flex gap-5 pb-xl last:pb-0">
+                {index < PROCESS_STEPS.length - 1 && (
+                  <span aria-hidden className="absolute top-11 bottom-1 left-[1.375rem] w-px bg-brand-care-navy/20" />
+                )}
+                <span
+                  className={cn(
+                    typography.button,
+                    "relative flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-care-navy text-base text-white",
+                  )}
+                >
+                  {index + 1}
+                </span>
+                <div className="pt-2">
+                  <h3 className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>{step.title}</h3>
+                  <p className={cn(typography.body, "mt-1 text-text-secondary")}>{step.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </Section>
 
-      {/* 5. Patients & families */}
-      <Section tone="white">
-        <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
-          <div className="order-2 lg:order-1">
-            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Patients &amp; Families</p>
-            <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
-              Transportation support, with patience and respect
-            </h2>
-            <p className={cn(typography.body, "mt-4 text-text-secondary")}>
-              Whether you are arranging your own ride to a treatment or coordinating transportation for a parent
-              or family member, Zenward keeps the request straightforward and keeps you informed along the way.
-              Tell us about any mobility or assistance needs and Zenward will review them before the trip is confirmed.
-            </p>
-            <p className={cn(typography.bodySmall, "mt-4 text-text-muted")}>
-              Zenward provides non-emergency medical transportation — not emergency or ambulance care.
-            </p>
-            <div className="mt-6">
-              <TrackedLinkButton
-                href="/request-transportation"
-                event={{ name: "request_transportation_clicked", source: "patients_families" }}
-              >
-                Request Transportation
-              </TrackedLinkButton>
-            </div>
-          </div>
-          <BrandImage
-            asset={brandImages.staffWalkingAssist}
-            aspect="video"
-            className="order-1 lg:order-2"
-            objectPosition="center 38%"
-          />
-        </div>
-      </Section>
-
-      {/* 5b. Why medical transportation (ZW-WEB-03B) — an editorial explanation of
-             what a medical trip involves beyond pickup and destination. Deliberately
-             a ruled list, not a card grid: these are service principles. */}
-      <Section tone="mist" id="why-medical-transportation">
-        <div className="grid grid-cols-1 gap-xl lg:grid-cols-[1fr_1.15fr] lg:gap-3xl">
+      {/* 5. Why Zenward — the single consolidated reassurance section. */}
+      <Section tone="white" id="why-medical-transportation">
+        <div className="grid grid-cols-1 gap-2xl lg:grid-cols-[1fr_1.1fr] lg:gap-3xl">
           <div>
-            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Why Medical Transportation</p>
+            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Why Zenward</p>
             <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
               Transportation planned around care, not just a pickup
             </h2>
             <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
               A medical trip often involves more than getting from one address to another. Appointment timing,
-              recurring schedules, family coordination and changing care plans can all affect the journey. Zenward
-              reviews each transportation request and confirms the next steps with the person arranging the trip.
+              recurring schedules, family coordination and changing care plans can all affect the journey.
             </p>
+            <BrandImage
+              asset={brandImages.vanWalkerAssist}
+              aspect="video"
+              objectPosition="center 42%"
+              className="mt-xl"
+            />
           </div>
-          <ul className="divide-y divide-brand-care-navy/15 border-y border-brand-care-navy/15">
+          <ul className="divide-y divide-brand-care-navy/15 border-y border-brand-care-navy/15 lg:self-center">
             {WHY_POINTS.map((point) => (
-              <li key={point.title} className="py-lg">
-                <p className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>{point.title}</p>
-                <p className={cn(typography.body, "mt-1 text-text-secondary")}>{point.description}</p>
-                {point.link && (
-                  <Link
-                    href={point.link.href}
-                    className={cn(
-                      typography.bodySmall,
-                      "mt-2 inline-flex items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline",
-                    )}
-                  >
-                    {point.link.label}
-                    <ArrowRight className="size-4" aria-hidden />
-                  </Link>
-                )}
+              <li key={point.title} className="flex gap-4 py-md sm:py-lg">
+                <CheckCircle className="mt-1 size-5 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
+                <div>
+                  <h3 className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>{point.title}</h3>
+                  <p className={cn(typography.bodySmall, "mt-1 text-text-secondary sm:text-base sm:leading-7")}>{point.description}</p>
+                  {point.link && (
+                    <Link
+                      href={point.link.href}
+                      className={cn(
+                        typography.bodySmall,
+                        "mt-1 inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline",
+                      )}
+                    >
+                      {point.link.label}
+                      <ArrowRight className="size-4" aria-hidden />
+                    </Link>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
         </div>
-        <div className="mt-2xl flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
-          <p className={cn(typography.bodySmall, "max-w-[32rem] text-text-secondary")}>
-            Submitting a request is not a confirmed booking. Zenward contacts the requester to confirm availability
-            and next steps.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <TrackedLinkButton
-              href="/request-transportation"
-              size="lg"
-              event={{ name: "request_transportation_clicked", source: "why_medical_transportation" }}
-            >
-              Request Transportation
-            </TrackedLinkButton>
-            <a
-              href={business.phoneHref}
-              aria-label={`Call Zenward at ${business.phoneDisplay}`}
-              className={buttonClassNames("outline", "lg", false)}
-            >
-              <Phone className="size-4" weight="fill" aria-hidden />
-              Call {business.phoneDisplay}
-            </a>
+      </Section>
+
+      {/* 6. Patients, families and caregivers. */}
+      <Section tone="mist">
+        <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
+          <BrandImage asset={brandImages.staffWalkingAssist} aspect="video" objectPosition="center 38%" />
+          <div>
+            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Patients, Families &amp; Caregivers</p>
+            <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
+              Arrange a ride for yourself or someone you care for
+            </h2>
+            <dl className="mt-6 flex flex-col gap-4">
+              {ARRANGERS.map((item) => (
+                <div key={item.title} className="border-l-2 border-brand-route-teal pl-4">
+                  <dt className={cn(typography.body, "font-semibold text-text-primary")}>{item.title}</dt>
+                  <dd className={cn(typography.bodySmall, "mt-0.5 text-text-secondary")}>{item.description}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className={cn(typography.bodySmall, "mt-6 text-text-secondary")}>
+              Tell us about any mobility or assistance needs in the request. Zenward reviews them before the trip
+              is confirmed.
+            </p>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
+              <TrackedLinkButton
+                href="/request-transportation"
+                size="lg"
+                event={{ name: "request_transportation_clicked", source: "patients_families" }}
+              >
+                Request a Quote
+              </TrackedLinkButton>
+              <TextPhoneLink />
+            </div>
           </div>
         </div>
       </Section>
 
-      {/* 6. Healthcare providers */}
+      {/* 7. Healthcare providers — the single provider section. */}
       <Section tone="navy">
-        <div className="grid grid-cols-1 gap-2xl lg:grid-cols-2 lg:items-center">
+        <div className="grid grid-cols-1 gap-2xl lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-3xl">
           <div>
             <p className={cn(typography.eyebrow, "text-brand-arrival-gold")}>For Healthcare Providers</p>
             <h2 className={cn(typography.sectionTitle, "mt-3 text-white")}>
               Transportation coordination your team can rely on
             </h2>
-            <p className={cn(typography.lede, "mt-4 max-w-[32rem] text-white/80")}>
-              Clinics, dialysis centers, rehabilitation providers, senior care organizations, and hospital
-              discharge teams work with Zenward to arrange dependable non-emergency medical transportation for
-              the patients they refer — with clear coordination from the request through to arrival.
+            <p className={cn(typography.lede, "mt-4 max-w-[34rem] text-white/80")}>
+              If your organization arranges transportation for patients, such as a clinic, dialysis center,
+              rehabilitation provider, hospital discharge team or senior care organization, Zenward can coordinate
+              one-time trips and recurring schedules.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <LinkButton href="/healthcare-providers" size="lg" onDark>
+                How Zenward works with providers
+              </LinkButton>
               <TrackedLinkButton
                 href="/contact"
                 size="lg"
+                variant="outline"
                 onDark
                 event={{ name: "provider_cta_clicked", source: "homepage" }}
               >
                 Talk to Zenward
               </TrackedLinkButton>
-              <LinkButton href="/healthcare-providers" size="lg" variant="outline" onDark>
-                How Zenward works with providers
-              </LinkButton>
             </div>
+            <TextPhoneLink onDark className="mt-3" />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {PROVIDER_BENEFITS.map((benefit) => (
-              <div key={benefit.title} className="rounded-lg bg-white/5 p-lg ring-1 ring-white/10">
-                <benefit.icon className="size-7 text-brand-calm-mist" weight="light" aria-hidden />
-                <p className={cn(typography.subsectionTitle, "mt-3 text-lg text-white")}>{benefit.title}</p>
-                <p className={cn(typography.bodySmall, "mt-2 text-white/70")}>{benefit.description}</p>
-              </div>
+          <ul className="divide-y divide-white/15 border-y border-white/15">
+            {PROVIDER_POINTS.map((point) => (
+              <li key={point.title} className="py-lg">
+                <h3 className={cn(typography.subsectionTitle, "text-lg text-white")}>{point.title}</h3>
+                <p className={cn(typography.bodySmall, "mt-1 text-white/75")}>{point.description}</p>
+              </li>
             ))}
-          </div>
-        </div>
-        <p className={cn(typography.metadata, "mt-xl text-white/50")}>
-          Zenward keeps scheduling, trip details and communication coordinated with the people arranging the
-          transportation. Talk to us about what your patients need.
-        </p>
-      </Section>
-
-      {/* 7. Services */}
-      <Section tone="white">
-        <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>
-          Transportation for essential care
-        </h2>
-        <div className="mt-2xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-3">
-          {SERVICES.map((service) => (
-            <Link
-              key={service.title}
-              href={service.href}
-              className="group flex flex-col rounded-lg border border-border-subtle p-lg transition-colors duration-base hover:bg-surface-hover"
-            >
-              <service.icon className="size-7 text-brand-care-navy" weight="light" aria-hidden />
-              <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{service.title}</p>
-              <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{service.description}</p>
-              <span
-                className={cn(
-                  typography.bodySmall,
-                  "mt-auto inline-flex items-center gap-1.5 pt-4 font-medium text-brand-interactive-teal group-hover:underline",
-                )}
-              >
-                Learn more
-                <ArrowRight className="size-4" aria-hidden />
-              </span>
-            </Link>
-          ))}
-        </div>
-        <p className={cn(typography.body, "mt-lg text-center text-text-secondary")}>
-          Arranging a trip for someone who uses a wheelchair?{" "}
-          <Link
-            href={SERVICE_PAGES["wheelchair-transportation"].path}
-            className="inline-flex items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline"
-          >
-            See wheelchair transportation
-            <ArrowRight className="size-4" aria-hidden />
-          </Link>
-        </p>
-        <p className={cn(typography.bodySmall, "mt-3 text-center text-text-muted")}>
-          Zenward does not provide emergency response, ambulance, or stretcher transportation.
-        </p>
-      </Section>
-
-      {/* 8. From request to arrival */}
-      <Section tone="mist" id="how-it-works">
-        <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>From request to arrival</h2>
-        <ol className="mt-2xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-4">
-          {PROCESS_STEPS.map((step, index) => (
-            <li key={step.title} className="rounded-lg bg-surface-elevated p-lg">
-              <span
-                className={cn(
-                  typography.button,
-                  "flex size-9 items-center justify-center rounded-full bg-brand-care-navy text-white",
-                )}
-              >
-                {index + 1}
-              </span>
-              <p className={cn(typography.subsectionTitle, "mt-4 text-lg text-text-primary")}>{step.title}</p>
-              <p className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{step.description}</p>
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      {/* 9. Dependability / details */}
-      <Section tone="white">
-        <div className="mx-auto max-w-[48rem] text-center">
-          <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Dependability is in the details</h2>
-          <p className={cn(typography.lede, "mx-auto mt-4 max-w-[42rem] text-text-secondary")}>
-            The trip to care is not a background task. Zenward treats each one with the attention it deserves.
-          </p>
-        </div>
-        <div className="mx-auto mt-2xl grid max-w-[52rem] grid-cols-1 gap-lg sm:grid-cols-2">
-          {DEPENDABILITY.map((item) => (
-            <div key={item.title} className="rounded-lg border border-border-subtle p-lg">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="size-5 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
-                <p className={cn(typography.body, "font-semibold text-text-primary")}>{item.title}</p>
-              </div>
-              <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{item.description}</p>
-            </div>
-          ))}
+          </ul>
         </div>
       </Section>
 
-      {/* 10. Healthcare-organization relationship CTA — institutional, left-aligned,
-             a single restrained action. Deliberately quieter than the passenger
-             conversion block below. */}
-      <Section tone="navy-gradient">
-        <div className="grid grid-cols-1 gap-lg lg:grid-cols-[1.5fr_1fr] lg:items-center lg:gap-2xl">
-          <div>
-            <p className={cn(typography.eyebrow, "text-brand-arrival-gold")}>For Healthcare Organizations</p>
-            <h2 className={cn(typography.sectionTitle, "mt-3 text-white")}>
-              Arrange transportation for the people you serve
-            </h2>
-            <p className={cn(typography.lede, "mt-4 max-w-[40rem] text-white/80")}>
-              If your organization coordinates transportation for patients, Zenward can support one-time trips,
-              recurring care schedules, and ongoing transportation needs.
-            </p>
-          </div>
-          <div className="lg:justify-self-end">
-            <TrackedLinkButton
-              href="/contact"
-              variant="secondary"
-              size="lg"
-              onDark
-              event={{ name: "provider_cta_clicked", source: "homepage" }}
-            >
-              Talk to Zenward
-            </TrackedLinkButton>
-          </div>
-        </div>
-      </Section>
-
-      {/* 11. Passenger / family request CTA — the primary direct-conversion block:
-             solid navy, centred, two actions. */}
-      <Section tone="navy">
-        <div className="flex flex-col items-center gap-6 text-center">
-          <h2 className={cn(typography.sectionTitle, "text-white")}>Need medical transportation?</h2>
-          <p className={cn(typography.lede, "max-w-[36rem] text-white/80")}>
-            Request transportation for yourself or someone you care for. It only takes a few minutes.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <TrackedLinkButton
-              href="/request-transportation"
-              size="lg"
-              onDark
-              event={{ name: "request_transportation_clicked", source: "final_cta" }}
-            >
-              Request Transportation
-            </TrackedLinkButton>
-            <a
-              href={business.phoneHref}
-              className={cn(
-                typography.body,
-                "inline-flex items-center justify-center gap-2 font-medium text-white hover:text-brand-calm-mist",
-              )}
-            >
-              <Phone className="size-4" weight="fill" aria-hidden />
-              Call {business.phoneDisplay}
-            </a>
-          </div>
-        </div>
-      </Section>
-
-      {/* 12. FAQ */}
+      {/* 8. FAQ */}
       <Section tone="white" narrow>
         <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>Frequently asked questions</h2>
         <div className="mt-2xl">
@@ -566,10 +438,49 @@ export default function HomePage() {
           Still have a question?{" "}
           <Link href="/contact" className="font-medium text-brand-interactive-teal underline">
             Talk to our team
-          </Link>
+          </Link>{" "}
+          or call{" "}
+          <a href={business.phoneHref} className="font-medium text-brand-interactive-teal underline">
+            {business.phoneDisplay}
+          </a>
           .
         </p>
       </Section>
+
+      {/* 9. Final CTA — an inset Care Navy panel: the page's visual close, kept
+             distinct from the navy footer below it. */}
+      <section className="bg-surface-elevated pb-3xl sm:pb-4xl">
+        <SectionContainer>
+          <div className="relative overflow-hidden rounded-lg bg-brand-care-navy px-lg py-2xl text-center sm:px-2xl sm:py-3xl">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage:
+                  "radial-gradient(60% 80% at 100% 0%, color-mix(in srgb, var(--color-brand-route-teal) 22%, transparent) 0%, transparent 70%)",
+              }}
+            />
+            <div className="relative flex flex-col items-center gap-6">
+              <h2 className={cn(typography.sectionTitle, "text-white")}>Need medical transportation?</h2>
+              <p className={cn(typography.lede, "max-w-[36rem] text-white/85")}>
+                {serving && <span className="font-medium text-white">{serving} </span>}
+                Zenward reviews every request and follows up to confirm availability and details.
+              </p>
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <TrackedLinkButton
+                  href="/request-transportation"
+                  size="lg"
+                  onDark
+                  event={{ name: "request_transportation_clicked", source: "final_cta" }}
+                >
+                  Request a Quote
+                </TrackedLinkButton>
+                <CallButton onDark />
+              </div>
+            </div>
+          </div>
+        </SectionContainer>
+      </section>
     </>
   );
 }

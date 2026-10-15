@@ -1,0 +1,434 @@
+ZW-WEB-04B — HOMEPAGE CONVERSION HIERARCHY + MESSAGING
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL IMPLEMENTATION ONLY. Nothing committed, pushed or deployed. No
+Vercel, Nemryn, intake, analytics-vendor, legal-page or brand-asset change.
+Requirements source: ZW-WEB-04A-google-ads-website-readiness-audit.txt and
+ZW-WEB-04A-exit-production-alignment.txt.
+
+
+1. STARTING GIT STATE
+---------------------
+Clean working tree. HEAD d76ca6f; local history:
+  d76ca6f Add locked Zenward brand asset set
+  bdbd701 Add ZW-WEB-04A readiness audit and exit report
+          (the 04B brief lists this as "dbdd701"; that's a typo, the real hash
+           is bdbd701)
+  209d4c9 Fail closed when no Nemryn integration is configured
+  680f255 Connect Zenward structured request intake to Nemryn
+origin/main = d7782a3 (4 commits behind local; unchanged by this phase).
+
+
+2. HOMEPAGE PROBLEMS ADDRESSED (04A finding -> resolution)
+---------------------------------------------------------
+  H-01 P0  No phone on mobile first screen / any header
+           -> header Call button at every width; hero secondary CTA = Call.
+  H-02 P0  No geography
+           -> NOT invented. Single service-area slot wired to hero, band, FAQ,
+              footer, metadata and JSON-LD; renders nothing until confirmed
+              (§15).
+  H-03 P1  H1 was a tagline -> service-clear H1; tagline kept as brand line.
+  H-04 P1  Services at section 8 -> section 3, directly after the band.
+  H-05 P1  Hard-coded 6-card list; wheelchair as a text line
+           -> all 7 from SERVICE_ORDER as peers.
+  H-06 P1  Four repeated reassurance sections -> one "Why Zenward" section.
+  H-07 P1  Two provider sections -> one.
+  H-08 P2  Run of dark bands at the end -> one navy band mid-page plus an
+           inset navy close.
+  H-09 P1  FAQ "where" non-answer -> honest, practical fallback (no
+           geography).
+  H-11 P1  Family line far from hero CTA -> audience line under the hero
+           CTAs.
+  H-13 P1  Homepage had no canonical / og:url / descriptive title -> fixed.
+  S-03 P1  FAQ answers missing from HTML -> all answers rendered (shared
+           component).
+  M-05     The hero's "Talk to Our Team" fired contact_started on click (an
+  (part)   event meant for the contact form). That button is gone. Header and
+           mobile-menu Request buttons now fire their already-defined sources
+           ("header", "mobile_nav"). events.ts is unchanged.
+
+
+3. OLD SECTION STRUCTURE (13)
+-----------------------------
+  1 Hero (H1 "Care that gets you there."; Request + Talk to Our Team)
+  2 Overlap band "Need transportation?" (Request + Call)
+  3 What you can count on (4 cards)
+  4 Getting to care should feel more certain (image + 3 bullets)
+  5 Patients & Families (image + Request)
+  6 Why Medical Transportation (ruled list + CTAs)
+  7 For Healthcare Providers (navy, 4 cards)
+  8 Transportation for essential care (6 cards + wheelchair text link)
+  9 From request to arrival (4 step cards)
+ 10 Dependability is in the details (4 cards)
+ 11 For Healthcare Organizations CTA (navy gradient)
+ 12 Need medical transportation? (navy)
+ 13 FAQ (6)
+
+
+4. NEW SECTION STRUCTURE (9 + header/footer)
+--------------------------------------------
+  Header   logo · nav · phone number · Request a Quote   (white)
+  1 Hero                       navy + approved photo (unchanged treatment)
+  2 Quick request / call band  white elevated card overlapping the hero
+  3 Services (7 + helper)      white
+  4 How it works (timeline)    calm mist          id="how-it-works" (kept)
+  5 Why Zenward                white + van photo  id="why-medical-transportation" (kept)
+  6 Patients, families,        calm mist + staff photo
+    caregivers
+  7 Healthcare providers       Care Navy (the only full-bleed dark band)
+  8 FAQ (7)                    white
+  9 Final CTA                  inset Care Navy panel on white
+  Footer                       Care Navy (unchanged except service-area slot)
+
+Measured at 1440: navy -> white card -> white -> mist -> white -> mist ->
+navy -> white -> white (navy panel) -> navy footer. No two full-bleed dark
+bands are adjacent. The final CTA is an inset rounded panel, so it reads as
+the close and doesn't merge into the footer.
+
+
+5. HERO CHANGES (src/components/public/HomeHero.tsx) — FINAL
+------------------------------------------------------------
+Image layers, crops, scrims, priority/quality and art direction: UNCHANGED.
+Final content (owner-specified wording, final commercial refinement):
+  H1        "Non-Emergency Medical Transportation for the Care You Need"
+  brand     "Care that gets you there." (Manrope, Arrival Gold, 20/24px)
+  support   "Transportation for medical appointments, dialysis,
+            rehabilitation, hospital discharge, recurring care, senior
+            medical needs and wheelchair-accessible trips."
+  CTAs      Request a Quote (gold, -> /request-transportation, tracked
+            "hero") + phone CTA (outline on dark, tel:+16789355489):
+            "Call 678-935-5489" on phones (full-width button), the bare
+            "678-935-5489" with phone icon from 640px
+  audience  "For yourself, a family member, or someone in your care."
+  [slot]    "Serving <area>." (renders only once confirmed)
+The separate "Non-Emergency Medical Transportation" eyebrow was REMOVED in
+the refinement: the H1 now states the category, and repeating it directly
+above wasted mobile height. H1 sizing: 32px/40 phones, 48/56 sm, 52/60 lg
+(4 lines at 390, 3 lines at 1024/1440). Wheelchair is named as one use case,
+not the headline.
+"wheelchair-accessible trips" is owner-specified wording for this pass. It
+goes beyond the earlier owner confirmation ("wheelchair transportation";
+04A §20 Q14/Q15 on vehicle access remain open), so the owner should confirm
+the vehicles are wheelchair-accessible as the phrase implies.
+
+6. HEADER / PHONE CONVERSION (src/components/public/PublicHeader.tsx) — FINAL
+---------------------------------------------------------------------------
+  < 640    logo · navy "Call" button (phone icon + "Call", 44px) · menu
+  640-1023 logo · navy button with phone icon + "678-935-5489" · menu
+  1024+    logo · nav · phone icon + "678-935-5489" (48px, tel:) ·
+           Request a Quote
+  Menu     nav links + Request a Quote (tracked "mobile_nav") + Talk to Our
+           Team.
+The real number is shown at every desktop width. The planned icon + "Call"
+fallback at 1024 was not needed: with "Request a Quote" (160px, previously
+"Request Transportation" 207px) the number fits without crowding the nav.
+Verified by screenshot at 1024 and 1440. "Talk to Our Team" was removed from
+the desktop header (Contact stays in the nav). All phone values come from
+src/lib/business.ts. Shared CallButton (src/components/public/CallButton.tsx)
+renders tel: CTAs with the existing button system; its default label is
+responsive ("Call 678-935-5489" < 640px, "678-935-5489" from 640px).
+
+7. SERVICE HIERARCHY CHANGES
+----------------------------
+Section 3, directly after the band. Seven peer items + one helper item:
+  Medical Appointments · Dialysis Transportation · Rehabilitation
+  Transportation · Hospital Discharge Transportation · Recurring Care
+  Transportation · Senior Medical Transportation · Wheelchair Transportation
+  + "Not sure which service fits?" (choose Other / call) on Calm Mist
+Layout: phones = one bordered list with dividers (not seven separate cards);
+sm = 2-column cards; lg = 4x2 grid with the helper filling the eighth cell.
+Each item links to its service page; its accessible name is the service name
+plus the sentence. No "Learn more" links (0 on the page). Wheelchair has the
+same size and weight as the other services. Below the grid: "Compare all
+transportation services" -> /services.
+
+
+8. CANONICAL TAXONOMY USAGE
+---------------------------
+The homepage's private SERVICES array is gone. Cards iterate SERVICE_ORDER
+and read SERVICES[slug] from src/lib/services.ts:
+  name        = service.eyebrow (each service page's own label)
+  sentence    = service.cardDescription
+  icon / link = service.icon / service.path
+services.ts itself is NOT modified. The label is "Wheelchair Transportation",
+the owner-approved public label already in services.ts. The brief's list
+says "Wheelchair-Accessible Transportation", but that wording is not
+owner-confirmed (04A §20 Q14; 03B2 deliberately added no accessible-vehicle
+claim). Likewise "Recurring Care Transportation" is the existing label.
+Unifying cardTitle/eyebrow/form labels into one canonical name stays in 04C
+(04A "TAX").
+
+
+9. HOW-IT-WORKS CHANGES
+-----------------------
+Moved from section 8 to section 4. A two-column editorial layout (heading +
+intro + call link | vertical numbered timeline with a connector line)
+replaces the 4-card grid. Steps:
+  1 Send a request (online or by phone, incl. mobility/assistance needs)
+  2 Zenward reviews it
+  3 We confirm with you ("A request is not a booking until we confirm it.")
+  4 The trip takes place (according to the confirmed trip details)
+Intro: "A request starts a conversation with our team. Nothing is booked
+until Zenward confirms the details with you."
+
+
+10. REASSURANCE CONSOLIDATION
+-----------------------------
+Removed: "What you can count on" (4 cards), "Getting to care should feel
+more certain", "Dependability is in the details" (4 cards).
+One "Why Zenward" section remains, keeping the approved 03B headline
+"Transportation planned around care, not just a pickup", the van/walker
+photo, and a ruled 5-point list using only existing, defensible copy:
+reviewed by a person; planned around the appointment; clear communication
+(existing "pickup information as it is confirmed, and a point of contact if
+plans change"); room for recurring care (link); non-emergency, and clear
+about it (ambulance/stretcher/emergency excluded; 911).
+No metrics, ratings, years, fleet counts, certifications or guarantees.
+
+
+11. FAMILY / CAREGIVER TREATMENT
+--------------------------------
+"Arrange a ride for yourself or someone you care for", with three short
+definitions (for yourself / for a family member / as a caregiver), the
+assistance-needs review line, Request a Quote (primary, tracked
+"patients_families") and a secondary call link. Staff/walker photo kept.
+
+
+12. PROVIDER-SECTION CONSOLIDATION
+----------------------------------
+One Care Navy section: the approved headline "Transportation coordination
+your team can rely on". The body is reworded so it does NOT claim existing
+partnerships. The old "Clinics, dialysis centers ... work with Zenward" is
+now "If your organization arranges transportation for patients, such as a
+clinic, dialysis center, ... Zenward can coordinate one-time trips and
+recurring schedules." Three ruled points (appointment-led scheduling,
+discharge coordination, one point of contact). CTAs: "How Zenward works with
+providers" (/healthcare-providers), "Talk to Zenward" (/contact, tracked
+provider_cta_clicked "homepage"), plus a phone link.
+
+
+13. FAQ CHANGES
+---------------
+Seven questions, in this order:
+  Is submitting a request a confirmed booking? (No)
+  Can a family member or caregiver arrange transportation?
+  Does Zenward provide wheelchair transportation? (existing approved answer)
+  Can I request recurring transportation? (form doesn't auto-book)
+  What kinds of appointments does Zenward provide transportation to?
+  Is this emergency transportation? (No; 911)
+  Where does Zenward operate? (from src/lib/service-area.ts)
+Dropped: "Can a healthcare facility request transportation for a patient?"
+(covered by the provider section). The footer line adds a phone link.
+
+FaqAccordion (shared; also used by the 7 service pages): every answer is now
+in the HTML, collapsed with `hidden`; each question is an h3 > button with
+aria-expanded + aria-controls, and the panel is role=region aria-labelledby.
+Verified: 7 panels present on the homepage, 5 on a service page; clicking a
+question opens it and closes the previously open one.
+
+
+14. FINAL CTA / VISUAL RHYTHM
+-----------------------------
+Final CTA: an inset rounded Care Navy panel with a faint Route Teal corner
+glow (CSS gradient, no image/JS). "Need medical transportation?" + "Zenward
+reviews every request and follows up to confirm availability and details."
++ Request a Quote (gold) + 678-935-5489 (responsive phone label, §6). The old navy-gradient
+provider CTA band and the full-bleed navy final band are removed, so the page
+has one mid-page dark band (providers) and this panel as the close. Rhythm in
+§4.
+
+
+15. GEOGRAPHY HANDLING — OWNER-CONFIRMED ITEMS REMAIN
+-----------------------------------------------------
+NO area, city or county was added. New single source:
+  src/lib/service-area.ts
+    const SERVICE_AREA: ServiceArea | null = null;   <- set ONLY when confirmed
+    interface ServiceArea { name: string; places?: readonly string[] }
+    (name reads after "Serving"/"in", e.g. the owner's exact market wording)
+Consumers (all render a geography-free fallback while null):
+  hero ............ "Serving <area>." line under the audience line
+  quick band ...... "Serving <area>." prefix to the review sentence
+  FAQ ............. "Where does Zenward operate?" answer (lists places if
+                    given)
+  footer .......... line under the tagline (applies to every page)
+  metadata ........ homepage title "Non-Emergency Medical Transportation in
+                    <area> | Zenward Mobility" + description
+  JSON-LD ......... Organization.areaServed
+  final CTA ....... "Serving <area>." prefix
+Current fallback FAQ answer: "Availability depends on where the trip starts
+and ends. Call 678-935-5489 or send a request, and our team will confirm
+whether Zenward can provide your trip."
+When the area is confirmed, also update docs/product/marketing-scope.md
+"Geography" (still says geography-neutral) and README line 3.
+
+
+16. RESPONSIVE QA (local production build, headless Chrome via DevTools) — FINAL
+------------------------------------------------------------------------------
+Re-run after the commercial refinement. Viewports 390x844, 430x932,
+768x1024 (mobile emulation) and 1024x768, 1440x900:
+  width  overflowX  page height  header phone            hero CTAs (top-bottom) / viewport
+  390    none       9,706        "Call" 82x44            Quote 441-497, Call 509-565 / 844
+  430    none       9,375        "Call" 82x44            Quote 441-497, Call 509-565 / 932
+  768    none       8,576        number 157x44           both 493-549 / 1024
+  1024   none       6,841        number 153x48 + Quote   both 511-567 / 768
+  1440   none       6,520        number 153x48 + Quote   both 527-583 / 900
+One H1 at every width. Hero CTAs sit ~30px HIGHER on phones than before the
+refinement (eyebrow removed), despite the longer H1. Production (same
+script, live site): 13,617px at 390 / 8,178 at 1440, with no call action in
+the header or hero.
+Checks: hero efficient above the fold; quote + phone CTAs visible on the
+first screen at all widths; desktop shows the real number; nav not crowded
+at 1024 (screenshot); no horizontal overflow; CTA labels don't wrap (buttons
+are nowrap and no overflow was measured); service grid/list, section order
+and visual rhythm unchanged from the approved 04B structure.
+Earlier checks still valid (unchanged code paths): mobile menu opens
+(aria-expanded true; lists nav + Request a Quote + Talk to Our Team); FAQ
+toggles; 7 FAQ answers in HTML.
+Touch targets: all homepage CTAs are 44-56px. Under 44px (pre-existing
+patterns): the logo home link (32px tall), desktop text nav links (24px),
+inline links inside the FAQ footer sentence.
+
+17. ACCESSIBILITY
+-----------------
+One H1 per page; heading order h1 > h2 (sections) > h3 (service names, steps,
+points, FAQ questions). Service links are descriptive (no "Learn more").
+Every tel: link carries aria-label "Call Zenward at 678-935-5489" or visible
+number text. FAQ: button/region wiring per §13. Decorative icons
+aria-hidden; all images keep their existing factual alt text (0 images
+without alt). Focus styles: the global :focus-visible outline is unchanged.
+Contrast: white/90 and Calm Mist on Care Navy scrim; Arrival Gold
+(#f4b860) on Care Navy (#123447) is 7.4:1. Reduced motion: only CSS
+transitions (arrow nudge, caret), already neutralised by the global
+prefers-reduced-motion rule.
+
+
+18. PERFORMANCE
+---------------
+No new dependencies, images, fonts, video, animation libraries or client
+JS. page.tsx remains a server component. Client components are unchanged in
+kind: header, FAQ accordion, tracked buttons. CallButton is a server
+component. Photos still use next/image via BrandImage; the hero LCP image
+config is untouched. Same two supporting photos below the fold as before.
+The DOM is smaller (9 sections instead of 13).
+
+
+19. TESTS / TYPECHECK / LINT / BUILD (final tree, after refinement)
+-------------------------------------------------------------------
+  npm test ......... 45/45 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 21/21 pages (intake env unset,
+                     NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com)
+Route smoke test (pre-refinement build, routes unchanged since): /,
+/services, two service pages incl. wheelchair, /request-transportation
+(+?service=dialysis), /healthcare-providers, /contact, /about, /privacy,
+/terms, /sitemap.xml: all 200.
+Homepage head: <title>Non-Emergency Medical Transportation | Zenward
+Mobility</title>; canonical and og:url https://www.zenwardmobility.com.
+Rendered homepage CTA labels: "Request a Quote" x5 (header, hero, band,
+families, final; the mobile menu adds one when opened); "Request
+Transportation" x1 (the site-wide footer navigation link, intentionally
+unchanged). No "instant", "free" or price wording.
+Claim scan of rendered homepage text: no Nemryn/platform/software, 24/7,
+licensed, insured, guarantee, always on time, ADA, door-through, hydraulic,
+or any geography.
+
+20. FILES MODIFIED
+------------------
+  M src/app/page.tsx                        (homepage rewrite)
+  M src/components/public/HomeHero.tsx      (hero content block only)
+  M src/components/public/PublicHeader.tsx  (call + tracked request)
+  M src/components/public/PublicFooter.tsx  (service-area slot; +4 lines)
+  M src/components/public/FaqAccordion.tsx  (answers in DOM, aria wiring)
+  A src/components/public/CallButton.tsx    (shared tel: CTA)
+  A src/lib/service-area.ts                 (geography slot, null)
+  A docs/reports/ZW-WEB-04B-homepage-conversion-hierarchy.txt (this report)
+NOT modified: src/lib/request-intake/*, request-transportation actions/
+page, services.ts, analytics/events.ts, privacy/terms, public/brand/*,
+globals.css, typography, any env file.
+
+Side effects outside the homepage (intended; review before commit):
+  - Header change applies to every page.
+  - Footer slot applies to every page (renders nothing today).
+  - FaqAccordion change applies to the 7 service pages (all answers now in
+    HTML; questions now h3, consistent with each page's "Common questions"
+    h2).
+
+
+21. SCREENSHOTS / VISUAL VERIFICATION
+-------------------------------------
+Captured from the local production build (session scratchpad; not
+committed):
+  first screen at 390, 430, 768, 1024, 1440
+  full page at all five widths
+  mobile close-ups: services section (before/after grouping), Why section
+  mobile menu open (390)
+Reviewed by eye: 390 first screen, 768 first screen, 1024 first screen,
+1440 first screen, 1440 full page, 390 services (both versions), 390 Why.
+Refinement pass: 390/1024/1440 first screens re-captured and reviewed
+(header number at 1024, hero, band labels).
+Adjustments made after the first review: mobile services changed from seven separate
+cards to one grouped list (-89px); Why points tightened on phones (-252px);
+homepage <title> made absolute (the root layout template does not apply to
+the root page).
+Observation, unchanged from before: at lg-1599px the hero copy sits over
+the scrimmed van-door lettering ("Zenward / 678-935-5489"). That's the
+existing, documented hero treatment (a faint watermark); text remains
+legible.
+
+
+22. REMAINING 04C DEPENDENCIES
+------------------------------
+  - Canonical service labels: one public name per service (cardTitle vs
+    eyebrow vs form label); owner decision on "Wheelchair Transportation"
+    vs "Wheelchair-Accessible Transportation".
+  - Service pages: imagery, local context (once service-area.ts is set),
+    titles, mobile hero CTA position, practical-facts block.
+  - Provider page phone CTA (04A PH-1) and topic preselect. Not touched
+    here (homepage-only scope).
+  - Call-click analytics event (04D M-02): the new CallButton is the
+    natural single place to add it.
+  - Owner: confirm the service area, then set SERVICE_AREA; update
+    marketing-scope.md.
+
+
+23. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Owner approved the 04B architecture and the final commercial wording. One
+change: "Restructure homepage around conversion hierarchy", staging exactly
+the 8 paths in §20. Do not deploy until the 04A-exit blocker B2 is cleared
+(new Nemryn integration connected and a QA request verified).
+
+24. "REQUEST A QUOTE" DECISION
+-----------------------------
+Owner decision for this pass: customer-funnel CTAs on the homepage read
+"Request a Quote"; destination stays /request-transportation; the analytics
+event stays request_transportation_clicked; no route, form, field or intake
+change.
+  Changed: header button (site-wide, since the header is shared), mobile
+           menu button, hero, quick band, families section, final CTA.
+  Kept:    operational prose ("request transportation for yourself...",
+           "Send a request", "the request form"), the footer navigation
+           link "Request Transportation", and all non-homepage pages
+           (service pages, /services, /request-transportation page copy).
+Accuracy guards on the homepage (unchanged or added):
+  - quick band: "Every request is reviewed before availability is
+    confirmed."
+  - how it works: "Nothing is booked until Zenward confirms the details
+    with you." / "A request is not a booking until we confirm it."
+  - FAQ: "Is submitting a request a confirmed booking? No."
+  - final CTA: "Zenward reviews every request and follows up to confirm
+    availability and details."
+  - No instant quote, no price, no "free", no insurance/payment claim.
+Open owner points (not blockers for this commit):
+  - The landing page /request-transportation still says "Request
+    Transportation" / "Tell us about the trip you need" and does not
+    mention a quote. A visitor who clicked "Request a Quote" should find
+    the follow-up includes pricing. Align the page wording, and the
+    service-page CTAs, in 04C if the owner wants "quote" sitewide.
+  - "Quote" implies Zenward responds with a price. Confirm that's how the
+    follow-up works (04A §20 Q25, payment model) before using it in paid ad
+    copy.
+  - "Request a Free Quote": NOT used; owner to decide.
+
+STOP. Not pushed or deployed. 04C not started.
