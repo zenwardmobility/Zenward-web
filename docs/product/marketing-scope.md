@@ -1,7 +1,7 @@
 # Zenward Web — Marketing Scope
 
 **Status:** Foundation.
-**Last updated:** 2026-09-19 (ZW-WEB-03B2: wheelchair transportation confirmed)
+**Last updated:** 2026-10-15 (ZW-WEB-04B1: Metro Atlanta confirmed as the current operating market)
 
 ## Purpose
 
@@ -35,7 +35,7 @@ This site's only connection to the platform, now or in the future, is through th
 - Brand: **Zenward Mobility**
 - Tagline: **Care that gets you there.**
 - Category: **Non-Emergency Medical Transportation**
-- Geography: **geography-neutral.** The public brand and this website are not tied to any state. Zenward may begin operations market by market, but operational launch market ≠ permanent brand geography, so no state, region, county, or city appears in site copy, metadata, or structured data. Availability for a specific trip is confirmed during request coordination. The operational rollout sequence is tracked in the platform decision register (ZD-016), not here.
+- Geography: **geography-neutral brand, currently operating in Metro Atlanta.** *Owner decision 2026-10-15 (ZW-WEB-04B1):* Metro Atlanta, Georgia is Zenward Mobility's confirmed initial operating market. The brand stays "Zenward Mobility" (never "Zenward Atlanta"), and the public site **may** identify the current operating market: the homepage H1, the "Where does Zenward operate?" FAQ, the footer ("Serving Metro Atlanta"), homepage metadata and the Organization `areaServed`. The market name lives only in `src/lib/service-area.ts`; components read it from there. No county or city list is published until the owner confirms one, and the site never claims "all of Georgia". Availability for a specific trip is still confirmed during request coordination. Further markets are added as new entries in that config, selected explicitly by route or campaign config, never inferred from a visitor's IP or location.
 - Voice: plain, professional, human, transportation-focused, credible, commercially clear. Never "AI-powered," "smart," "next-generation," "operating system," "future of mobility," or similar — Zenward should not read like a software startup. No unsupported reach claims either ("nationwide," "all 50 states," "coast to coast," "national network").
 
 ## Services presented (approved list)
@@ -88,16 +88,16 @@ The homepage emits one JSON-LD block. Decision (WEB-P1-E2): **`schema.org/Organi
 - `LocalBusiness` implies a verified, published physical premises and typically `address` / `openingHours`, none of which are confirmed for public use.
 - `Organization` accurately states only what is verified: `name` (Zenward Mobility), `url` (`NEXT_PUBLIC_SITE_URL`), `logo`, and a customer-service `ContactPoint` with the real phone number.
 
-No `areaServed` is emitted (geography-neutral brand; no broad service territory is formally published — see "Approved brand language"). Do not add a state or country to `areaServed`, and do not substitute `"United States"` / `"North America"` / `"nationwide"`, without a verified operational basis. No `address`, `openingHours`, `aggregateRating`, `priceRange`, license, or partner data appears — consistent with "Claim discipline" above. Revisit if/when a verified public address, hours, or defined service territory exist.
+`areaServed` is the owner-confirmed operating market (a `Place` "Metro Atlanta" contained in the `State` "Georgia"), generated from `src/lib/service-area.ts` (ZW-WEB-04B1). Do not widen it to the whole state, the country, `"North America"` or `"nationwide"`, and do not add counties or cities without owner confirmation. No `address`, `openingHours`, `aggregateRating`, `priceRange`, license, or partner data appears — consistent with "Claim discipline" above. Revisit if/when a verified public address or hours exist.
 
 ## Future local SEO model
 
-The core brand at **https://www.zenwardmobility.com** stays geography-neutral. When Zenward genuinely operates in a verified market, that market may get its own page — `/locations/atlanta`, `/locations/[market]` — describing local availability. Those pages are created **only after** operations in that market are real, and they never make the core site or brand state-specific. No `/locations/*` route exists today, and none was created in this pass.
+The core brand at **https://www.zenwardmobility.com** stays geography-neutral; the homepage names the current operating market (Metro Atlanta) via the central market config. A verified market may get its own page — `/locations/[market]` (e.g. `/locations/metro-atlanta`) — describing local availability, selecting its market explicitly from `src/lib/service-area.ts`. Market pages are created **only** for markets where operations are real; no speculative or "coming soon" market pages. No `/locations/*` route exists yet.
 
 ## Open questions
 
 - Production domain / subdomain strategy for this site vs. the platform app (platform repo ZD-079's open items).
-- Exact launch territory and service-area copy (gated on platform ZD-016).
+- County/city-level coverage within Metro Atlanta (not yet confirmed; nothing more specific than "Metro Atlanta" is published).
 - Final legal counsel review of `/privacy` and `/terms` (now launch-quality honest drafts, not placeholders — but not counsel-reviewed).
 - The trusted Zenward Platform TransportationRequest intake endpoint (replaces `REQUEST_INTAKE_MODE=stub`). Gated on the Platform database security foundation.
 - Contact email delivery: `CONTACT_INTAKE_MODE=email` needs a verified Resend sender domain + API key in production (currently `stub`).

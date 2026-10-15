@@ -1,65 +1,90 @@
 /**
- * The ONE place the public service-area statement lives (ZW-WEB-04B).
+ * Market / service-area configuration — the ONE place a market name lives
+ * (ZW-WEB-04B1).
  *
- * NOT YET CONFIRMED. ZW-WEB-04A (findings L-01 / L-02) found no confirmed
- * service area documented in this repository, and docs/product/marketing-
- * scope.md still describes the brand as geography-neutral. Until the owner
- * confirms the market, `SERVICE_AREA` stays `null` and every consumer renders
- * its honest, geography-free fallback. Do not put a guessed market, city or
- * county here, and do not scatter area strings through components.
+ * Owner decision (ZW-WEB-04B1): Metro Atlanta, Georgia is Zenward Mobility's
+ * confirmed initial operating market. The brand stays "Zenward Mobility"
+ * (geography-neutral); the site may say where Zenward currently operates.
  *
- * When the owner confirms it, set `SERVICE_AREA` below. With no other code
- * change, the area then appears in:
- *   - the homepage hero         (HomeHero: "Serving …" line under the audience line)
- *   - the quick request band    (homepage: "Serving …" before the review note)
- *   - the homepage FAQ          ("Where does Zenward operate?" answer)
- *   - the site footer           (PublicFooter: line under the tagline)
- *   - homepage metadata         (title + description, via `homeMetadataCopy`)
- *   - homepage JSON-LD          (`areaServed` on the Organization)
- * Also update docs/product/marketing-scope.md "Geography" in the same change.
+ * Model:
+ *   - `MARKETS` lists only real, owner-confirmed markets. Do not add
+ *     speculative or "coming soon" markets here.
+ *   - `DEFAULT_MARKET_SLUG` is the market the homepage and site-wide
+ *     surfaces (footer, homepage metadata, Organization JSON-LD) describe.
+ *   - A future market is ONE new entry here. Pages that need a market other
+ *     than the default must select it explicitly, by route (e.g.
+ *     /locations/<slug> calling `getMarket(slug)`) or by campaign landing-page
+ *     config. The site never infers a visitor's market from IP address,
+ *     browser location or headers.
+ *
+ * Consumers of the default market: HomeHero (H1), homepage FAQ "Where does
+ * Zenward operate?", homepage final CTA, PublicFooter, homepage metadata,
+ * homepage Organization JSON-LD `areaServed`.
+ *
+ * Do not list counties or cities here until the owner confirms them.
  */
 import { business } from "@/lib/business";
 
-export interface ServiceArea {
-  /**
-   * The market as it reads after "Serving" and "in", e.g. "Metro Atlanta".
-   * Owner-confirmed wording only.
-   */
+export interface Market {
+  /** URL-safe id, e.g. for a future /locations/<slug> route. */
+  slug: string;
+  /** Reads naturally after "in" / "Serving", e.g. "Metro Atlanta". */
   name: string;
-  /** Optional owner-confirmed counties/cities, listed in the FAQ answer. */
-  places?: readonly string[];
+  /** Full state name, used for structured data. */
+  state: string;
+  /** Inactive markets are kept out of every public surface. */
+  active: boolean;
 }
 
-const SERVICE_AREA: ServiceArea | null = null;
+const MARKETS: readonly Market[] = [{ slug: "metro-atlanta", name: "Metro Atlanta", state: "Georgia", active: true }];
 
-/** The confirmed service area, or `null` while it is unconfirmed. */
-export function getServiceArea(): ServiceArea | null {
-  return SERVICE_AREA;
+const DEFAULT_MARKET_SLUG = "metro-atlanta";
+
+/** An active market by slug, or `undefined` (unknown or inactive). */
+export function getMarket(slug: string): Market | undefined {
+  return MARKETS.find((market) => market.slug === slug && market.active);
 }
 
-/** "Serving <area>." or `null` (render nothing) while unconfirmed. */
-export function servingLine(): string | null {
-  const area = getServiceArea();
-  return area ? `Serving ${area.name}.` : null;
+/** The market the homepage and site-wide surfaces describe. */
+export function getDefaultMarket(): Market {
+  const market = getMarket(DEFAULT_MARKET_SLUG);
+  if (!market) throw new Error(`Default market "${DEFAULT_MARKET_SLUG}" is missing or inactive.`);
+  return market;
+}
+
+/** All active markets (e.g. for a future /locations index or sitemap). */
+export function getActiveMarkets(): Market[] {
+  return MARKETS.filter((market) => market.active);
+}
+
+/** Homepage hero H1. */
+export function heroHeadline(market: Market = getDefaultMarket()): string {
+  return `Non-Emergency Medical Transportation in ${market.name}`;
+}
+
+/** Short location line, e.g. "Serving Metro Atlanta". */
+export function servingLine(market: Market = getDefaultMarket()): string {
+  return `Serving ${market.name}`;
 }
 
 /** Answer for the homepage FAQ "Where does Zenward operate?". */
-export function serviceAreaFaqAnswer(): string {
-  const area = getServiceArea();
-  if (!area) {
-    return `Availability depends on where the trip starts and ends. Call ${business.phoneDisplay} or send a request, and our team will confirm whether Zenward can provide your trip.`;
-  }
-  const places = area.places?.length ? ` including ${area.places.join(", ")}` : "";
-  return `Zenward provides non-emergency medical transportation in ${area.name}${places}. Call ${business.phoneDisplay} or send a request, and our team will confirm availability for your trip.`;
+export function serviceAreaFaqAnswer(market: Market = getDefaultMarket()): string {
+  return `Zenward currently provides non-emergency medical transportation in ${market.name}. Call ${business.phoneDisplay} or request a quote so our team can confirm whether we can provide your specific trip.`;
 }
 
-/** Homepage <title> stem and meta description. */
-export function homeMetadataCopy(): { title: string; description: string } {
-  const area = getServiceArea();
+/** Homepage <title> stem and meta description (market named once in each). */
+export function homeMetadataCopy(market: Market = getDefaultMarket()): { title: string; description: string } {
   return {
-    title: area ? `Non-Emergency Medical Transportation in ${area.name}` : "Non-Emergency Medical Transportation",
-    description: area
-      ? `Non-emergency medical transportation in ${area.name} for appointments, dialysis, rehabilitation, hospital discharge and recurring care, including wheelchair transportation. Request a ride or call ${business.phoneDisplay}.`
-      : `Non-emergency medical transportation for appointments, dialysis, rehabilitation, hospital discharge and recurring care, including wheelchair transportation. Request a ride or call ${business.phoneDisplay}.`,
+    title: heroHeadline(market),
+    description: `Zenward Mobility provides non-emergency medical transportation in ${market.name} for appointments, dialysis, rehabilitation, hospital discharge and recurring care, including wheelchair-accessible trips. Request a quote or call ${business.phoneDisplay}.`,
+  };
+}
+
+/** schema.org `areaServed` value for the Organization JSON-LD. */
+export function areaServedJsonLd(market: Market = getDefaultMarket()) {
+  return {
+    "@type": "Place",
+    name: market.name,
+    containedInPlace: { "@type": "State", name: market.state },
   };
 }

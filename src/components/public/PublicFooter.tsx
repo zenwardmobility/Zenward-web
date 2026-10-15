@@ -35,7 +35,7 @@ const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] =
 
 /** Premium Care Navy footer — the site's closing brand moment. Uses the approved logo asset on a white chip and the approved business phone number (docs/design/brand-assets.md). */
 export function PublicFooter() {
-  // `null` until the owner confirms a service area (src/lib/service-area.ts).
+  // The current operating market, from src/lib/service-area.ts.
   const serving = servingLine();
   return (
     <footer className="bg-brand-care-navy text-white">
@@ -44,7 +44,7 @@ export function PublicFooter() {
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <ZenwardLogo treatment="chip" height={30} />
             <p className={cn(typography.body, "mt-4 max-w-[20rem] text-white/70")}>Care that gets you there.</p>
-            {serving && <p className={cn(typography.bodySmall, "mt-1 text-white/70")}>{serving}</p>}
+            <p className={cn(typography.bodySmall, "mt-1 text-white/70")}>{serving}</p>
             <a
               href={business.phoneHref}
               className={cn(typography.body, "mt-4 inline-flex items-center gap-2 font-medium text-white hover:text-brand-calm-mist")}

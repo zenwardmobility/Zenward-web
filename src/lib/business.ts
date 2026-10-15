@@ -25,10 +25,8 @@ export const business = {
  * platform / dashboard link and no software positioning. Any operator or
  * account application lives elsewhere and is not linked from this site.
  *
- * There is also deliberately NO `serviceArea` / `region` / `brandLocation`
- * field: the public brand is geography-neutral so it can expand into multiple
- * markets. Operational rollout happens market by market (tracked in the
- * platform decision register, ZD-016) — that is not permanent brand geography,
- * so it does not live in site config or copy. Availability for a specific trip
- * is confirmed during request coordination.
+ * Geography does NOT live here: the brand is geography-neutral, and the
+ * current operating market (Metro Atlanta, owner-confirmed in ZW-WEB-04B1)
+ * lives in src/lib/service-area.ts. Availability for a specific trip is
+ * confirmed during request coordination.
  */

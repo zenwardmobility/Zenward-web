@@ -1,0 +1,214 @@
+ZW-WEB-04B1 — CONFIRMED MARKET + MARKET-AWARE HOMEPAGE HERO
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Baseline: e602d92 "Restructure homepage around conversion hierarchy";
+origin/main = d7782a3. No push, no deploy. Intake/Nemryn, analytics, legal
+pages and public/brand untouched. Homepage structure unchanged (04B
+approved).
+
+
+1. OWNER MARKET DECISION
+------------------------
+Metro Atlanta (Georgia) is Zenward Mobility's confirmed initial operating
+market. This resolves 04A findings L-01/L-02 and the 04B geography gap. The
+brand remains "Zenward Mobility", geography-neutral, and the site may now
+name its current operating market. No county or city coverage is confirmed,
+so none is published.
+
+
+2. PREVIOUS GEOGRAPHY STATE
+---------------------------
+  - docs/product/marketing-scope.md: "geography-neutral ... no state,
+    region, county, or city appears in site copy, metadata, or structured
+    data."
+  - README line 3: "launching in Georgia" (stale; Georgia had been withdrawn
+    from the site in WEB-GEOGRAPHY-NEUTRAL-POSITIONING / ZW-WEB-01E).
+  - src/lib/business.ts comment: "deliberately NO serviceArea".
+  - 04B: src/lib/service-area.ts held `SERVICE_AREA = null`. Every consumer
+    rendered a geography-free fallback, and the FAQ said "Availability
+    depends on where the trip starts and ends...".
+
+
+3. MARKET CONFIGURATION ARCHITECTURE (src/lib/service-area.ts)
+--------------------------------------------------------------
+  interface Market { slug; name; state; active }
+  MARKETS = [{ slug: "metro-atlanta", name: "Metro Atlanta",
+               state: "Georgia", active: true }]      <- only real markets
+  DEFAULT_MARKET_SLUG = "metro-atlanta"
+  getMarket(slug)        active market by slug, else undefined
+  getDefaultMarket()     the homepage / site-wide market (throws if the
+                         default is missing or inactive, a config error
+                         caught at build time)
+  getActiveMarkets()     for a future /locations index or sitemap
+  Copy helpers, each taking an optional Market (default = default market):
+    heroHeadline()        "Non-Emergency Medical Transportation in <name>"
+    servingLine()         "Serving <name>"
+    serviceAreaFaqAnswer()
+    homeMetadataCopy()    { title, description }
+    areaServedJsonLd()    schema.org Place + containedInPlace State
+As a value, "Metro Atlanta" appears exactly once in src/ (the MARKETS
+entry); other occurrences are doc comments. No component contains the
+string. No speculative markets are listed. The 04B
+null/fallback branches are removed because a confirmed default now exists.
+
+
+4. HOMEPAGE H1
+--------------
+"Non-Emergency Medical Transportation in Metro Atlanta". HomeHero renders
+`heroHeadline()`, so the market comes from config. Brand line ("Care that
+gets you there."), support copy, "Request a Quote" and the phone CTA are
+unchanged from 04B final. Hero photography and scrims are unchanged.
+Wrapping (text-balance): "Non-Emergency / Medical Transportation / in Metro
+Atlanta" at 390, 1024 and 1440 (screenshots reviewed).
+The hero's own "Serving ..." line was removed, because the H1 now names the
+market.
+
+
+5. EYEBROW
+----------
+Restored: "NON-EMERGENCY MEDICAL TRANSPORTATION" (typography.eyebrow, Calm
+Mist, the 04B hero eyebrow treatment; Arrival Gold stays reserved for the
+brand line so the two don't compete). The H1 margin was reduced from mt-4 to
+mt-3. No other spacing change was needed: on a 390x844 screen both CTAs end
+at 593px, with the audience line below them.
+
+
+6. METADATA
+-----------
+  <title>  Non-Emergency Medical Transportation in Metro Atlanta | Zenward
+           Mobility   (verified in built HTML; og:title matches)
+  description  "Zenward Mobility provides non-emergency medical
+           transportation in Metro Atlanta for appointments, dialysis,
+           rehabilitation, hospital discharge and recurring care, including
+           wheelchair-accessible trips. Request a quote or call
+           678-935-5489."  (market named once)
+  canonical / og:url  https://www.zenwardmobility.com (unchanged)
+Other pages keep "X | Zenward Mobility" and their own descriptions.
+
+
+7. FAQ
+------
+"Where does Zenward operate?" now reads: "Zenward currently provides
+non-emergency medical transportation in Metro Atlanta. Call 678-935-5489 or
+request a quote so our team can confirm whether we can provide your
+specific trip." It names no counties or cities and makes no all-of-Georgia
+claim.
+
+
+8. FOOTER / LOCATION TREATMENT
+------------------------------
+Footer (every page): "Serving Metro Atlanta" under the tagline. Verified on
+/about as well as /.
+Final CTA: "Serving Metro Atlanta. Zenward reviews every request and follows
+up to confirm availability and details."
+Quick request band: deliberately NO market mention; it sits directly under
+the H1 that already names it.
+Visible homepage mentions: 4 (H1, FAQ answer, final CTA, footer). "Georgia"
+appears only in JSON-LD. The brand is still "Zenward Mobility" everywhere.
+
+
+9. JSON-LD
+----------
+Organization now includes:
+  "areaServed": { "@type": "Place", "name": "Metro Atlanta",
+                  "containedInPlace": { "@type": "State", "name": "Georgia" } }
+Generated by areaServedJsonLd(). Still Organization (not LocalBusiness), no
+address/hours/rating. Verified in the built HTML.
+
+
+10. FUTURE MULTI-MARKET MODEL
+-----------------------------
+  - A new market = one new MARKETS entry, added only when operations there
+    are real (no "coming soon" data, no placeholder pages).
+  - The homepage and site-wide surfaces describe DEFAULT_MARKET_SLUG.
+    Changing the primary market is a one-line config change.
+  - Market-specific pages choose their market EXPLICITLY:
+      /locations/<slug>          -> getMarket(params.slug), 404 if
+                                    undefined
+      campaign landing pages     -> a market slug in the page's own config
+    and pass that Market to the same helpers (heroHeadline(market), etc.),
+    so no homepage component needs rewriting.
+  - getActiveMarkets() feeds a future locations index / sitemap entries.
+  - Inactive markets (active: false) are invisible to every helper.
+  - When a market is added, review the site-wide footer line and Organization
+    areaServed (they could list all active markets).
+Nothing beyond the Metro Atlanta entry was built: no /locations route and no
+extra markets.
+
+
+11. WHY IP GEOLOCATION WAS NOT IMPLEMENTED
+------------------------------------------
+  - Truth: the page states where Zenward operates, not where the visitor
+    is. A visitor outside the market should see that, not a page rewritten
+    to match their location.
+  - Determinism and SEO: one URL gives one content for crawlers, caches and
+    ads review. Content that varies by IP is hard to test and can look like
+    cloaking.
+  - Privacy: it avoids processing visitor location on a healthcare-adjacent
+    site (consistent with the 04A §13 measurement boundaries).
+  - Performance: the homepage stays fully static (no per-request headers,
+    no dynamic rendering).
+  - Accuracy: IP location is coarse and often wrong at metro level.
+Market context comes only from explicit route or campaign config.
+
+
+12. RESPONSIVE QA (local production build, headless Chrome)
+-----------------------------------------------------------
+  width  overflowX  page height  hero Quote   hero Call    viewport  header phone
+  390    none       9,794        469-525      537-593      844       Call
+  430    none       9,431        469-525      537-593      932       Call
+  768    none       8,632        521-577      521-577      1024      number
+  1024   none       6,857        533-589      533-589      768       number
+  1440   none       6,544        549-605      549-605      900       number
+One H1 at every width. Eyebrow visible; H1 wraps in three intentional
+lines; Request a Quote and the phone CTA are on the first screen at every
+width; the audience line is readable; "Metro Atlanta" doesn't crowd the
+hero; no overflow; the desktop composition is the same as approved 04B.
+Screenshots reviewed: 390, 1024 and 1440 first screens.
+
+
+13. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+  npm test ......... 45/45 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 21/21 pages (intake env unset,
+                     NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com)
+Rendered checks (.next/server/app/index.html):
+  H1 = "Non-Emergency Medical Transportation in Metro Atlanta"      PASS
+  <title> = "...in Metro Atlanta | Zenward Mobility"                 PASS
+  JSON-LD areaServed = Place "Metro Atlanta" in State "Georgia"      PASS
+
+
+14. FILES MODIFIED
+------------------
+  M src/lib/service-area.ts               (market config + helpers)
+  M src/components/public/HomeHero.tsx    (eyebrow restored; H1 from config;
+                                           hero "Serving" line removed)
+  M src/components/public/PublicFooter.tsx (always shows "Serving Metro
+                                           Atlanta")
+  M src/app/page.tsx                      (areaServed; band market line
+                                           removed; final CTA serving line)
+  M src/lib/business.ts                   (comment only: geography now in
+                                           service-area.ts)
+  M docs/product/marketing-scope.md       (Geography, structured data,
+                                           future local model, open question)
+  M README.md                             (line 3: "currently operating in
+                                           Metro Atlanta")
+  A docs/reports/ZW-WEB-04B1-market-aware-homepage.txt
+Not modified: request-intake, actions, analytics, privacy/terms,
+public/brand, env files, services.ts.
+Known stale doc (not in scope): docs/product/launch-readiness.md still
+describes the brand as geography-neutral with no areaServed (and the intake
+as "Connected"). Update it in 04E.
+
+
+15. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+All gates pass. Commit the 8 paths in §14 as "Add Metro Atlanta market
+positioning". Still before deploy: the 04A-exit blocker B2 (new Nemryn
+integration + verified QA request). For paid search, Google Ads location
+targeting should match "Metro Atlanta" as the owner defines it, since the
+site now promises that market.
+
+STOP. Not pushed or deployed. 04C not started.

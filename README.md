@@ -1,6 +1,6 @@
 # Zenward Web
 
-The public marketing and acquisition website for **Zenward Mobility** — non-emergency medical transportation, launching in Georgia. Care that gets you there.
+The public marketing and acquisition website for **Zenward Mobility** — non-emergency medical transportation, currently operating in Metro Atlanta. Care that gets you there.
 
 This is a standalone Next.js (App Router) + TypeScript + Tailwind CSS project. It is **not** the Zenward Platform (the operations console and driver app live in a separate repository, `ZenWard`). See [docs/product/marketing-scope.md](docs/product/marketing-scope.md) for the full relationship between the two.
 

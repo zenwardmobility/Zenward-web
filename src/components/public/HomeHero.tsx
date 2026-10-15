@@ -5,7 +5,7 @@ import { CallButton } from "@/components/public/CallButton";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
-import { servingLine } from "@/lib/service-area";
+import { heroHeadline } from "@/lib/service-area";
 
 const NAVY = "var(--color-brand-care-navy)";
 const TEAL = "var(--color-brand-route-teal)";
@@ -55,8 +55,8 @@ const FADE_BOTTOM = `linear-gradient(to bottom, transparent, var(--color-surface
  * See docs/design/brand-assets.md and reference 01-public-homepage.png.
  */
 export function HomeHero() {
-  // `null` until the owner confirms a service area (src/lib/service-area.ts).
-  const serving = servingLine();
+  // The market comes from the central config (src/lib/service-area.ts).
+  const headline = heroHeadline();
   return (
     <section className="relative isolate overflow-hidden bg-brand-care-navy text-white">
       {/* Layer 1 — portrait crop, < lg. Full-bleed. */}
@@ -100,16 +100,17 @@ export function HomeHero() {
 
       <SectionContainer className="flex min-h-[32rem] flex-col justify-center py-2xl sm:min-h-[36rem] sm:py-3xl lg:min-h-[38rem] xl:min-h-[40rem] xl:py-4xl min-[1600px]:min-h-[42rem] min-[1600px]:max-w-[92rem]">
         <div className="max-w-[38rem]">
-          {/* 1. Service-clear H1 — the category is in the headline itself, so
-                 the separate eyebrow was removed to avoid saying it twice. */}
-          <h1 className="text-balance font-display text-[2rem] font-bold leading-10 tracking-tight text-white sm:text-5xl sm:leading-[56px] lg:text-[3.25rem] lg:leading-[60px]">
-            Non-Emergency Medical Transportation for the Care You Need
+          {/* 1. Category eyebrow — small and quiet; the H1 carries the weight. */}
+          <p className={cn(typography.eyebrow, "text-brand-calm-mist")}>Non-Emergency Medical Transportation</p>
+          {/* 2. Service-clear, market-aware H1. */}
+          <h1 className="mt-3 text-balance font-display text-[2rem] font-bold leading-10 tracking-tight text-white sm:text-5xl sm:leading-[56px] lg:text-[3.25rem] lg:leading-[60px]">
+            {headline}
           </h1>
-          {/* 2. The approved brand line, kept prominent but no longer carrying the explanation. */}
+          {/* 3. The approved brand line, kept prominent but no longer carrying the explanation. */}
           <p className="mt-3 font-display text-xl font-semibold leading-7 text-brand-arrival-gold sm:text-2xl sm:leading-8">
             Care that gets you there.
           </p>
-          {/* 3. Plain-language use cases. Wheelchair is named as one of them, not the headline. */}
+          {/* 4. Plain-language use cases. Wheelchair is named as one of them, not the headline. */}
           <p className={cn(typography.body, "mt-5 max-w-[34rem] text-pretty text-white/90 sm:text-lg sm:leading-8")}>
             Transportation for medical appointments, dialysis, rehabilitation, hospital discharge, recurring
             care, senior medical needs and wheelchair-accessible trips.
@@ -127,7 +128,6 @@ export function HomeHero() {
           </div>
           <p className={cn(typography.bodySmall, "mt-5 max-w-[30rem] text-white/85")}>
             For yourself, a family member, or someone in your care.
-            {serving && <span className="block font-medium text-white">{serving}</span>}
           </p>
         </div>
       </SectionContainer>

@@ -15,7 +15,7 @@ import { brandImages } from "@/lib/images";
 import { business } from "@/lib/business";
 import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
 import { SERVICES, SERVICE_ORDER } from "@/lib/services";
-import { getServiceArea, homeMetadataCopy, serviceAreaFaqAnswer, servingLine } from "@/lib/service-area";
+import { areaServedJsonLd, homeMetadataCopy, serviceAreaFaqAnswer, servingLine } from "@/lib/service-area";
 
 /*
  * Homepage (ZW-WEB-04B). Conversion hierarchy, top to bottom:
@@ -140,10 +140,9 @@ const FAQ_ITEMS = [
 
 // Conservative, accurate schema.org type — see docs/product/marketing-scope.md
 // "Structured data". `Organization` with a `ContactPoint` covers exactly what is
-// verified: name, phone, url, logo. `areaServed` is emitted only once a service
-// area is owner-confirmed in src/lib/service-area.ts. No address, hours, rating,
-// or price range.
-const serviceArea = getServiceArea();
+// verified: name, phone, url, logo, and the owner-confirmed operating market
+// (`areaServed`, from src/lib/service-area.ts). No address, hours, rating, or
+// price range.
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -152,7 +151,7 @@ const organizationJsonLd = {
     "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care.",
   url: siteUrl,
   logo: absoluteUrl("/images/zenward-mobility-logo.png"),
-  ...(serviceArea ? { areaServed: serviceArea.name } : {}),
+  areaServed: areaServedJsonLd(),
   contactPoint: {
     "@type": "ContactPoint",
     telephone: business.phoneHref.replace("tel:", ""),
@@ -196,7 +195,6 @@ export default function HomePage() {
               <div>
                 <h2 className={cn(typography.subsectionTitle, "text-text-primary")}>Need transportation?</h2>
                 <p className={cn(typography.body, "mt-1 max-w-[36rem] text-text-secondary")}>
-                  {serving && <span className="font-medium text-text-primary">{serving} </span>}
                   Every request is reviewed before availability is confirmed.
                 </p>
               </div>
@@ -463,8 +461,7 @@ export default function HomePage() {
             <div className="relative flex flex-col items-center gap-6">
               <h2 className={cn(typography.sectionTitle, "text-white")}>Need medical transportation?</h2>
               <p className={cn(typography.lede, "max-w-[36rem] text-white/85")}>
-                {serving && <span className="font-medium text-white">{serving} </span>}
-                Zenward reviews every request and follows up to confirm availability and details.
+                <span className="font-medium text-white">{serving}.</span> Zenward reviews every request and follows up to confirm availability and details.
               </p>
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <TrackedLinkButton
