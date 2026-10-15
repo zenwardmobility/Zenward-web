@@ -1,0 +1,288 @@
+ZW-WEB-04B2 — HERO COMMERCIAL BOLDNESS
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Baseline: 174159a "Add Metro Atlanta market positioning"; origin/main =
+d7782a3. LOCAL ONLY: not committed, pushed or deployed. No intake/Nemryn,
+legal, analytics or public/brand change. Sections below the first screen
+keep their structure (one photo removed from Why Zenward, see §6).
+
+
+1. PREVIOUS FIRST-SCREEN ASSESSMENT (04B1)
+------------------------------------------
+  - H1 "Non-Emergency Medical Transportation in Metro Atlanta" at
+    32px (phone) / 52px (desktop), all white, balanced wrapping. Clear but
+    not commanding; it shared weight with the gold tagline.
+  - Eyebrow "NON-EMERGENCY MEDICAL TRANSPORTATION" repeated the H1's first
+    four words.
+  - Two gold elements (eyebrow area / tagline) competed with the H1.
+  - Hero photo = wheelchair + ramp scene. A strong photo, but it made the
+    first screen read as a wheelchair specialist rather than broad NEMT.
+  - The first viewport offered Request + phone THREE times (header, hero,
+    overlap band), and the band looked like a second hero.
+  - The audience line under the CTAs added height without adding a
+    decision.
+
+
+2. H1 TREATMENT
+---------------
+Wording: "Non-Emergency Medical Transportation Across Metro Atlanta" (one
+semantic <h1>; textContent verified as exactly that sentence).
+Designed lines (spans with `display:block`; the market name comes from
+config):
+    Non-Emergency Medical
+    Transportation              <- Arrival Gold (#f4b860), Zenward accent
+    Across Metro Atlanta
+Size (Manrope 700, leading 1.04, tracking-tight):
+    phones   clamp(2.5rem, 10.8vw, 3rem)  -> 42px at 390, 46px at 430
+    sm       3.5rem  (56px)  -> 768
+    lg       3.75rem (60px)  -> 1024
+    xl+      4.25rem (68px)  -> 1440
+Phones: "Non-Emergency Medical" must wrap; the market name is kept together
+(whitespace-nowrap), so the last lines read "Across / Metro Atlanta",
+never "Across Metro / Atlanta". Tablet and desktop render exactly the three
+designed lines.
+Weight: kept at 700. 800 was tried, but the layout only loads Manrope
+600/700, and adding a weight would add a font file.
+The gold-word idea uses Zenward's own Arrival Gold on Care Navy, Manrope
+and Zenward's spacing. No red, no copied typography.
+
+
+3. MARKET EYEBROW
+-----------------
+"SERVING METRO ATLANTA" from servingLine() (src/lib/service-area.ts); no
+market string in HomeHero. Same restrained treatment as before
+(typography.eyebrow, 12px uppercase, Calm Mist). Clearly secondary to the
+H1.
+
+
+4. TAGLINE TREATMENT
+--------------------
+"Care that gets you there." kept, moved from Arrival Gold 20/24px to white
+at 80% opacity, Manrope 600, 18/20px. Reason: with "Transportation" now
+gold, a gold tagline made two competing accents. In white/80 it reads as
+the brand signature under the headline. Calm Mist was also considered;
+white/80 sat more naturally with the white H1 lines.
+
+
+5. SUPPORT-COPY CHANGE
+----------------------
+Now: "Transportation for medical appointments, dialysis, rehabilitation,
+hospital discharge, recurring care and wheelchair-accessible trips."
+("senior medical needs" removed per brief; no market repetition; no
+superlatives.)
+The audience line "For yourself, a family member, or someone in your care."
+was removed from the hero. The same positioning remains in the Patients,
+Families & Caregivers section ("Arrange a ride for yourself or someone you
+care for" + for yourself / family member / caregiver) and in the FAQ.
+
+
+6. HERO IMAGE DECISION AND WHY
+------------------------------
+Audit of the four approved photographs (public/images):
+  heroDesktop / heroMobile   navy van, deployed ramp, passenger in
+                             wheelchair. Wheelchair-dominant.
+  vanWalkerAssist            white Zenward van (logo + 678-935-5489 on the
+                             door), passenger with a walker stepping out,
+                             Zenward staff member assisting, medical-office
+                             building behind. 1448x1086.
+  staffWalkingAssist         staff member walking with a passenger outside a
+                             care residence. No vehicle.
+CHOSEN: vanWalkerAssist. It hits every priority: a Zenward vehicle,
+passenger plus staff, medical-transportation context, and no wheelchair.
+It's the same resolution as the previous desktop hero source (1448x1086),
+and the on-vehicle branding and number match the site.
+Nothing was generated or edited. The source artwork is unchanged and
+nothing in public/brand was touched.
+Art direction (HomeHero.tsx):
+  - Both layers use vanWalkerAssist (there's no dedicated portrait crop).
+    Phones/tablets: object-position 74% 50%, so the passenger and staff
+    member sit in frame. Desktop: 50% 62%; >= 1600: 60% 60%.
+  - Desktop scrim strengthened (navy held to 22%, 90% at 40%, 72% at 54%,
+    36% at 64%, clear by 88%). The white van is much brighter than the navy
+    van, and the first H1 line reaches about 65% of the width at 1440. The
+    door lettering stays a dim watermark behind the copy; the passenger and
+    staff member are sharp.
+  - Phone/tablet scrim strengthened to an even 66-88% Care Navy field. The
+    first pass (the old 34% mid-band) left the tagline and support copy over
+    the white van at 768 with poor contrast; fixed and re-verified.
+  - Trade-off: the phone hero now crops a 4:3 image into a tall portrait
+    frame, so the photo is upscaled on high-density phones (softer than
+    the old dedicated 768x1376 portrait crop). Under the heavier mobile
+    scrim this is barely noticeable. A dedicated portrait crop of the van
+    scene would be the right follow-up (owner/brand asset task).
+Wheelchair/ramp crops: still registered in src/lib/images.ts (comments
+updated), reserved for the wheelchair page in 04C, and no longer used on
+the homepage.
+Consequence below the fold: vanWalkerAssist was also the Why Zenward photo.
+To avoid showing the same photo twice on one page, it was removed from that
+section; the heading, text and five points are unchanged. On desktop the
+heading column is now sticky (lg:sticky top-28), so it stays beside the
+list instead of leaving an empty column. The only other candidate photos
+would either repeat the families photo or bring back the wheelchair scene
+the brief reserves for 04C.
+
+
+7. CTA HIERARCHY (first viewport)
+---------------------------------
+  header   phone (number from 640px; "Call" on phones) + Request a Quote
+           (desktop)
+  hero     Request a Quote (gold, primary) + phone CTA ("Call 678-935-5489"
+           on phones; "678-935-5489" from 640px)
+  band     ONE phone link (678-935-5489); no Request button
+The hero is now clearly the conversion area. Routes, tracking events and
+intake are unchanged.
+
+
+8. QUICK-BAND CHANGE
+--------------------
+Same overlapping white card (rounded, shadow, ring). It's now a practical
+reassurance strip, not a CTA cluster:
+  [map pin]   Serving Metro Atlanta          (servingLine(), from config)
+  [clipboard] Every transportation request is reviewed by our team before
+              availability is confirmed.
+  [phone]     678-935-5489                    (tel:+16789355489, 44px+)
+Desktop: one row with vertical dividers. Phones/tablet: three stacked rows
+with horizontal dividers. A visually hidden <h2>Before you request</h2>
+keeps the heading outline. "Need transportation?" and the band's Request a
+Quote button were removed.
+Note: "Metro Atlanta" now appears three times in the first screen (eyebrow,
+H1, band). All three were requested, but the eyebrow and band repeat
+each other. If the owner wants it leaner, drop the band's market item
+(one line in page.tsx).
+
+
+9. DESKTOP VISUAL ASSESSMENT (1024, 1440)
+-----------------------------------------
+  - The H1 dominates the left half; the gold "Transportation" line is the
+    focal point, and the three-line rhythm is exactly as designed.
+  - Image weight balances the text: the van fills the frame, and the
+    passenger and staff member are clear on the right third.
+  - Header shows the real number at both widths without crowding the nav.
+  - The band reads as information, not a second set of buttons.
+  - Composition stays premium: one gold accent, navy scrim, white
+    signature line, generous spacing.
+
+
+10. MOBILE VISUAL ASSESSMENT (390, 430)
+---------------------------------------
+  - H1 5 lines at 42/46px. It's much bolder than 04B1 (32px) but not
+    crowded; "Transportation" sits alone in gold.
+  - Copy contrast is solid on the stronger scrim; passenger and staff
+    visible behind.
+  - Both hero CTAs full-width and on the first screen (390: Quote 544-600,
+    Call 612-668 of 844; 430: 566-622, 634-690 of 932).
+  - The band starts at 716 (390) and reads as three tidy rows.
+
+
+11. COMPARISON AGAINST 04B1
+---------------------------
+                         04B1                         04B2
+  H1 size (390/1440)     32px / 52px                  42px / 68px
+  H1 color               all white                    gold "Transportation"
+  Eyebrow                category (duplicate)         "Serving Metro Atlanta"
+  Tagline                gold, 20-24px                white/80, 18-20px
+  Hero photo             wheelchair + ramp            branded van + walker
+  Audience line          in hero                      removed (kept lower)
+  Band                   Request + Call (duplicate)   area / review / phone
+  390 CTAs (bottom)      593                          668  (still < 844)
+  Page height 390/1440   9,794 / 6,544                9,521 / 6,516
+
+
+12. ACCESSIBILITY
+-----------------
+One H1; its text reads as one sentence (spans are presentational, with
+explicit spaces). Gold #f4b860 on Care Navy #123447 is 7.4:1; white text on
+the strengthened scrims was checked visually at all five widths. Eyebrow and
+tagline are not headings. Band: sr-only h2; phone link has aria-label "Call
+Zenward at 678-935-5489" and a 44px minimum height. All images have alt text
+(0 without); the hero uses vanWalkerAssist's existing factual alt. Focus
+styles and reduced-motion handling are unchanged. The sticky Why column is
+CSS only. Under-44px items are the same pre-existing ones (logo link,
+desktop text nav, inline FAQ links).
+
+
+13. PERFORMANCE
+---------------
+Hero LCP is still one priority next/image per breakpoint (quality 90, same
+sizes strings). The desktop source is the same size as before (1448x1086).
+The phone hero now requests the same 4:3 source instead of the 768x1376
+portrait file; next/image serves a 100vw-width AVIF/WebP candidate. No new
+fonts (H1 stays on the loaded 700 weight), libraries or client JS. One fewer
+image on the homepage (Why section). Homepage is still static.
+
+
+14. TESTS / BUILD
+-----------------
+  npm test ......... 45/45 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 21/21 pages (intake env unset,
+                     NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com)
+Responsive QA (local production build, headless Chrome), final state:
+  width  overflowX  page height  hero Quote  hero phone  viewport
+  390    none       9,521        544-600     612-668     844
+  430    none       9,158        566-622     634-690     932
+  768    none       8,198        528-584     528-584     1024
+  1024   none       6,825        551-607     551-607     768
+  1440   none       6,516        581-637     581-637     900
+Homepage <title> unchanged from 04B1: "Non-Emergency Medical Transportation
+in Metro Atlanta | Zenward Mobility" (the H1 says "Across"; the title keeps
+the approved "in" wording).
+
+
+15. FILES MODIFIED
+------------------
+  M src/components/public/HomeHero.tsx  (photo, scrims, eyebrow, H1 lines,
+                                         tagline, support copy, audience
+                                         line removed)
+  M src/app/page.tsx                    (quick band -> reassurance strip;
+                                         Why photo removed; sticky heading
+                                         column; icon imports)
+  M src/lib/service-area.ts             (heroHeadlineLines(); metadata title
+                                         stem now explicit; comment)
+  M src/lib/images.ts                   (comments only: new photo roles)
+  A docs/reports/ZW-WEB-04B2-hero-commercial-boldness.txt
+Not modified: intake, actions, analytics, legal pages, public/brand,
+public/images, services.ts, env files.
+
+
+16. SCREENSHOTS REVIEWED (session scratchpad; not committed)
+------------------------------------------------------------
+  First pass: 1440, 1024, 390 (found the 768 contrast issue and the
+              "Across Metro / Atlanta" break in the next pass)
+  Second:     1440, 390, 768 (768 tagline/support copy low contrast on the
+              white van)
+  Third:      768, 390, 430 (contrast fixed)
+  Why section at 1440 without the photo (led to the sticky heading)
+  Final:      1440 and 390 first screens after the weight change
+Metrics captured at all five widths after every pass.
+
+
+17. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+  1. Owner review of three judgement calls:
+     a. Hero photo swap to vanWalkerAssist (wheelchair scene reserved for
+        04C).
+     b. Removing the duplicate van photo from Why Zenward (sticky heading
+        instead).
+     c. "Metro Atlanta" three times in the first screen (eyebrow, H1, band
+        item); optionally drop the band item.
+  2. Optional asset follow-up: a dedicated portrait crop of the van scene
+     for phones (source PNG kept outside the served tree, per
+     brand-assets.md).
+  3. If approved, commit the 5 paths in §15 as one change (e.g. "Strengthen
+     homepage hero for commercial clarity").
+  4. Deployment remains blocked on 04A-exit B2 (new Nemryn integration plus
+     a verified QA request).
+
+18. FINAL OWNER NOTE (closing 04B2)
+-----------------------------------
+"Hero copy/hierarchy approved for now. Final hero image treatment deferred
+to a later dedicated visual refinement. Do not treat the current hero
+photograph as permanently locked."
+Accepted as the interim state: the §2-§8 copy, hierarchy and band changes
+and the vanWalkerAssist hero photograph. No further hero-image experiments
+were made in this phase. The §17 open points (photo choice, portrait crop,
+first-screen market repetition) carry over to that later visual refinement.
+
+STOP. Committed locally; not pushed or deployed. 04C not started.

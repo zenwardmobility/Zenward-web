@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CheckCircle, Phone, Question } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CheckCircle, ClipboardText, MapPin, Phone, Question } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { BrandImage } from "@/components/layout/BrandImage";
@@ -187,28 +187,39 @@ export default function HomePage() {
       {/* 1. Hero */}
       <HomeHero />
 
-      {/* 2. Quick request / call band — overlaps the hero as one system. */}
+      {/* 2. Practical reassurance band (ZW-WEB-04B2) — keeps the approved
+             overlapping white card, but no longer repeats the hero's CTAs:
+             where Zenward operates, how requests are handled, one phone link.
+             The hero stays the main conversion area. */}
       <div className="relative z-10 -mt-14 px-md sm:-mt-16 sm:px-xl lg:-mt-20">
         <div className="mx-auto max-w-6xl">
-          <div className="rounded-lg bg-surface-elevated p-lg shadow-md ring-1 ring-brand-care-navy/10 sm:p-xl">
-            <div className="flex flex-col gap-lg lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className={cn(typography.subsectionTitle, "text-text-primary")}>Need transportation?</h2>
-                <p className={cn(typography.body, "mt-1 max-w-[36rem] text-text-secondary")}>
-                  Every request is reviewed before availability is confirmed.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <TrackedLinkButton
-                  href="/request-transportation"
-                  size="lg"
-                  event={{ name: "request_transportation_clicked", source: "reassurance_strip" }}
+          <div className="rounded-lg bg-surface-elevated px-lg py-md shadow-md ring-1 ring-brand-care-navy/10 sm:px-xl sm:py-lg">
+            <h2 className="sr-only">Before you request</h2>
+            <ul className="grid grid-cols-1 divide-y divide-border-subtle lg:grid-cols-[auto_1fr_auto] lg:divide-x lg:divide-y-0">
+              <li className="flex items-center gap-3 py-3 lg:py-1 lg:pr-xl">
+                <MapPin className="size-6 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
+                <span className={cn(typography.body, "font-semibold text-text-primary")}>{serving}</span>
+              </li>
+              <li className="flex items-center gap-3 py-3 lg:py-1 lg:px-xl">
+                <ClipboardText className="size-6 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
+                <span className={cn(typography.bodySmall, "text-text-secondary sm:text-base sm:leading-7")}>
+                  Every transportation request is reviewed by our team before availability is confirmed.
+                </span>
+              </li>
+              <li className="flex items-center gap-3 pt-3 lg:py-1 lg:pl-xl">
+                <a
+                  href={business.phoneHref}
+                  aria-label={`Call Zenward at ${business.phoneDisplay}`}
+                  className={cn(
+                    typography.body,
+                    "inline-flex min-h-11 items-center gap-3 font-semibold whitespace-nowrap text-brand-care-navy hover:underline underline-offset-4",
+                  )}
                 >
-                  Request a Quote
-                </TrackedLinkButton>
-                <CallButton variant="secondary" />
-              </div>
-            </div>
+                  <Phone className="size-6 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
+                  {business.phoneDisplay}
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -309,7 +320,8 @@ export default function HomePage() {
       {/* 5. Why Zenward — the single consolidated reassurance section. */}
       <Section tone="white" id="why-medical-transportation">
         <div className="grid grid-cols-1 gap-2xl lg:grid-cols-[1fr_1.1fr] lg:gap-3xl">
-          <div>
+          {/* Sticky on desktop so the heading stays beside the list as it scrolls. */}
+          <div className="lg:sticky lg:top-28 lg:self-start">
             <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Why Zenward</p>
             <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
               Transportation planned around care, not just a pickup
@@ -318,14 +330,8 @@ export default function HomePage() {
               A medical trip often involves more than getting from one address to another. Appointment timing,
               recurring schedules, family coordination and changing care plans can all affect the journey.
             </p>
-            <BrandImage
-              asset={brandImages.vanWalkerAssist}
-              aspect="video"
-              objectPosition="center 42%"
-              className="mt-xl"
-            />
           </div>
-          <ul className="divide-y divide-brand-care-navy/15 border-y border-brand-care-navy/15 lg:self-center">
+          <ul className="divide-y divide-brand-care-navy/15 border-y border-brand-care-navy/15">
             {WHY_POINTS.map((point) => (
               <li key={point.title} className="flex gap-4 py-md sm:py-lg">
                 <CheckCircle className="mt-1 size-5 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />

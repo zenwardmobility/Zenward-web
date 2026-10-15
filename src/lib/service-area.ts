@@ -17,7 +17,7 @@
  *     config. The site never infers a visitor's market from IP address,
  *     browser location or headers.
  *
- * Consumers of the default market: HomeHero (H1), homepage FAQ "Where does
+ * Consumers of the default market: HomeHero (eyebrow + H1), homepage FAQ "Where does
  * Zenward operate?", homepage final CTA, PublicFooter, homepage metadata,
  * homepage Organization JSON-LD `areaServed`.
  *
@@ -57,9 +57,18 @@ export function getActiveMarkets(): Market[] {
   return MARKETS.filter((market) => market.active);
 }
 
-/** Homepage hero H1. */
-export function heroHeadline(market: Market = getDefaultMarket()): string {
-  return `Non-Emergency Medical Transportation in ${market.name}`;
+/**
+ * Homepage hero H1, split into its three designed lines (ZW-WEB-04B2). The
+ * middle line ("Transportation") carries the Arrival Gold accent. Joined with
+ * spaces, it reads "Non-Emergency Medical Transportation Across <market>".
+ */
+export function heroHeadlineLines(market: Market = getDefaultMarket()): {
+  lead: string;
+  accent: string;
+  tailPrefix: string;
+  marketName: string;
+} {
+  return { lead: "Non-Emergency Medical", accent: "Transportation", tailPrefix: "Across", marketName: market.name };
 }
 
 /** Short location line, e.g. "Serving Metro Atlanta". */
@@ -75,7 +84,7 @@ export function serviceAreaFaqAnswer(market: Market = getDefaultMarket()): strin
 /** Homepage <title> stem and meta description (market named once in each). */
 export function homeMetadataCopy(market: Market = getDefaultMarket()): { title: string; description: string } {
   return {
-    title: heroHeadline(market),
+    title: `Non-Emergency Medical Transportation in ${market.name}`,
     description: `Zenward Mobility provides non-emergency medical transportation in ${market.name} for appointments, dialysis, rehabilitation, hospital discharge and recurring care, including wheelchair-accessible trips. Request a quote or call ${business.phoneDisplay}.`,
   };
 }

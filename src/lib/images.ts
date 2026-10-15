@@ -32,17 +32,17 @@ const HERO_ALT =
   "A Zenward Mobility staff member standing with an older passenger seated in a wheelchair at the foot of the deployed side ramp of a navy Zenward Mobility van, outside a medical building";
 
 export const brandImages = {
-  /** Homepage hero, desktop/tablet crop. Navy Zenward Mobility van at a medical building entrance, side door open and ramp deployed to the ground; a staff member stands with an older passenger seated in a wheelchair. Van door carries the Zenward Mobility mark and 678-935-5489. */
+  /** Wheelchair/ramp scene, desktop crop. Homepage hero until ZW-WEB-04B2; now reserved for the wheelchair transportation page (04C). Navy Zenward Mobility van at a medical building entrance, side door open and ramp deployed to the ground; a staff member stands with an older passenger seated in a wheelchair. Van door carries the Zenward Mobility mark and 678-935-5489. */
   heroDesktop: {
     src: heroDesktop,
     alt: HERO_ALT,
   },
-  /** Homepage hero, mobile crop (9:16 portrait, 768×1376) — the same scene, composed vertically with the passenger and staff member centred. */
+  /** Wheelchair/ramp scene, mobile crop (9:16 portrait, 768×1376); reserved for 04C like `heroDesktop` — the same scene, composed vertically with the passenger and staff member centred. */
   heroMobile: {
     src: heroMobile,
     alt: HERO_ALT,
   },
-  /** White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 678-935-5489. */
+  /** Homepage hero (ZW-WEB-04B2) and /healthcare-providers. White Zenward Mobility van with the side door open outside an office building; a staff member assists an older passenger who is using a folding walker. Van carries the Zenward Mobility mark and 678-935-5489. */
   vanWalkerAssist: {
     src: vanWalkerAssist,
     alt: "A Zenward Mobility staff member assisting an older passenger using a walker beside a Zenward Mobility van outside an office building",
