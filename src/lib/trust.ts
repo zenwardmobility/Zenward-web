@@ -79,7 +79,7 @@ export const CONTACT_RESPONSE_LINE = "We reply within 2 hours during working hou
 export const RESPONSE_IS_NOT_CONFIRMATION =
   "A reply isn't a confirmed ride: Zenward confirms availability and details with you before any trip is arranged.";
 
-export type OperatingStandardKey = "punctuality" | "drivers" | "care" | "readiness" | "communication" | "licensed";
+export type OperatingStandardKey = "punctuality" | "drivers" | "care" | "readiness" | "communication" | "licensed" | "wheelchair";
 
 export interface OperatingStandard {
   key: OperatingStandardKey;
@@ -133,4 +133,19 @@ export const OPERATING_STANDARDS: Record<OperatingStandardKey, OperatingStandard
     title: "Licensed and insured",
     description: "Zenward Mobility is a licensed and insured transportation provider.",
   },
+  // ZW-WEB-04L: owner-confirmed wheelchair-accessible transportation, stated as
+  // availability reviewed per trip (no equipment specifications).
+  wheelchair: {
+    key: "wheelchair",
+    category: "Wheelchair-accessible",
+    title: "Wheelchair-accessible transportation",
+    description:
+      "Wheelchair-accessible transportation is available for scheduled, non-emergency trips. Our team reviews the passenger's mobility needs before confirming the arrangement.",
+  },
 };
+
+/**
+ * The trust facts a care team sees on /healthcare-providers (ZW-WEB-04L), in
+ * order. All owner-confirmed; the descriptions come from OPERATING_STANDARDS.
+ */
+export const PROVIDER_TRUST_ORDER: OperatingStandardKey[] = ["licensed", "drivers", "punctuality", "wheelchair", "care", "communication"];

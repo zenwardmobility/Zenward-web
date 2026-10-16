@@ -116,7 +116,9 @@ test("trust layer is wired into the approved pages", () => {
   assert.match(read("app/request-transportation/page.tsx"), /\{QUOTE_RESPONSE_LINE\}/);
   assert.match(read("app/contact/page.tsx"), /\{CONTACT_RESPONSE_LINE\}/);
   assert.match(read("app/about/page.tsx"), /OPERATING_STANDARDS\[key\]/);
-  assert.match(read("app/healthcare-providers/page.tsx"), /OPERATING_STANDARDS\.communication/);
+  // ZW-WEB-04L: the provider page renders PROVIDER_TRUST_ORDER, which includes the communication standard.
+  assert.match(read("app/healthcare-providers/page.tsx"), /PROVIDER_TRUST_ORDER\.map\(\(key\) => \{\s*const standard = OPERATING_STANDARDS\[key\];/);
+  assert.match(read("lib/trust.ts"), /PROVIDER_TRUST_ORDER: OperatingStandardKey\[\] = \[[^\]]*"communication"/);
   // The request page keeps its not-a-booking statement next to the 2-hour line.
   assert.match(read("app/request-transportation/page.tsx"), /a request, not a confirmed booking/);
 });

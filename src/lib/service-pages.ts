@@ -7,7 +7,8 @@
  * URL, plus a BreadcrumbList. No ratings, prices, hours or availability.
  */
 import type { Metadata } from "next";
-import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
+import { absoluteUrl, pageMetadata } from "@/lib/seo";
+import { organizationRef } from "@/lib/organization";
 import { areaServedJsonLd, getDefaultMarket } from "@/lib/service-area";
 import type { ServiceContent } from "@/lib/services";
 import type { CampaignContent } from "@/lib/campaigns";
@@ -43,7 +44,7 @@ export function serviceJsonLd(service: ServiceContent) {
       serviceType: service.label,
       description: service.summary,
       url: absoluteUrl(service.path),
-      provider: { "@type": "Organization", name: siteName, url: siteUrl },
+      provider: organizationRef(),
       areaServed: areaServedJsonLd(),
     },
     breadcrumbJsonLd([

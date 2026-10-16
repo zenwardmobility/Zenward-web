@@ -119,8 +119,12 @@ test("client keeps only a gate-done flag in memory: no storage, cookies, URL, an
 
 test("Privacy discloses the follow-up number factually (chat not sent); legal notices kept", () => {
   const privacy = read("app/privacy/page.tsx");
-  assert.match(privacy, /<strong>Transportation Assistant follow-up number\.<\/strong> If you choose to give a phone number to\s+Zenny, the Transportation Assistant on this site, Zenward receives that number so our team can follow\s+up about your transportation enquiry\. Your chat messages are not sent with it\./);
-  assert.match(privacy, /for contact enquiries and Transportation Assistant follow-up numbers — an email/);
+  // ZW-WEB-04L wording: chat stays on the page; only an optional number is sent, server-side.
+  assert.match(privacy, /<strong>Transportation Assistant \(Zenny\)\.<\/strong>/);
+  assert.match(privacy, /What you type to Zenny stays on the open page\s+and is not sent to Zenward or anyone else/);
+  assert.match(privacy, /If you\s+choose to give Zenny a phone number, that number \(and only the number\) is sent from our web server/);
+  assert.match(privacy, /Your chat messages\s+are not sent with it\./);
+  assert.match(privacy, /for contact enquiries and\s+Transportation Assistant follow-up numbers, an email delivery service/);
   assert.match(privacy, /pre-launch draft pending final legal review/);
   assert.doesNotMatch(privacy, /SMS|text messages|marketing purposes/i);
 });

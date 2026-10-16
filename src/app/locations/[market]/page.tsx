@@ -16,7 +16,9 @@ import { LinkButton } from "@/components/ui/LinkButton";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
-import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
+import { absoluteUrl, pageMetadata } from "@/lib/seo";
+import { organizationRef } from "@/lib/organization";
+import { ASSISTANCE_LEVELS } from "@/lib/assistance-level";
 import { areaServedJsonLd, getActiveMarkets, getMarket, type Market } from "@/lib/service-area";
 import { commercialFaq } from "@/lib/operating-facts";
 import { breadcrumbJsonLd } from "@/lib/service-pages";
@@ -75,7 +77,7 @@ function hubJsonLd(market: Market) {
       name: `Non-Emergency Medical Transportation in ${market.name}`,
       serviceType: "Non-Emergency Medical Transportation",
       url: absoluteUrl(`/locations/${market.slug}`),
-      provider: { "@type": "Organization", name: siteName, url: siteUrl },
+      provider: organizationRef(),
       areaServed: areaServedJsonLd(market),
     },
     breadcrumbJsonLd([
@@ -199,6 +201,10 @@ export default async function MarketHubPage({ params }: Params) {
             ·{" "}
             <Link href="/resources/how-to-arrange-nemt-in-metro-atlanta" className="font-medium text-brand-interactive-teal underline">
               How to arrange NEMT in Metro Atlanta
+            </Link>{" "}
+            ·{" "}
+            <Link href="/resources" className="font-medium text-brand-interactive-teal underline">
+              All resources
             </Link>
           </p>
         )}
@@ -261,6 +267,14 @@ export default async function MarketHubPage({ params }: Params) {
               {market.name}. Describe the passenger&rsquo;s mobility needs in the request, and our team reviews the trip
               before confirming the arrangement with you.
             </p>
+            {/* Pickup & assistance level (ZW-WEB-04G3), named from the canonical source; defined on the wheelchair page. */}
+            <p className={cn(typography.bodySmall, "mt-3 text-text-secondary")}>
+              Every request also includes a pickup &amp; assistance level:{" "}
+              {ASSISTANCE_LEVELS.map((level) => level.label.toLowerCase()).join(", ").replace(/, (?=[^,]*$)/, " or ")}.{" "}
+              <Link href={`${SERVICE_CATALOG["wheelchair-transportation"].path}#assistance-levels`} className="font-medium text-brand-interactive-teal underline">
+                What each level means
+              </Link>
+            </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
               <LinkButton href={SERVICE_CATALOG["wheelchair-transportation"].path} size="lg" variant="outline">
                 About wheelchair-accessible transportation
@@ -312,22 +326,27 @@ export default async function MarketHubPage({ params }: Params) {
             <p className={cn(typography.eyebrow, "text-brand-arrival-gold")}>For Healthcare Providers</p>
             <h2 className={cn(typography.sectionTitle, "mt-3 text-white")}>Arranging transportation for patients?</h2>
             <p className={cn(typography.lede, "mt-4 text-white/80")}>
-              Clinics, dialysis centers, rehabilitation providers, discharge teams and senior care organizations can arrange
-              one-time trips and recurring schedules with Zenward.
+              Clinics, dialysis centers, rehabilitation providers, discharge teams and senior care organizations can request
+              one-time trips and recurring schedules for patients.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-end">
-            <LinkButton href="/healthcare-providers" size="lg" onDark>
-              How Zenward works with providers
-            </LinkButton>
             <TrackedLinkButton
-              href="/contact"
+              href="/request-transportation"
+              size="lg"
+              onDark
+              event={{ name: "request_transportation_clicked", source: "market_page" }}
+            >
+              Request Transportation
+            </TrackedLinkButton>
+            <TrackedLinkButton
+              href="/healthcare-providers"
               size="lg"
               variant="outline"
               onDark
               event={{ name: "provider_cta_clicked", source: "market_page" }}
             >
-              Talk to Zenward
+              How Zenward works with providers
             </TrackedLinkButton>
           </div>
         </div>

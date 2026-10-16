@@ -15,10 +15,11 @@ import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
 import { business } from "@/lib/business";
-import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
+import { pageMetadata, siteName } from "@/lib/seo";
+import { organizationJsonLd } from "@/lib/organization";
 import { SERVICES, SERVICE_ORDER } from "@/lib/services";
-import { OPERATING_STANDARDS } from "@/lib/trust";
-import { areaServedJsonLd, homeMetadataCopy, servingLine } from "@/lib/service-area";
+import { OPERATING_STANDARDS, QUOTE_RESPONSE_LINE } from "@/lib/trust";
+import { homeMetadataCopy, servingLine } from "@/lib/service-area";
 import { commercialFaq } from "@/lib/operating-facts";
 
 /*
@@ -93,10 +94,11 @@ const ARRANGERS = [
   },
 ];
 
+// ZW-WEB-04L: confirmed facts only (no "one point of contact" or dedicated-contact claim).
 const PROVIDER_POINTS = [
-  { title: "Appointment-led scheduling", description: "Rides arranged around when the patient needs to arrive, for one visit or a recurring schedule." },
-  { title: "Discharge coordination", description: "Share the discharge details and Zenward coordinates transportation to the patient's next destination." },
-  { title: "One point of contact", description: "A consistent contact for your team's transportation requests, so you know who to call." },
+  { title: "Appointment-led scheduling", description: "Rides planned around when the patient needs to arrive, for one visit or a recurring schedule." },
+  { title: "Discharge coordination", description: "Share the discharge details and Zenward reviews the trip and confirms timing with your team." },
+  { title: "A clear response", description: `${QUOTE_RESPONSE_LINE} Transportation is arranged only after Zenward confirms it.` },
 ];
 
 // Commercial answers (confirmation, pricing, payment, area) come from src/lib/operating-facts.ts (ZW-WEB-04I).
@@ -134,27 +136,10 @@ const FAQ_ITEMS = [
   { question: "Where does Zenward operate?", answer: COMMERCIAL.area.answer },
 ];
 
-// Conservative, accurate schema.org type — see docs/product/marketing-scope.md
-// "Structured data". `Organization` with a `ContactPoint` covers exactly what is
-// verified: name, phone, url, logo, and the owner-confirmed operating market
-// (`areaServed`, from src/lib/service-area.ts). No address, hours, rating, or
-// price range.
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: siteName,
-  description:
-    "Non-emergency medical transportation for appointments, treatments, discharge journeys, and scheduled care.",
-  url: siteUrl,
-  logo: absoluteUrl("/images/zenward-mobility-logo.png"),
-  areaServed: areaServedJsonLd(),
-  contactPoint: {
-    "@type": "ContactPoint",
-    telephone: business.phoneHref.replace("tel:", ""),
-    contactType: "customer service",
-    availableLanguage: "English",
-  },
-};
+// Organization JSON-LD from the one canonical source (ZW-WEB-04L,
+// src/lib/organization.ts): name, URL, logo, description, slogan, telephone
+// and the confirmed market. No address, hours, rating or price range.
+const homeJsonLd = organizationJsonLd();
 
 function TextPhoneLink({ onDark = false, className }: { onDark?: boolean; className?: string }) {
   return (
@@ -178,7 +163,7 @@ export default function HomePage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }} />
 
       {/* 1. Hero */}
       <HomeHero />

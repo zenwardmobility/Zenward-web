@@ -1,0 +1,653 @@
+ZENWARD-WEB — ZW-WEB-04L
+PROVIDER CONVERSION + TRUST PROOF + LOCAL SEO + POLICY ALIGNMENT — IMPLEMENTATION REPORT
+Date: 2026-10-16
+Mode: LOCAL IMPLEMENTATION ONLY. Not committed, pushed or deployed. 04M not started.
+Not changed: Nemryn, the Website Intake contract, the brand and the homepage hero. No Google Ads, GA4 or GTM.
+
+==================================================
+1. STARTING STATE
+==================================================
+- HEAD ffe917a "Add pickup assistance levels and request success experience" (04G3), on
+  top of 5f677bd (04K). main aligned with origin/main (0 ahead, 0 behind). git diff
+  --check clean.
+- Working tree: clean except the untracked intake diagnostic report
+  (docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt). That file is
+  documentation from earlier in this session, not unrelated code work. It was left as
+  is and is NOT part of the 04L file list.
+- Baseline: 211/211 tests.
+
+==================================================
+2. PROVIDER-PAGE AUDIT (before)
+==================================================
+- Conversion gap: the ONLY call to action was "Talk to Zenward" → /contact, in both the
+  hero and the bottom section. There was no request-transportation path and no phone CTA.
+  Care teams with a real trip had to go through the general contact form, which
+  deliberately has no trip fields.
+- Unconfirmed claims:
+  - "A consistent coordination contact / One point of contact for your team's
+    transportation needs" (the same claim was on the homepage)
+  - "hear from Zenward if anything changes"
+  - "so transport isn't what delays a discharge"
+- Relationship wording: "the patients you refer" / "providers who refer them" (also on
+  /about) implied referral arrangements.
+- Missing content: what to have ready, the real request workflow, the 2-hour response
+  line, discharge-checklist linking, and the request-vs-enquiry distinction.
+- Title "Healthcare Providers" was generic, with no breadcrumb schema.
+
+==================================================
+3. PROVIDER-PAGE CHANGES
+==================================================
+The existing visual system was kept: the same Section tones, card and border styles,
+hero image and typography. Copy lives in a new testable module, src/lib/providers.ts.
+The new order:
+
+A. Hero (navy gradient):
+   - H1 "Healthcare transportation coordination for Metro Atlanta" (market from
+     service-area.ts)
+   - Lede: "Zenward works with care teams that arrange scheduled, non-emergency
+     transportation for patients: one-time trips, recurring schedules and rides home
+     after discharge."
+   - Primary "Request Transportation" → /request-transportation, plus "Call Zenward
+     678-935-5489"
+   - The canonical 2-hour line
+B. Who this is for: role chips only (care coordinators, discharge planners, clinics,
+   dialysis and treatment centers, rehabilitation teams, senior-care teams). No
+   organisation names or logos.
+C. Trips Zenward can help coordinate: the seven medical services as linked cards from
+   the catalogue. Airport is a secondary "Also available" line.
+D. What to have ready (nine operational items):
+   - passenger
+   - requester/contact
+   - pickup and destination
+   - date and timing
+   - return trip
+   - transportation type
+   - Pickup & assistance level (canonical label)
+   - mobility and access
+   - recurring schedule
+   Plus: "Diagnoses, medical records and treatment details aren't needed to arrange
+   transportation."
+E. How requests work: send → Zenward reviews → Zenward follows up (exact
+   QUOTE_RESPONSE_LINE) → transportation is confirmed. Plus: "Requests are reviewed by
+   our team, not scheduled automatically" and the canonical not-a-booking line.
+F. Recurring transportation, and transportation after discharge. Operational wording,
+   with links to Recurring Care, Hospital Discharge and the Hospital Discharge Checklist.
+G. How Zenward operates: owner-confirmed standards from src/lib/trust.ts
+   (PROVIDER_TRUST_ORDER):
+   - licensed and insured
+   - trained and vetted drivers (background checks)
+   - on-time transportation (a punctuality standard)
+   - wheelchair-accessible transportation (new canonical standard)
+   - patience, dignity and compassion
+   - clear follow-up
+   Plus the line "non-emergency transportation, not clinical care".
+H. Questions from care teams: canonical FAQ (response, confirmation, pricing, recurring,
+   facility billing hand-off, area).
+I. Bottom CTA: "Arranging transportation for a patient?", with Request Transportation and
+   Call Zenward. A secondary text link, "Send a general enquiry" → /contact, explicitly
+   for questions that aren't a specific trip.
+
+Metadata: title "Healthcare Provider Transportation in Metro Atlanta | Zenward
+Mobility"; description 156 characters; BreadcrumbList.
+
+==================================================
+4. PROVIDER CTA ARCHITECTURE
+==================================================
+Decision: option C, both, depending on intent.
+
+| Intent | Route | Detail |
+| --- | --- | --- |
+| A specific trip for a patient | /request-transportation | The existing 04G3 structured form; the only transportation intake |
+| A general facility or provider question | /contact | "Healthcare provider or facility enquiry" topic; the form warns against trip and passenger details |
+| Phone | tel:+16789355489 | Shown on every provider surface |
+
+- No second transportation form was created, and the contact form gained no trip
+  fields (tested).
+- Analytics:
+  - provider request clicks fire request_transportation_clicked with source
+    "provider_page"
+  - call clicks fire phone_cta_clicked with surface "provider_page"
+  - both are existing values; there are still no parameters and no sink
+- The Metro Atlanta hub provider band now offers Request Transportation (primary) and
+  the provider page, in place of "Talk to Zenward".
+- The homepage provider section keeps its two existing buttons (homepage not
+  redesigned); only its copy was corrected (section 6).
+
+==================================================
+5. TRUST AUDIT
+==================================================
+The trust architecture was already centralised in src/lib/trust.ts (TRUST_POINTS,
+OPERATING_STANDARDS) and is rendered by TrustStrip, the homepage "Why Zenward" section,
+/about, the market hub, the service pages, the campaign pages, the request page and
+Zenny.
+
+Findings:
+- No badge walls, seals, "certified", "verified" or "trusted by" claims were found.
+- Unconfirmed statements were found outside trust.ts:
+  - homepage and providers: "One point of contact"
+  - providers: "if anything changes"
+  - providers: "isn't what delays a discharge"
+  - about: "expanding service availability by market"
+  - about: "dependable place"
+- "Wheelchair-accessible transportation" (owner-confirmed) had no canonical operating
+  standard, so pages restated it in their own words.
+- Repetition is moderate: compact strips on service, campaign and hub pages, and the
+  full band on the homepage. No change needed.
+
+==================================================
+6. TRUST CHANGES
+==================================================
+- trust.ts: a new OPERATING_STANDARDS.wheelchair. "Wheelchair-accessible transportation
+  is available for scheduled, non-emergency trips. Our team reviews the passenger's
+  mobility needs before confirming the arrangement." No equipment specifications. Also
+  new: PROVIDER_TRUST_ORDER.
+- Homepage provider points:
+  - "One point of contact" was replaced by "A clear response": the canonical 2-hour line
+    plus "Transportation is arranged only after Zenward confirms it."
+  - "Discharge coordination" now says Zenward "reviews the trip and confirms timing with
+    your team" (previously "coordinates transportation to the patient's next
+    destination").
+- The provider page and About now use the canonical standards only.
+- Punctuality is still worded as a standard ("treated as a core operating standard"),
+  never "always" or "guaranteed" (tested).
+
+==================================================
+7. ABOUT-PAGE CHANGES (restrained)
+==================================================
+- Title "About Our Non-Emergency Medical Transportation" (previously "About"). The
+  description now names Metro Atlanta and "care teams who arrange their trips" instead
+  of "providers who refer them".
+- Lede: "…non-emergency medical transportation in Metro Atlanta for patients, families,
+  caregivers, and the care teams who arrange their trips."
+- Values:
+  - "Deliberate about how we grow" (an expansion claim) is replaced by "Focused on Metro
+    Atlanta": "Zenward serves Metro Atlanta. For a specific pickup or destination, our
+    team confirms whether the trip can be arranged."
+  - "dependable" was removed.
+- New paragraph on transportation vs medical care: "Zenward provides transportation, not
+  medical care. Our drivers don't provide clinical assistance, and Zenward does not
+  provide ambulance, stretcher or emergency transportation. In a medical emergency, call
+  911."
+- Operating standards now include wheelchair-accessible transportation.
+- A closing CTA was added (Request a Quote + Call), using a new parameter-free analytics
+  value "about_page".
+- Not invented: founding story, year, team size, ride counts, awards, testimonials.
+
+==================================================
+8. CONTACT-PAGE CHANGES
+==================================================
+- A two-route chooser at the top:
+  - "Arranging a specific trip?" → Request Transportation (source "contact_page", a new
+    parameter-free value)
+  - "A general question?" → the message form (#contact-form) or call, with "Please
+    don't include passenger or trip details in a message."
+- The form section is headed "Send a general message".
+- Contact form:
+  - topic label "Healthcare provider or facility enquiry"
+  - message help: "For general questions only. Please don't include passenger names,
+    addresses, trip details or medical information here."
+- Unchanged: the delivery path, the topic values, the provider_enquiry_submitted event,
+  the FAQ and the approved Zenny behaviour (launcher hidden below 1024px here).
+- Metadata description now names Metro Atlanta and the phone number.
+
+==================================================
+9. METRO ATLANTA / LOCAL SEO CHANGES
+==================================================
+/locations/metro-atlanta already covered:
+- what Zenward provides
+- who it serves
+- the medical trip types and the wheelchair section
+- recurring trips
+- the request process
+- FAQ and CTAs
+
+Added:
+- Assistance levels: one line in the wheelchair section naming the four canonical levels
+  (from ASSISTANCE_LEVELS), with "What each level means" →
+  /services/wheelchair-transportation#assistance-levels (the explainer heading got
+  scroll-margin).
+- Resources: "All resources" added to the existing Helpful resources line.
+- Provider coordination: the band's primary CTA is now Request Transportation, with
+  wording "can request" instead of "can arrange … with Zenward".
+- Not done: no city or county pages, no keyword stuffing. "Metro Atlanta" appears where
+  it is natural. Tests guard against city names, county names, radius and doorway
+  routes.
+
+==================================================
+10. BUSINESS-INFORMATION CONSISTENCY
+==================================================
+| Item | Source | Checked across |
+| --- | --- | --- |
+| Name "Zenward Mobility" | seo.siteName / business.name | header logo alt, footer, metadata template, schema, Resources attribution |
+| Phone "678-935-5489" / tel:+16789355489 | business.ts only (never hard-coded in new code) | header, footer, provider page, contact, about, hub, request page, success screen, Zenny |
+| Market "Metro Atlanta" | service-area.ts only | footer "Serving Metro Atlanta", hub, provider H1/title, about, home metadata, schema areaServed |
+| Category "Non-emergency medical transportation" | — | home/hub titles, footer line, schema description, about |
+
+- Tagline: "Care that gets you there." (About H1, schema slogan).
+- No address was introduced anywhere (tested).
+
+==================================================
+11. STRUCTURED-DATA AUDIT
+==================================================
+Before: the homepage defined an inline Organization (name, description, url, logo,
+areaServed, contactPoint), and Service schema restated a bare provider {name, url}.
+
+After:
+- src/lib/organization.ts is the single source. Organization (not LocalBusiness: no
+  address or hours) with @id https://www.zenwardmobility.com/#organization, name, slogan,
+  description (siteDescription), url, logo, telephone, areaServed (Metro Atlanta,
+  Georgia) and contactPoint.
+- Service schema on service pages and the hub references it via provider:
+  organizationRef() (@id + name + url).
+- Pages:
+  - provider page: BreadcrumbList (new)
+  - Resources: the 04K Article (Organization author) + BreadcrumbList, unchanged
+  - campaign pages: unchanged
+- Tested absent everywhere: address, geo, openingHours, aggregateRating/review,
+  priceRange, foundingDate, numberOfEmployees, sameAs, award, credentials,
+  LocalBusiness.
+- Verified in the built HTML: the homepage Organization keys are exactly areaServed,
+  contactPoint, description, logo, name, slogan, telephone, url.
+
+==================================================
+12. METADATA AUDIT
+==================================================
+Every organic page (28 HTML routes in the build) was checked for a unique title, one H1,
+a self-canonical URL, and index or noindex:
+- Organic pages: unique titles, one H1, self-canonical, indexable.
+- Changed:
+  - /healthcare-providers: "Healthcare Providers" → "Healthcare Provider Transportation
+    in Metro Atlanta"
+  - /about: "About" → "About Our Non-Emergency Medical Transportation"
+  - /contact: description only
+  - The strong 04K Resource titles and the approved service and hub titles were not
+    changed.
+- Observation, not changed: the four noindex campaign pages share titles with the
+  homepage and service pages. That is the 04D design: they are noindex/follow, outside
+  the sitemap and self-canonical, so there is no organic duplication. Campaign rules
+  were untouched.
+- Observation, not changed: several approved descriptions (homepage 239, hub 224,
+  /services 227, service pages around 200 characters) exceed about 160 characters and
+  will be truncated in results. Harmless; can be revisited for 04M landing quality.
+
+==================================================
+13. INTERNAL-LINKING CHANGES
+==================================================
+Only where genuinely useful:
+- Provider page → the seven medical service pages, Airport (secondary), Recurring Care,
+  Hospital Discharge, the Hospital Discharge Checklist, /request-transportation and
+  /contact (enquiry).
+- Metro Atlanta hub → the wheelchair page's assistance-level explainer, and /resources.
+- Contact → /request-transportation (chooser).
+- About → /request-transportation (closing CTA).
+
+Existing paths are kept (home → services → service; service → Resource → request;
+Resource → service → request). The footer and nav are unchanged: no link farm, and no
+new top-level nav.
+
+==================================================
+14. RESOURCE / PROVIDER INTEGRATION
+==================================================
+- /healthcare-providers links to the Hospital Discharge Transportation Checklist from
+  the discharge scenario (tested to resolve to the 04K Resource).
+- Zenny's provider reply offers the same checklist.
+- No new Resources were created. Future provider Resources remain in
+  docs/product/resources-backlog.md.
+
+==================================================
+15. PRIVACY AUDIT
+==================================================
+Against current behaviour:
+
+| Topic | Change |
+| --- | --- |
+| Transportation requests | Now also lists the transportation type, recurring schedule and the pickup & assistance level. States they are sent "directly from our web server to the scheduling and operations service provider", not by email from the browser, and that the form keeps typing only on the open page and doesn't save it in the browser. The processor is not named (no "Nemryn"). |
+| Zenny | Answers from fixed, pre-written information, with no external AI. What you type stays on the open page, isn't sent, and is cleared on leave or reload (matches the code: in-memory state only). An optional number (only the number) is sent from the server through the contact-delivery service; chat is not sent. |
+| Planning checklists | Work only on the open page; ticks aren't saved or sent, and aren't a request. |
+| Analytics | Explicitly: no Google Analytics, Google Tag Manager or Google Ads tags, and the policy will be updated before that changes. |
+
+Unchanged: no HIPAA, encryption or certification claims, and the draft/legal-review
+notices are kept. An existing Zenny test was updated to the new wording, with its intent
+unchanged.
+
+==================================================
+16. TERMS AUDIT
+==================================================
+Before: the request-is-not-a-ride section was correct, but it said a request "does not
+guarantee a specific response time". That contradicted the owner-confirmed,
+site-wide 2-hour working-hours response line.
+
+After:
+- An explicit three-stage list:
+  1. Request
+  2. Review: "Our team reviews availability, the trip details and pricing." plus
+     QUOTE_RESPONSE_LINE
+  3. Confirmation: "Transportation is arranged only after Zenward confirms the details
+     with you."
+- "A reply is not a confirmation."
+- Availability is not guaranteed; dates and times are preferences until confirmed.
+- Canonical pricing and assistance-review lines.
+- Payment, coverage and changes/cancellation are answered per request ("this website
+  does not set those terms").
+- New: "Zenward provides transportation, not medical care. Drivers do not provide
+  clinical or medical assistance, and nothing on this website is medical advice."
+- The page note no longer lists "licensing" as unrepresented (the site does state
+  Licensed & Insured). It says the draft sets no insurance-coverage, payment,
+  cancellation, refund, liability or governing-law terms.
+- "Last updated" changed to October 16, 2026.
+- Never published: "lawyer approved", "legally compliant" (tested).
+
+==================================================
+17. LEGAL-REVIEW BOUNDARIES
+==================================================
+New: docs/product/public-policy-legal-review-needed.md, with 14 items and their current
+public positions:
+- hours
+- payment methods
+- private pay
+- insurance / Medicaid / Medicare
+- facility billing
+- cancellation / no-show / wait-time
+- advance notice / same-day
+- exact service area
+- public address
+- data retention
+- health-data compliance statements
+- liability / governing law
+- licence and insurance details
+- the final terms/privacy review
+
+It also covers wording guardrails, and how to confirm a fact via OPERATING_FACTS in
+src/lib/operating-facts.ts.
+
+==================================================
+18. GOOGLE BUSINESS PROFILE CHECKLIST
+==================================================
+New: docs/product/google-business-profile-launch-checklist.md. It contains:
+- canonical name, phone, website and positioning
+- address, service areas, hours and category marked as owner decisions (no invented
+  address; GBP requires one for verification even when hidden)
+- short and long description drafts using confirmed facts only
+- the service list from the catalogue
+- a photo checklist (real photos only, consent)
+- a policy-safe manual review workflow: no automation, no gating, no incentives, no
+  health details in reviews or replies
+- pre-publish steps, including adding sameAs to the Organization schema only after
+  verification
+
+It does NOT claim the profile exists.
+
+==================================================
+19. TRUST-PROOF BACKLOG
+==================================================
+New: docs/product/trust-proof-backlog.md.
+- High value: genuine Google reviews, real vehicle photography, real driver/team photos
+  (with consent), licence/insurance proof, confirmed hours, payment and service area.
+- Later: facility testimonials (permission), a provider case study, operational
+  response-time data once real history exists. The public promise stays at 2 hours; the
+  30-minute target remains internal.
+- Never fabricate social proof (enforced by tests).
+
+==================================================
+20. ZENNY ALIGNMENT
+==================================================
+Audited answers for:
+- licensing/insurance
+- drivers and background checks
+- punctuality
+- response time
+- Metro Atlanta / area
+- request vs confirmation
+- assistance levels (04G3)
+
+All of them use canonical facts, and all pass validateReply. Changes:
+- Provider reply (reworded): previously "Zenward works with clinics, dialysis centers…",
+  which implied relationships.
+  - Now: "Care teams such as clinics, dialysis centers, rehabilitation teams,
+    senior-care teams and discharge planners can request non-emergency transportation
+    for patients: one-time trips, recurring schedules and rides after discharge."
+  - Second paragraph: "Use the request form for a specific trip. <2-hour line> For a
+    general question about working with Zenward, call or send a message."
+  - Actions: Request Transportation · Healthcare providers · Call Zenward · Send a
+    message · Hospital discharge checklist.
+- Intent fix: provider roles are now matched in the plural too. "Do you work with care
+  coordinators?" and "We are discharge planners" previously fell through to "I don't
+  want to give you the wrong information".
+- "Are you always on time?" answers "Punctuality is our standard…", never always or
+  guaranteed (tested).
+- "Do you serve Marietta?" gives the canonical Metro Atlanta hand-off, never a yes
+  (tested).
+- No free-form AI.
+
+==================================================
+21. CLAIM SCAN
+==================================================
+I scanned the rendered <main> text of every built HTML route for the brief's list plus
+softer claims (24/7, guaranteed, always on time, same-day, Medicaid, Medicare,
+insurance, private pay, ADA, CPR, drug test, stretcher, oxygen, clinical, lifting/lift,
+transfer, statewide, all Georgia, best, top-rated, five-star, trusted by, thousands,
+certification, award, rating, testimonial, refer, one point of contact, dedicated,
+partner, contract, dispatch, 24 hours, expanding).
+
+Before 04L: 51 hits. The real issues, all now FIXED:
+- "One point of contact / consistent contact" (homepage, providers)
+- "if anything changes" (providers)
+- "refer" ×3 (about, providers)
+- "expanding service availability" (about)
+
+After 04L, all remaining hits are classified allowed:
+
+| Hit | Count | Why it is allowed |
+| --- | --- | --- |
+| stretcher | 17 | every one is a negative boundary ("does not provide…", "arrange that separately", FAQ answered "No.") |
+| clinical | 3 | "not clinical care", "don't provide clinical assistance" (boundaries) |
+| same-day | 2 | the /contact FAQ question plus the canonical "must be confirmed by the Zenward team" hand-off |
+| guarantee | 2 | Terms ("does not guarantee…") and the Privacy disclaimer (negative) |
+| certification | 1 | the Privacy "no claim of HIPAA certification" (negative) |
+| insurance | 1 | the Terms note "sets no terms for insurance coverage" (negative) |
+| best | 8 | "best estimate" (discharge content) and "Best when…" (the canonical curb-to-curb definition); not superlatives |
+| lift | 1 | "a lift at the pickup building" (a building lift; passenger lifting is never claimed) |
+
+Not found anywhere: 24/7, always on time, Medicaid/Medicare acceptance, ADA, CPR, drug
+testing, oxygen, transfers, statewide, top-rated, five-star, trusted by, ride counts,
+awards, partners/contracts.
+
+==================================================
+22. MOBILE QA (390, 430)
+==================================================
+Run with Playwright and Chrome on the production build, across 15 routes: /, /about, /contact, /services, /healthcare-providers, /locations/metro-atlanta, /services/wheelchair-transportation, /services/dialysis-transportation, /services/hospital-discharge-transportation, /request-transportation, /privacy, /terms, /resources, /resources/hospital-discharge-transportation-checklist, /metro-atlanta/dialysis-transportation (campaign).
+
+Result: 0 issues at 390 and 430.
+- No horizontal overflow, one H1 on every route, HTTP 200.
+- No undersized controls outside text.
+- The mobile header is unchanged; the menu holds the same links.
+- Provider page:
+  - Request Transportation and Call Zenward are both visible in the hero, full width
+    and stacked.
+  - The 2-hour line sits directly beneath them.
+  - Information density is manageable: role chips, one-column service cards, a
+    checklist-style "have ready" list, then the numbered steps.
+  - The bottom CTA repeats both buttons, plus the general-enquiry link.
+- Contact: the two route cards stack above the form, and the trip-request button is
+  full width.
+- Policy pages read as a narrow single column.
+- The hub's assistance-level line and Resources links read as a short paragraph.
+- Zenny: at first load the launcher and teaser cover no control on /healthcare-providers,
+  /contact or /about. /contact keeps its approved rule: no launcher below 1024px.
+- No console errors and no external requests.
+- Screenshots reviewed: provider page, contact page.
+
+==================================================
+23. DESKTOP QA (768, 1024, 1440)
+==================================================
+Result: 0 issues at 768, 1024 and 1440 on the same 15 routes.
+- The primary nav stays on one line; the header is unchanged from 04K.
+- No paragraph wider than about 820px. Provider sections keep the existing measure:
+  two-column hero, a 3-column service grid, "have ready" beside "how requests work",
+  and side-by-side scenario cards.
+- The trust section is a 3 × 2 grid of plain bordered statements: no badges, seals or
+  icons-as-proof.
+- No giant empty sections, and the hub keeps its alternating rhythm.
+- Zenny covers nothing at load.
+- No console errors and no external requests.
+- Screenshot reviewed: provider page at 1440 (a serious, calm healthcare-business page,
+  with CTAs in the hero and at the close).
+
+==================================================
+24. SEO / INDEXING REGRESSION
+==================================================
+- Organic pages, including the 6 Resources, are indexable and self-canonical. The
+  sitemap is unchanged (24 URLs). Campaign pages remain noindex, follow and outside the
+  sitemap (tested; built HTML verified).
+- No canonical URLs changed. There are no city pages, duplicate H1s or duplicate organic
+  titles, and no fabricated structured-data fields.
+
+==================================================
+25. TESTS / TYPECHECK / LINT / BUILD
+==================================================
+New: src/lib/provider-trust.test.mjs (20 tests) covering:
+- provider CTA destinations
+- the request vs enquiry distinction (provider and contact pages)
+- the operational "have ready" list, with no medical data
+- the real workflow and 2-hour line
+- trust from the canonical source
+- no invented relationships, logos, referrals or dedicated contacts
+- truthful Organization schema
+- no address, hours, ratings or prices in any schema
+- Metro Atlanta positioning with no doorway pages
+- static title uniqueness
+- sitemap and indexing
+- Privacy behaviour
+- Terms request → review → confirmation
+- the internal docs
+- no Google tags
+- no fake social proof
+- Zenny provider and trust answers
+- 04G3/04K regression
+
+Updated, intent unchanged:
+- src/lib/trust.test.mjs: the provider page now renders PROVIDER_TRUST_ORDER, which
+  includes communication
+- src/lib/assistant/zenny.test.mjs: the new Privacy wording for Zenny and the
+  follow-up number
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 231/231 pass, 0 fail (211 before 04L; 20 added) |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning (src/lib/contact-intake/assistant-callback.test.mjs:24) |
+| npm run build | success |
+
+==================================================
+26. FILES CHANGED
+==================================================
+New:
+- src/lib/providers.ts (provider page copy)
+- src/lib/organization.ts (central Organization schema)
+- src/lib/provider-trust.test.mjs
+- docs/product/public-policy-legal-review-needed.md
+- docs/product/google-business-profile-launch-checklist.md
+- docs/product/trust-proof-backlog.md
+- docs/reports/ZW-WEB-04L-provider-trust-local-seo-policy-alignment.txt
+
+Modified:
+- src/app/healthcare-providers/page.tsx: rebuilt to the A–I structure
+- src/app/page.tsx: provider copy; Organization from organization.ts
+- src/app/about/page.tsx
+- src/app/contact/page.tsx
+- src/components/public/ContactForm.tsx: labels and help text only
+- src/app/locations/[market]/page.tsx
+- src/app/privacy/page.tsx
+- src/app/terms/page.tsx
+- src/lib/trust.ts: wheelchair standard, PROVIDER_TRUST_ORDER
+- src/lib/service-pages.ts: provider → organizationRef
+- src/lib/analytics/events.ts: "about_page" surface and source; "contact_page" source
+- src/lib/assistant/intents.ts: plural provider roles, "care team"
+- src/lib/assistant/responses.ts: provider reply
+- src/components/public/AssistanceLevelExplainer.tsx: heading scroll margin
+- src/lib/trust.test.mjs
+- src/lib/assistant/zenny.test.mjs
+
+Not changed: Nemryn, the intake adapter/mapping/Server Action, the quote form, the
+contact delivery path, campaign pages and rules, the header/nav, the footer, the
+homepage hero and layout.
+
+==================================================
+27. OWNER DECISIONS STILL REQUIRED
+==================================================
+1. Everything in docs/product/public-policy-legal-review-needed.md, especially:
+   - working hours (they give the 2-hour promise its meaning)
+   - payment, coverage and facility billing
+   - the cancellation policy
+   - the exact service area
+   - public address handling
+2. Google Business Profile: address/service-area mode, category, hours, and approval
+   of the description drafts.
+3. Whether to offer a certificate of insurance to facilities on request (trust-proof
+   backlog).
+4. Real photography (vehicles, team) to replace or supplement brand imagery.
+5. Review of the new provider-page copy and the About/Contact wording.
+
+==================================================
+28. RECOMMENDATION BEFORE COMMIT
+==================================================
+Ready to commit after owner review of the provider-page, About and Contact copy
+(decision 5).
+- Every quality gate passes: tests 231/231, typecheck, lint with 0 errors, build.
+- Browser QA has 0 issues at 5 widths.
+- The claim scan is clean.
+- No intake, Nemryn, campaign or tracking changes.
+
+Stage exact paths only. Do not include the untracked intake diagnostic report unless
+wanted.
+
+  git add src/lib/providers.ts src/lib/organization.ts src/lib/provider-trust.test.mjs \
+    src/app/healthcare-providers/page.tsx src/app/page.tsx src/app/about/page.tsx src/app/contact/page.tsx \
+    src/components/public/ContactForm.tsx "src/app/locations/[market]/page.tsx" src/app/privacy/page.tsx \
+    src/app/terms/page.tsx src/lib/trust.ts src/lib/service-pages.ts src/lib/analytics/events.ts \
+    src/lib/assistant/intents.ts src/lib/assistant/responses.ts src/components/public/AssistanceLevelExplainer.tsx \
+    src/lib/trust.test.mjs src/lib/assistant/zenny.test.mjs \
+    docs/product/public-policy-legal-review-needed.md docs/product/google-business-profile-launch-checklist.md \
+    docs/product/trust-proof-backlog.md docs/reports/ZW-WEB-04L-provider-trust-local-seo-policy-alignment.txt
+
+Suggested message: "Strengthen provider conversion, trust, local SEO and policy alignment".
+
+==================================================
+29. READINESS ASSESSMENT FOR 04M (Google Ads conversion measurement)
+==================================================
+Ready:
+- Conversion events exist, are typed, parameter-free and correctly gated:
+  - transportation_quote_submitted fires ONLY on delivered:true (04G3 success gate)
+  - provider_enquiry_submitted only on a delivered provider-topic message
+  - phone_cta_clicked carries a closed surface only
+  - request_transportation_clicked and provider_cta_clicked carry closed sources
+- No health or service data reaches events: serviceType is deliberately excluded and
+  sanitizeEvent drops unknown keys.
+- No vendor is installed yet, so 04M starts from a clean slate. registerAnalyticsSink
+  is the single integration point.
+- Landing pages are ready: noindex campaign pages per service; provider, hub and
+  service pages with clear request and call CTAs; a truthful trust layer and policy
+  pages.
+- Privacy states that no Google tags are loaded today and promises an update first.
+  04M MUST update the privacy page (and add any consent mechanism the owner and legal
+  require) in the same change that adds the tag.
+
+Must be decided or done in 04M (blocking):
+1. Consent and legal: whether a cookie/consent banner is needed, and the privacy-policy
+   wording for Google Ads conversion tracking. Confirm with legal given the health
+   context (no health or service data in tags; enhanced conversions with personal data
+   should be considered carefully or avoided).
+2. Which conversions count: recommended primary = transportation_quote_submitted
+   (delivered only); secondary = phone_cta_clicked (click-to-call intent; true call
+   tracking needs Google forwarding numbers, an owner decision), plus
+   provider_enquiry_submitted.
+3. Google Ads account, conversion IDs/labels and consent mode, supplied by the owner.
+   None exist in the repository.
+4. Working hours, ideally before spending money, so the 2-hour promise in ads and on
+   landing pages has a defined meaning. Also an ad schedule aligned to those hours.
+
+Verdict: the website is technically READY for 04M conversion measurement. Owner/legal
+inputs 1–4 are prerequisites for 04M itself, not for committing 04L.
+
+STOPPED. Not committed, pushed or deployed. 04M not started.

@@ -235,13 +235,21 @@ function trustReply(topics: Topic[]): AssistantReply {
 function topicReply(topics: Topic[]): AssistantReply | undefined {
   const first = (...list: Topic[]) => list.find((t) => topics.includes(t));
   if (topics.includes("provider")) {
+    // ZW-WEB-04L: care teams REQUEST transportation like anyone else. No implied
+    // contracts, partnerships, referral agreements or dedicated contacts.
     return {
       kind: "provider",
       paragraphs: [
-        "Zenward works with clinics, dialysis centers, rehabilitation providers, senior care organizations and hospital discharge teams to coordinate non-emergency transportation for patients.",
-        "Talk to our team about how your organization arranges transportation, or request a quote for a specific trip.",
+        "Care teams such as clinics, dialysis centers, rehabilitation teams, senior-care teams and discharge planners can request non-emergency transportation for patients: one-time trips, recurring schedules and rides after discharge.",
+        `Use the request form for a specific trip. ${TRUST.response} For a general question about working with Zenward, call or send a message.`,
       ],
-      actions: [providers, contact, quote()],
+      actions: [
+        quote("Request Transportation"),
+        providers,
+        call(),
+        contact,
+        resourceLink("hospital-discharge-transportation-checklist", "Hospital discharge checklist"),
+      ],
     };
   }
   if (topics.includes("coverage") || topics.includes("payment")) {

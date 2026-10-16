@@ -50,10 +50,14 @@ export default function PrivacyPage() {
         <Block heading="Information you submit">
           <p>
             <strong>Transportation requests.</strong> When you use the Request Transportation form, we collect
-            what you enter: your name, your relationship to the passenger, your phone number, an optional email,
-            the passenger&rsquo;s name, pickup and destination details, any preferred date or time, whether a
-            return trip is needed, and any assistance or additional notes you choose to add. We use this only to
-            review the request and follow up with you about transportation.
+            what you enter: the type of transportation, your name, your relationship to the passenger, your phone
+            number, an optional email, the passenger&rsquo;s name, pickup and destination details, the preferred
+            date and time or recurring schedule, whether a return trip is needed, the pickup &amp; assistance
+            level, and any mobility, assistance or additional notes you choose to add. When you submit, this
+            information is sent directly from our web server to the scheduling and operations service provider
+            Zenward uses to review transportation requests. It is not sent by email from your browser. We use it
+            only to review the request and follow up with you about transportation. The form keeps what you type
+            only on the open page until you submit; it is not saved in your browser.
           </p>
           <p>
             <strong>Contact enquiries.</strong> When you use the Talk to Our Team form, we collect your name,
@@ -62,9 +66,16 @@ export default function PrivacyPage() {
             there; use the Request Transportation form or call {business.phoneDisplay} instead.
           </p>
           <p>
-            <strong>Transportation Assistant follow-up number.</strong> If you choose to give a phone number to
-            Zenny, the Transportation Assistant on this site, Zenward receives that number so our team can follow
-            up about your transportation enquiry. Your chat messages are not sent with it.
+            <strong>Transportation Assistant (Zenny).</strong> Zenny answers from fixed, pre-written information on
+            this website. It does not use an external AI service. What you type to Zenny stays on the open page
+            and is not sent to Zenward or anyone else; it is cleared when you leave or reload the page. If you
+            choose to give Zenny a phone number, that number (and only the number) is sent from our web server
+            through our contact-delivery service so our team can follow up about your enquiry. Your chat messages
+            are not sent with it.
+          </p>
+          <p>
+            <strong>Planning checklists.</strong> The trip checklist in our Resources works only on the open
+            page. What you tick is not saved or sent to Zenward, and it is not a transportation request.
           </p>
         </Block>
 
@@ -86,8 +97,10 @@ export default function PrivacyPage() {
         <Block heading="Cookies and analytics">
           <p>
             This site does not currently set analytics, advertising, or cross-site tracking cookies, and does not
-            load third-party analytics or advertising tags. Passenger names, contact details, addresses,
-            appointment information, and assistance notes are never sent to analytics.
+            load third-party analytics or advertising tags. In particular, it does not load Google Analytics,
+            Google Tag Manager or Google Ads tags. Passenger names, contact details, addresses, appointment
+            information, and assistance notes are never sent to analytics. If this changes, we will update this
+            policy first.
           </p>
         </Block>
 
@@ -95,8 +108,8 @@ export default function PrivacyPage() {
           <p>
             We rely on a small number of providers to run the site: a website hosting provider; a scheduling and
             operations service provider, which receives the transportation requests submitted through this
-            website so our team can review them and follow up with you; and — for contact enquiries and Transportation Assistant follow-up numbers — an email
-            delivery service. Each provider only handles the information needed for its function, and is
+            website so our team can review them and follow up with you; and, for contact enquiries and
+            Transportation Assistant follow-up numbers, an email delivery service. Each provider only handles the information needed for its function, and is
             expected to protect it.
           </p>
         </Block>

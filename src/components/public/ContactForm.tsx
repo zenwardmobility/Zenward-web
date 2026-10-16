@@ -145,11 +145,18 @@ export function ContactForm() {
         placeholder="Select one"
         options={[
           { value: "general", label: "General question" },
-          { value: "provider", label: "I'm a healthcare provider" },
+          { value: "provider", label: "Healthcare provider or facility enquiry" },
           { value: "support", label: "Support for an existing request" },
         ]}
       />
-      <Textarea name="message" label="Message" required rows={5} maxLength={2000} />
+      <Textarea
+        name="message"
+        label="Message"
+        required
+        rows={5}
+        maxLength={2000}
+        helpText="For general questions only. Please don't include passenger names, addresses, trip details or medical information here."
+      />
 
       {error && (
         <p className={cn(typography.bodySmall, "text-critical-text")} role="alert">

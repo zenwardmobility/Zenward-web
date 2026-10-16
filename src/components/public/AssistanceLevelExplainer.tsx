@@ -29,7 +29,7 @@ export function AssistanceLevelExplainer({
 }) {
   return (
     <div aria-labelledby={headingId} role="region">
-      <h2 id={headingId} className={cn(variant === "full" ? typography.sectionTitle : typography.subsectionTitle, "text-text-primary")}>
+      <h2 id={headingId} className={cn(variant === "full" ? typography.sectionTitle : typography.subsectionTitle, "scroll-mt-28 text-text-primary")}>
         {ASSISTANCE_EXPLAINER_HEADING}
       </h2>
       <p className={cn(typography.body, "mt-2 max-w-[40rem] text-text-secondary")}>

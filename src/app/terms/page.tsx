@@ -4,6 +4,9 @@ import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { business } from "@/lib/business";
 import { cn } from "@/lib/cn";
+import { QUOTE_RESPONSE_LINE } from "@/lib/trust";
+import { CONFIRMED } from "@/lib/operating-facts";
+import { ASSISTANCE_REVIEW_NOTE } from "@/lib/assistance-level";
 
 export const metadata: Metadata = pageMetadata({
   title: "Terms of Service",
@@ -11,14 +14,16 @@ export const metadata: Metadata = pageMetadata({
   path: "/terms",
 });
 
-const LAST_UPDATED = "August 31, 2026";
+const LAST_UPDATED = "October 16, 2026";
 
 /**
  * Launch-quality conservative draft. States only what is true today about
- * the service and this website. Makes no insurance, refund, liability-
- * limitation, licensing, regulatory, or response-time representation — those
- * require legal counsel (see docs/product/marketing-scope.md). Counsel
- * review is still required before this is treated as final.
+ * the service and this website: request -> review -> confirmation, the
+ * owner-confirmed 2-hour working-hours RESPONSE (never availability or
+ * timing), non-emergency only, no medical care. Sets no insurance, payment,
+ * cancellation, refund, liability-limitation or governing-law terms; those
+ * need owner/legal decisions (docs/product/public-policy-legal-review-needed.md).
+ * Counsel review is still required before this is treated as final.
  */
 function Block({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
@@ -41,9 +46,13 @@ export default function TermsPage() {
       <div className="mt-2xl flex flex-col gap-xl">
         <Block heading="What Zenward provides">
           <p>
-            Zenward Mobility provides non-emergency medical transportation — rides to and from appointments,
+            Zenward Mobility provides non-emergency medical transportation: rides to and from appointments,
             treatments, discharge, and scheduled care. Zenward does not provide emergency response, ambulance
             service, or stretcher transportation.
+          </p>
+          <p>
+            Zenward provides transportation, not medical care. Drivers do not provide clinical or medical
+            assistance, and nothing on this website is medical advice.
           </p>
         </Block>
 
@@ -58,12 +67,29 @@ export default function TermsPage() {
         <Block heading="Transportation requests are subject to review">
           <p>
             Submitting the Request Transportation form, or asking for transportation by phone, is a{" "}
-            <strong>request</strong> — not a confirmed ride. Every request is reviewed by our team. A trip is
-            only arranged once we have followed up with you to confirm availability and the details.
+            <strong>request</strong>, not a confirmed ride. It works in three stages:
+          </p>
+          <ol className="list-decimal pl-6">
+            <li>
+              <strong>Request.</strong> You send the trip details.
+            </li>
+            <li>
+              <strong>Review.</strong> Our team reviews availability, the trip details and pricing.{" "}
+              {QUOTE_RESPONSE_LINE}
+            </li>
+            <li>
+              <strong>Confirmation.</strong> Transportation is arranged only after Zenward confirms the details
+              with you.
+            </li>
+          </ol>
+          <p>
+            A reply is not a confirmation. Submitting a request does not guarantee that transportation is
+            available for your date, time, location, or needs, and requested dates and times are preferences
+            until confirmed. {CONFIRMED.pricing} {ASSISTANCE_REVIEW_NOTE}
           </p>
           <p>
-            Submitting a request does not guarantee that transportation is available for your date, time,
-            location, or needs, and does not guarantee a specific response time.
+            Questions about payment, coverage, or changing or cancelling a trip are answered by our team for
+            each request; this website does not set those terms.
           </p>
         </Block>
 
@@ -104,9 +130,9 @@ export default function TermsPage() {
       </div>
 
       <p className={cn(typography.metadata, "mt-2xl text-text-muted")}>
-        This draft has not yet completed formal legal review. It intentionally makes no representation about
-        insurance, refunds, limitation of liability, licensing, regulatory status, or guaranteed response times
-        — those sections require counsel.
+        This draft has not yet completed formal legal review. It intentionally sets no terms for insurance
+        coverage, payment, cancellation, refunds, limitation of liability or governing law. Those sections
+        require counsel.
       </p>
     </Section>
   );

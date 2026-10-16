@@ -7,11 +7,14 @@ import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 import { OPERATING_STANDARDS, type OperatingStandardKey } from "@/lib/trust";
+import { ClosingCta } from "@/components/public/ClosingCta";
+import { getDefaultMarket } from "@/lib/service-area";
+
+const market = getDefaultMarket();
 
 export const metadata: Metadata = pageMetadata({
-  title: "About",
-  description:
-    "Zenward Mobility provides non-emergency medical transportation for patients, families, caregivers, and the healthcare providers who refer them.",
+  title: "About Our Non-Emergency Medical Transportation",
+  description: `Zenward Mobility provides non-emergency medical transportation in ${market.name} for patients, families, caregivers and the care teams who arrange their trips.`,
   path: "/about",
 });
 
@@ -19,24 +22,23 @@ const VALUES = [
   {
     icon: Target,
     title: "Focused on medical transportation",
-    description: "Zenward exists for one purpose: dependable, non-emergency medical transportation.",
+    description: "Zenward does one thing: scheduled, non-emergency medical transportation.",
   },
   {
     icon: Handshake,
     title: "Built around the people we serve",
-    description: "Patients, families, caregivers, and the healthcare organizations that refer them.",
+    description: "Patients, families, caregivers, and the care teams who arrange transportation for patients.",
   },
   {
     icon: Compass,
-    title: "Deliberate about how we grow",
-    description:
-      "Zenward is expanding service availability by market, holding the same standard of coordination and care as it grows.",
+    title: `Focused on ${market.name}`,
+    description: `Zenward serves ${market.name}. For a specific pickup or destination, our team confirms whether the trip can be arranged.`,
   },
 ];
 
 // "How Zenward operates" (ZW-WEB-04F): owner-confirmed standards only, from
 // src/lib/trust.ts. No history, scale or statistics.
-const OPERATING_ORDER: OperatingStandardKey[] = ["punctuality", "drivers", "care", "readiness", "communication", "licensed"];
+const OPERATING_ORDER: OperatingStandardKey[] = ["licensed", "drivers", "punctuality", "care", "wheelchair", "communication"];
 
 export default function AboutPage() {
   return (
@@ -45,8 +47,8 @@ export default function AboutPage() {
         <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>About Zenward</p>
         <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Care that gets you there.</h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
-          Zenward Mobility provides non-emergency medical transportation for patients, families, caregivers, and
-          the healthcare providers who refer them.
+          Zenward Mobility provides non-emergency medical transportation in {market.name} for patients, families,
+          caregivers, and the care teams who arrange their trips.
         </p>
       </Section>
 
@@ -57,9 +59,13 @@ export default function AboutPage() {
             <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Why Zenward exists</h2>
             <p className={cn(typography.body, "mt-4 text-text-secondary")}>
               Getting to and from medical care shouldn&rsquo;t be the hardest part of a patient&rsquo;s day. Zenward
-              coordinates non-emergency medical transportation so patients, families, and healthcare
-              organizations have one dependable place to arrange it — with clear communication from request to
-              arrival.
+              coordinates non-emergency medical transportation so patients, families, and care teams have one
+              clear place to arrange it, with a reply and a confirmation before any trip goes ahead.
+            </p>
+            <p className={cn(typography.body, "mt-4 text-text-secondary")}>
+              Zenward provides transportation, not medical care. Our drivers don&rsquo;t provide clinical assistance,
+              and Zenward does not provide ambulance, stretcher or emergency transportation. In a medical emergency,
+              call 911.
             </p>
           </div>
         </div>
@@ -96,6 +102,13 @@ export default function AboutPage() {
           })}
         </div>
       </Section>
+
+      <ClosingCta
+        heading="Need medical transportation?"
+        body={`Request a quote or call. Zenward reviews every request in ${market.name} and follows up to confirm availability and details.`}
+        event={{ name: "request_transportation_clicked", source: "about_page" }}
+        surface="about_page"
+      />
     </>
   );
 }

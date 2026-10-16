@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Section } from "@/components/layout/Section";
 import { ContactForm } from "@/components/public/ContactForm";
 import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
+import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
@@ -17,7 +18,8 @@ const CONTACT_FAQ = (() => {
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact",
-  description: "Get in touch with Zenward Mobility — patients, families, caregivers, and healthcare providers.",
+  description:
+    "Contact Zenward Mobility in Metro Atlanta: request transportation for a specific trip, or send a general question. Call 678-935-5489.",
   path: "/contact",
 });
 
@@ -37,7 +39,44 @@ export default function ContactPage() {
         </p>
       </Section>
 
+      {/* Two routes in (ZW-WEB-04L): a specific trip goes through the structured request form;
+          the message form below is for general questions only, never trip or passenger details. */}
       <Section tone="white" narrow>
+        <h2 className="sr-only">How to reach Zenward</h2>
+        <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
+          <div className="flex flex-col gap-3 rounded-lg border border-brand-care-navy/20 bg-surface-app p-lg">
+            <h3 className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>Arranging a specific trip?</h3>
+            <p className={cn(typography.bodySmall, "flex-1 text-text-secondary")}>
+              Use the request form. It collects the trip, passenger and assistance details our team needs to review
+              the request.
+            </p>
+            <TrackedLinkButton
+              href="/request-transportation"
+              size="md"
+              className="w-full sm:w-auto sm:self-start"
+              event={{ name: "request_transportation_clicked", source: "contact_page" }}
+            >
+              Request Transportation
+            </TrackedLinkButton>
+          </div>
+          <div className="flex flex-col gap-3 rounded-lg border border-border-subtle p-lg">
+            <h3 className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>A general question?</h3>
+            <p className={cn(typography.bodySmall, "flex-1 text-text-secondary")}>
+              Questions about Zenward, an existing request, or working with Zenward as a care team: send a message
+              below or call. Please don&rsquo;t include passenger or trip details in a message.
+            </p>
+            <a
+              href="#contact-form"
+              className={cn(typography.bodySmall, "inline-flex min-h-11 items-center font-semibold text-text-accent-on-tint underline-offset-4 hover:underline")}
+            >
+              Go to the message form
+            </a>
+          </div>
+        </div>
+      </Section>
+
+      <Section tone="white" narrow id="contact-form" className="scroll-mt-20 pt-0 sm:pt-0">
+        <h2 className={cn(typography.subsectionTitle, "mb-lg text-text-primary")}>Send a general message</h2>
         <div className="grid grid-cols-1 gap-2xl lg:grid-cols-[1fr_18rem]">
           <ContactForm />
           <aside className="flex flex-col gap-4 rounded-lg border border-border-subtle bg-surface-app p-lg lg:self-start">
@@ -48,7 +87,7 @@ export default function ContactPage() {
               <a href="/request-transportation" className="font-medium text-text-accent-on-tint underline">
                 Request Transportation
               </a>{" "}
-              form instead — it captures the trip details our team needs.
+              form instead. It captures the trip details our team needs.
             </p>
           </aside>
         </div>

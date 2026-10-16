@@ -84,7 +84,8 @@ const TOPIC_PATTERNS: [Topic, RegExp][] = [
   ["coverage", /\bmedicaid\b|\bmedicare\b|\binsurance\b|\binsurer\b|\bcovered by\b|\bvoucher\b/],
   ["payment", /\bpay(ing|ment)?\b|\bcards?\b|\bcredit\b|\bdebit\b|\bcash\b|\bcheck\b|\bcheque\b|\binvoic\w*|\bbilling\b|\bdeposits?\b|\bzelle\b|\bvenmo\b|\bpaypal\b|\bprivate pay\b/],
   ["pricing", /\bprices?\b|\bpricing\b|\bcosts?\b|\bhow much\b|\bfares?\b|\brates?\b|\bfees?\b|\bcharge\b|\bexpensive\b|\bafford\w*|\bcheap\w*/],
-  ["provider", /\bcare coordinator\b|\bcoordinator\b|\bcase manager\b|\bsocial worker\b|\bdischarge planner\b|\bfacility\b|\bnursing (home|facility)\b|\bassisted living\b|\b(our|my) patients\b|\brefer(ral|ring)?\b|\bhealthcare provider\b|\bprovider\b|\bon behalf of (a|our) (clinic|hospital)\b/],
+  // Singular or plural (04L: "care coordinators", "discharge planners" previously fell through).
+  ["provider", /\bcare coordinators?\b|\bcoordinators?\b|\bcase managers?\b|\bsocial workers?\b|\bdischarge planners?\b|\bcare teams?\b|\bfacility\b|\bnursing (home|facility)\b|\bassisted living\b|\b(our|my) patients\b|\brefer(ral|ring)?\b|\bhealthcare provider\b|\bprovider\b|\bon behalf of (a|our) (clinic|hospital)\b/],
   // Specific certifications/programs that are NOT owner-confirmed: answered honestly, never affirmed.
   ["credential", /\bcpr\b|\bfirst aid\b|\bada\b|\bcertif\w*|\bdrug (test|screen)\w*|\bdrug tested\b|\blicen[cs]e number\b|\binsurance (policy|limit|certificate)s?\b/],
   ["trust_licensed", /\blicen[cs]ed?\b|\binsured\b/],
