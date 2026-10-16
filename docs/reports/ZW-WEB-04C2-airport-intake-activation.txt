@@ -1,0 +1,125 @@
+ZW-WEB-04C2 — AIRPORT TRANSPORTATION INTAKE ACTIVATION
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+STATUS: STOPPED AT PREREQUISITE VERIFICATION (brief §1: "STOP if these
+prerequisites cannot be confirmed"). NO code was changed for 04C2. Nothing
+was staged, committed, pushed, merged or deployed. Nemryn Core/Plus were
+not modified; all Nemryn checks were read-only.
+
+
+1. PRODUCTION PREREQUISITE VERIFICATION
+---------------------------------------
+  # Prerequisite                                   Result        Evidence
+  - ---------------------------------------------- ------------- ---------------------------------------------
+  1 Nemryn Core airport migration 20261015135000   CONFIRMED     `supabase migration list --linked` (read-only,
+    deployed                                                     from /Users/datamatics/Nemryn) lists
+                                                                 20261015135000 as applied on the remote
+                                                                 (production) project. Nemryn working tree
+                                                                 verified unchanged afterwards.
+  2 Production Nemryn app accepts the airport      CONFIRMED     PR #9 "Core: Support Airport Transportation
+    value                                          (code +       website intake" MERGED -> main a0a65aa
+                                                   deploy level) (2026-10-15T23:03Z); GitHub status for a0a65aa:
+                                                                 Vercel "Deployment has completed", Production
+                                                                 deployment id 7106515784. Route allow-list
+                                                                 includes airport_transportation
+                                                                 (src/lib/public-intake/website-intake-core.ts:46
+                                                                 in f843da9); DB _create_public_request
+                                                                 allow-list includes it (migration §3).
+                                                                 NOT verified end-to-end: that needs a live
+                                                                 submission, which requires separate owner
+                                                                 approval.
+  3 Airport can be enabled in Nemryn Settings ->   CONFIRMED     organization-services-core.ts lists
+    Services                                       (capability)  { airport_transportation, "Airport
+                                                                 transportation" }; migration widens
+                                                                 organization_service_offerings and
+                                                                 set_organization_service_offerings.
+                                                   UNKNOWN       Whether Zenward's Nemryn organization has
+                                                   (state)       configured Services, and if so whether Airport
+                                                                 is enabled, was not checked (no tenant-data
+                                                                 read). Per Nemryn's rule, an org with
+                                                                 configured Services WITHOUT Airport rejects
+                                                                 airport requests (Nemryn report, SQL O1).
+  4 Zenward source has the approved airport page   CONFIRMED     b7b9cee (04C1): /services/airport-
+    and catalogue                                                transportation, service-catalog.ts (pending
+                                                                 intake), CONTRACT_PENDING_SERVICE_LABELS gate,
+                                                                 contract-gate tests.
+  5 Current production website connection is       NOT           Vercel env is not readable from here.
+    correctly configured                           CONFIRMED     04A-exit blocker B2 is still open: Production
+                                                                 was last known to hold the OLD Nemryn
+                                                                 integration id; the new self-service
+                                                                 integration plus a verified QA request has not
+                                                                 been recorded.
+  6 No stub adapter / false-success behaviour      NOT           Production serves Zenward d7782a3 (origin/main;
+    active in production                           CONFIRMED     Vercel "Deployment has completed"). That build
+                                                                 still contains the old stub path
+                                                                 `return { ok: true, referenceId, delivered:
+                                                                 false }` (adapter.ts:123 at d7782a3), which
+                                                                 shows "Request received" without delivery
+                                                                 whenever REQUEST_INTAKE_MODE isn't `platform`.
+                                                                 The fail-closed fix (209d4c9) is committed
+                                                                 locally but NOT deployed. Whether the stub is
+                                                                 active depends on the unreadable Vercel env.
+Live production check (read-only GET): /services/airport-transportation
+-> 404; the request form offers the 6 pre-03B2 services + Other (no
+wheelchair, no airport), consistent with d7782a3.
+
+=> Items 5 and 6 cannot be confirmed, so implementation was not started.
+
+
+2. EXACT FILES CHANGED
+----------------------
+None for 04C2. Only this report was written.
+Note: the working tree still contains the UNCOMMITTED ZW-WEB-04D work
+(27 paths, awaiting owner approval). 04C2's planned files (service-types.ts,
+service-catalog.ts, services.ts, the intake/catalogue tests, the contract
+doc) do not overlap with 04D's changes, so the two can still be staged
+separately later.
+
+
+3–9. NOT EXECUTED
+-----------------
+Airport activation, form/preselection, server-to-server verification,
+regression, security/idempotency and test/build runs for 04C2 were not
+performed because of §1.
+
+
+10. EXACT CONTROLLED GIT STAGING INVENTORY
+------------------------------------------
+Nothing to stage for 04C2 (this report only, untracked).
+
+
+11. WHAT UNBLOCKS 04C2 (owner actions, in order)
+------------------------------------------------
+  1. Resolve 04A-exit B2 for the Zenward website, in this order:
+     a. Nemryn -> Website Requests -> "Connect my existing form" for
+        https://www.zenwardmobility.com; record the NEW integration id.
+     b. Vercel (zenward-web, Production): REQUEST_INTAKE_MODE=platform,
+        PLATFORM_INTAKE_URL=<URL Nemryn shows>,
+        PLATFORM_INTAKE_INTEGRATION_ID=<new id>, PLATFORM_INTAKE_ORIGIN unset.
+     c. Push the approved local commits (including the fail-closed fix
+        209d4c9, so no false success can exist) and deploy.
+     d. Submit ONE labelled QA request for an existing service; confirm it
+        appears in Zenward's own Nemryn organization.
+  2. In Nemryn Settings -> Services for Zenward's organization: if Services
+     are configured, enable Airport transportation (otherwise airport
+     requests are rejected by the offerings rule).
+  3. Confirm to Claude that 1 and 2 are done. 04C2 can then proceed
+     exactly as briefed (the change set is small and already specified in
+     04C1 §17).
+Alternative (owner decision): explicitly authorise implementing and
+testing 04C2 LOCALLY now, treating items 5–6 as deployment-time gates
+rather than implementation prerequisites. Deployment would remain
+blocked until 1–2 are done.
+
+
+12. REMAINING BLOCKERS
+----------------------
+  - Production website intake configuration unverified (B2).
+  - Production false-success stub path still deployed (fixed locally in
+    209d4c9, not deployed).
+  - Zenward Nemryn org Services state (Airport enabled?) unknown.
+  - End-to-end airport acceptance can only be proven with an
+    owner-approved live QA submission.
+  - Uncommitted 04D work in the tree (separate approval).
+
+STOP. No 04C2 implementation performed.

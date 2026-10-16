@@ -8,8 +8,9 @@
  * IDENTITY: slug, path, label, intake state, quote link and related services
  * come from src/lib/service-catalog.ts. Live services take their label from
  * `SERVICE_TYPE_LABELS` (the same source as the request-form options);
- * contract-pending services (Airport Transportation, ZW-WEB-04C1) from
- * `CONTRACT_PENDING_SERVICE_LABELS`. Internal/wire values are unchanged.
+ * any contract-pending service would take its label from
+ * `CONTRACT_PENDING_SERVICE_LABELS` (none today; Airport Transportation went
+ * live in ZW-WEB-04C2). Internal/wire values are unchanged.
  *
  * MARKET: copy here is market-free. Pages add the market from
  * src/lib/service-area.ts.
@@ -661,8 +662,6 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     image: { asset: brandImages.vanWalkerAssist, objectPosition: "62% 55%" },
     heroEyebrow: "Pre-Arranged Transportation",
     lede: "Pre-arranged transportation to and from the airport for passengers who want a more coordinated ride, including older adults, family-arranged travel and passengers with mobility considerations.",
-    intakeNote:
-      "Requesting online? Choose Other as the service and describe your airport trip in the notes, or call us.",
     closingNote: "Zenward does not provide emergency transportation. In a medical emergency, call 911.",
     fit: ["Rides to or from the airport", "Older adults and family-arranged travel", "Passengers with mobility considerations", "Travel for medical care"],
     audience: {

@@ -1,0 +1,166 @@
+ZW-WEB-04C2 — AIRPORT TRANSPORTATION INTAKE ACTIVATION: COMPLETION AUDIT
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: audit + test of the existing local 04C2-R1 implementation. No new
+source changes were needed. Nothing staged, committed, pushed, merged or
+deployed. No worktree or branch created. Nemryn not modified. No production
+request submitted.
+
+
+1. OWNER CONFIRMATION RECEIVED (resolves 04A-exit B2)
+-----------------------------------------------------
+Zenward-Web deployed to production with the corrected intake integration;
+Vercel Production env configured; Nemryn website connection enabled; a
+fictional request was submitted from the live site, appeared in Zenward's
+Nemryn Request Hub, and was declined by the owner.
+
+
+2. CURRENT STATE (verified)
+---------------------------
+  Local HEAD = remote main = b7b9cee ("Add Airport Transportation behind
+  intake contract gate"); ahead/behind 0/0 (git ls-remote).
+  Production = b7b9cee: GitHub status "Vercel: Deployment has completed"
+  (2026-10-16T00:23:07Z). Read-only checks of https://www.zenwardmobility.com:
+  /, /services/airport-transportation, /services/wheelchair-transportation,
+  /request-transportation and /icon.svg all 200. The live form offers the 7
+  services + Other (airport still gated, as expected for b7b9cee), and the
+  live airport page still shows the interim "Choose Other" note (removed by
+  04C2-R1). The fail-closed adapter fix (209d4c9) is therefore now in
+  production.
+  Working tree: 37 entries = uncommitted 04D (27) + 04C2-R1 (8) + the two
+  04C2 reports. 04C2-R1 WAS ALREADY IMPLEMENTED LOCALLY; this pass audited
+  and re-tested it.
+
+
+3. AUDIT OF THE 04C2-R1 IMPLEMENTATION
+--------------------------------------
+Diff review (vs HEAD), all as approved:
+  service-types.ts   + airport_transportation in SERVICE_TYPES and
+                     PUBLIC_SERVICE_TYPES (before "other"); label "Airport
+                     Transportation"; PUBLIC_SERVICE_PARAMS entry;
+                     CONTRACT_PENDING_SERVICE_LABELS = {} (mechanism kept).
+  service-catalog.ts airport entry pending -> live; unused `pending`
+                     builder removed.
+  services.ts        "Choose Other" intakeNote removed (+ comment).
+  contract doc       enum incl. airport_transportation with provenance and
+                     the org-offerings rule.
+  tests              parity (9 values), public services, activation suite
+                     (former contract-gate), new mocked airport adapter
+                     suite.
+Intake runtime byte-identical to HEAD (git diff --quiet): adapter.ts,
+nemryn-mapping.ts, tenancy.ts, recurring.ts, types.ts,
+request-transportation/actions.ts. RequestTransportationForm.tsx differs
+from HEAD only by 04D's analytics event renames (not part of 04C2).
+No overlap between 04C2-R1 paths and 04D paths; 04D preserved.
+
+
+4. VERIFICATION RESULTS
+-----------------------
+  Airport selectable    Form option "Airport Transportation" (value
+                        airport_transportation), listed after
+                        Wheelchair-Accessible and before Other.
+  Airport CTA           /services/airport-transportation hero + closing
+                        "Request a Quote" -> /request-transportation?service=
+                        airport_transportation; clicking it (390 and 1440)
+                        lands there with Airport Transportation preselected
+                        and trip frequency One-time.
+  Exact serviceType     Mocked adapter: outgoing body serviceType ===
+                        "airport_transportation"; never "other".
+  Existing services     ?service= preselection verified for all 8 live values
+                        (medical_appointment, dialysis, rehabilitation,
+                        hospital_discharge, recurring_care, senior_medical,
+                        wheelchair_transportation, airport_transportation);
+                        "other"/junk preselect nothing; recurring_care still
+                        defaults to Recurring. Mocked adapter: wheelchair and
+                        recurring dialysis map unchanged.
+  Security/idempotency  Same flat contract: integrationExternalId from
+                        server env, Origin header
+                        https://www.zenwardmobility.com, no Authorization
+                        header, no tenancy keys; a retry re-sends the same
+                        idempotencyKey; the Server Action still gates
+                        serviceType with isPublicServiceType BEFORE the
+                        adapter (look-alikes "airport",
+                        "airport-transportation", "Airport_Transportation",
+                        etc. rejected; tampered value in the browser ->
+                        "Please fill in all required fields.", no adapter
+                        call).
+  No false success      Success only on Nemryn 200 {"ok":true}. Nemryn 400
+                        (e.g. Airport not enabled in Zenward's Services) ->
+                        "couldn't submit ... call us"; unexpected 2xx body ->
+                        not delivered; unlinked/stub mode -> no fetch,
+                        ok:false. Browser (intake env unset): a valid
+                        fictional airport request reaches the adapter and
+                        gets "Online requests are temporarily unavailable
+                        right now. Please call us..." with no "Request
+                        received"; the server log has content-free lines only.
+  Responsive            Airport page, request page, /services and a campaign
+                        page at 390/430/768/1024/1440 (04C2-R1 run): no
+                        overflow, one H1, CTAs above the fold. This pass: no
+                        overflow at 390/1440 in the flow test.
+
+
+5. TESTS / TYPECHECK / LINT / BUILD
+-----------------------------------
+  A. Combined working tree (04D + 04C2-R1):
+     npm test 84/84 · tsc PASS · lint PASS · build PASS 28/28 pages
+  B. 04C2-R1 ALONE on HEAD b7b9cee (scratch export of HEAD + only the 8
+     R1 files; no 04D; working tree untouched):
+     npm test 68/68 · tsc PASS · lint PASS · build PASS 23/23 pages
+  => 04C2-R1 can be released independently of 04D.
+
+
+6. EXACT CHANGED-FILE INVENTORY (04C2 only; stage explicitly, never `git add .`)
+---------------------------------------------------------------------------
+  M src/lib/request-intake/service-types.ts
+  M src/lib/service-catalog.ts
+  M src/lib/services.ts
+  M docs/architecture/nemryn-trusted-request-intake-contract.md
+  M src/lib/request-intake/nemryn-mapping.test.mjs
+  M src/lib/request-intake/public-services.test.mjs
+  M src/lib/request-intake/contract-gate.test.mjs
+  A src/lib/request-intake/airport-intake.test.mjs
+  A docs/reports/ZW-WEB-04C2-airport-intake-activation.txt
+  A docs/reports/ZW-WEB-04C2-R1-local-airport-activation.txt
+  A docs/reports/ZW-WEB-04C2-completion-airport-intake-activation.txt (this report)
+Exclude every 04D path (inventory in ZW-WEB-04D-google-ads-local-
+acquisition.txt §34).
+
+
+7. RECOMMENDED CONTROLLED RELEASE STEPS
+---------------------------------------
+  1. Owner: in Nemryn Settings -> Services for Zenward's organization,
+     enable "Airport transportation" if Services are configured. This is the
+     ONE remaining Nemryn-side condition: without it, airport submissions
+     get Nemryn's generic 400 and the site shows "couldn't submit ... call
+     us" (fail-closed, but airport requests would not arrive).
+  2. Stage exactly §6; verify `git diff --cached --name-only`, `--stat`,
+     `--check`; confirm no 04D path, no adapter/mapping/action/env change.
+     Commit, e.g. "Activate Airport Transportation intake".
+  3. Re-run npm test, tsc, lint and build on the committed tree.
+  4. Push and let Vercel deploy (04D stays uncommitted and is NOT included).
+  5. Read-only post-deploy checks: the live form lists Airport Transportation;
+     /request-transportation?service=airport_transportation preselects it;
+     the airport page has no "Choose Other" note and its CTA carries
+     ?service=airport_transportation.
+  6. Owner-approved live QA: one clearly labelled fictional airport request.
+     Confirm it appears in Zenward's Request Hub with service "Airport
+     transportation", then decline it. If the site shows "couldn't
+     submit", check step 1.
+  7. Only after step 6: promote Airport (no Airport ads before then;
+     04D has no Airport campaign by design).
+
+
+8. REMAINING BLOCKERS / NOTES
+-----------------------------
+  - Zenward's Nemryn Services configuration (Airport enabled?) not
+    confirmed: release step 1.
+  - Airport end-to-end acceptance in production: owner-approved QA
+    request (step 6).
+  - Production currently shows the interim "Choose Other" note on the
+    airport page until 04C2 is released.
+  - 04D remains uncommitted pending owner approval; its own blockers
+    (privacy/legal before any tracking, contact-form delivery mode) are
+    unchanged.
+
+STOP. Audit, testing and reporting complete. Nothing staged, committed,
+pushed or deployed.

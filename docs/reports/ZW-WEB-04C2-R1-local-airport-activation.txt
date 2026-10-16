@@ -1,0 +1,193 @@
+ZW-WEB-04C2-R1 — COMPLETE AIRPORT INTAKE ACTIVATION LOCALLY
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main; HEAD b7b9cee; origin/main d7782a3)
+Mode: LOCAL IMPLEMENTATION ONLY (owner-authorised after the 04C2 prerequisite stop).
+Nothing staged, committed, pushed, merged or deployed. Nemryn Core/Plus not
+modified. No production request was sent. NOT production-ready (see §7).
+
+
+1. EXACT CHANGES (8 paths)
+--------------------------
+src/lib/request-intake/service-types.ts
+  - SERVICE_TYPES: + "airport_transportation" (before "other"), with a
+    comment citing Nemryn migration 20261015135000 / app a0a65aa.
+  - PUBLIC_SERVICE_TYPES: + "airport_transportation" (before "other", so the
+    form lists Airport Transportation directly above Other).
+  - SERVICE_TYPE_LABELS: airport_transportation -> "Airport Transportation".
+  - PUBLIC_SERVICE_PARAMS: + airport_transportation (preselectable).
+  - CONTRACT_PENDING_SERVICE_LABELS: now `{}`; the mechanism is kept for
+    future services, with a history note.
+src/lib/service-catalog.ts
+  - airport entry: pending(...) -> live("airport-transportation",
+    "airport_transportation", [...]); requestHref is now
+    /request-transportation?service=airport_transportation.
+  - Removed the now-unused `pending` builder and its label import; doc
+    comment updated (no pending services today).
+src/lib/services.ts
+  - Removed the airport `intakeNote` ("Choose Other ..."); header comment
+    updated. (ServicePage keeps its generic optional intakeNote support; it
+    was not edited.)
+docs/architecture/nemryn-trusted-request-intake-contract.md
+  - serviceType enum now lists airport_transportation, with provenance
+    (migration 20261015135000, app a0a65aa / PR #9), "never remapped to
+    other", and Nemryn's org-offerings rule (Airport must be enabled if
+    Services are configured, otherwise generic 400). Public-offering note
+    updated (nine values; pending list empty).
+src/lib/request-intake/nemryn-mapping.test.mjs
+  - NEMRYN_SERVICE_TYPES parity list + airport_transportation (the parity
+    test now asserts the 9-value enum and maps every value 1:1).
+src/lib/request-intake/public-services.test.mjs
+  - 9 wire types; ordered form options incl. Airport before Other; label
+    "Airport Transportation"; ?service=airport_transportation preselects.
+src/lib/request-intake/contract-gate.test.mjs
+  - Rewritten from "gate" to "activation" (11 tests): pending list empty;
+    airport in wire/public sets; form option before Other; preselection +
+    one-time default; look-alike values rejected (airport,
+    Airport_Transportation, trailing space, airport-transportation,
+    shuttle, taxi, empty); catalogue entry live with preselected href; every
+    catalogue service live; Nemryn body carries airport_transportation as
+    itself (never "other", no tenancy keys); recurring airport keeps its
+    structured schedule; Server Action gates with isPublicServiceType
+    before the adapter; airport page no longer says "Choose Other".
+src/lib/request-intake/airport-intake.test.mjs (NEW, 6 tests)
+  - Drives the REAL platform adapter with mocked fetch and fictional data:
+    exact serviceType / integrationExternalId / idempotencyKey / Origin
+    header, no Authorization header, delivered only on 200 {ok:true}; retry
+    re-sends the same idempotency key; Nemryn 400 (e.g. Airport not enabled
+    in org Services) -> not success, "call us"; unexpected 2xx body -> not
+    delivered; stub/unlinked mode -> no fetch, no false success; wheelchair
+    and recurring dialysis mapping unchanged.
+NOT changed (per brief): nemryn-mapping.ts, adapter.ts,
+RequestTransportationForm.tsx, actions.ts, tenancy, Origin binding,
+integrationExternalId handling, idempotency, recurring validation,
+server-side configuration.
+
+
+2. PRESERVATION OF 04D WORK
+---------------------------
+Before editing, `git status` showed 28 entries (27 uncommitted 04D paths +
+the untracked 04C2 stop report). All 8 planned 04C2 files were clean (no 04D
+change), so there was no overlap or conflict. After 04C2-R1, all 28 original
+entries are present with identical status codes (`comm` of before/after
+status), and 04C2-R1 adds exactly the 8 paths in §1 plus this report. No
+reset, stash, clean, restore, staging, branch or worktree was used.
+04D files referencing airport use only its path/label (CampaignPage, market
+hub) or assert there's no airport CAMPAIGN (campaign-routes.test.mjs), which
+is still true; all pass unchanged.
+
+
+3. INTAKE CONTRACT VERIFICATION
+-------------------------------
+Nemryn side (verified read-only in 04C2, unchanged here):
+  - Core migration 20261015135000 applied in production (`supabase
+    migration list --linked`).
+  - App release a0a65aa (PR #9 merged) deployed to Vercel Production;
+    route allow-list includes airport_transportation.
+  - DB _create_public_request allow-list and organization offerings accept
+    it; airport is enabled per organization in Settings -> Services.
+Zenward side (tests + mocked adapter):
+  - The wire enum equals Nemryn's 9 values (parity test).
+  - serviceType is sent as itself; no remap; no tenancy keys; same
+    flat-body contract, same Origin header, same idempotency key on retry.
+  - Success = Nemryn 200 {"ok":true} only; every other outcome fails closed.
+
+
+4. FORM PRESELECTION RESULT (local production build, headless Chrome, fictional data)
+-----------------------------------------------------------------------------
+At 390x844 and 1440x900:
+  - Airport page "Request a Quote" href = /request-transportation?service=
+    airport_transportation (hero + closing CTA); clicking lands there.
+  - Service select preselected: value airport_transportation, label
+    "Airport Transportation" (screenshot reviewed at 390); option order:
+    ... Wheelchair-Accessible Transportation, Airport Transportation, Other.
+  - Valid fictional airport submission (intake env UNSET = unlinked): the
+    Server Action accepts it and reaches the adapter, which fails closed:
+    "Online requests are temporarily unavailable right now. Please call us
+    to arrange transportation." No "Request received".
+  - Tampered serviceType ("airport") -> "Please fill in all required
+    fields." (rejected before the adapter; no adapter log line).
+  - Server log: two content-free lines only ("no intake destination
+    configured: request NOT accepted; visitor asked to call.").
+Responsive: /services/airport-transportation, /request-transportation,
+/services and /metro-atlanta/wheelchair-transportation at 390, 430, 768,
+1024 and 1440: no overflow; one H1; CTAs above the fold.
+
+
+5. TESTS AND BUILD
+------------------
+  npm test ......... 84/84 pass (all suites: service catalogue, public
+                     services, activation (former contract-gate), Nemryn
+                     mapping, adapter, airport adapter, recurring, analytics,
+                     campaign routes)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages (intake env unset,
+                     NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com)
+  Browser checks ... §4.
+
+
+6. EXACT FILE INVENTORY FOR CONTROLLED STAGING (04C2 only)
+----------------------------------------------------------
+  M src/lib/request-intake/service-types.ts
+  M src/lib/service-catalog.ts
+  M src/lib/services.ts
+  M docs/architecture/nemryn-trusted-request-intake-contract.md
+  M src/lib/request-intake/nemryn-mapping.test.mjs
+  M src/lib/request-intake/public-services.test.mjs
+  M src/lib/request-intake/contract-gate.test.mjs
+  A src/lib/request-intake/airport-intake.test.mjs
+  A docs/reports/ZW-WEB-04C2-airport-intake-activation.txt   (prerequisite STOP report)
+  A docs/reports/ZW-WEB-04C2-R1-local-airport-activation.txt (this report)
+Do NOT include any 04D path in the 04C2 commit (04D has its own inventory
+in ZW-WEB-04D-google-ads-local-acquisition.txt §34). Suggested message:
+"Activate Airport Transportation intake".
+
+
+7. PRODUCTION DEPLOYMENT GATE (all required; do not deploy before)
+------------------------------------------------------------------
+  1. New Zenward integration created through Nemryn -> Website Requests ->
+     "Connect my existing form" (approved URL https://www.zenwardmobility.com).
+  2. Correct Vercel Production intake configuration:
+     REQUEST_INTAKE_MODE=platform, PLATFORM_INTAKE_URL=<URL Nemryn shows>,
+     PLATFORM_INTAKE_INTEGRATION_ID=<new id>, PLATFORM_INTAKE_ORIGIN unset.
+  3. The fail-closed adapter fix (209d4c9) included in the release (it's
+     already in local history below this work).
+  4. Approved website commits deployed (680f255, 209d4c9, bdbd701, d76ca6f,
+     e602d92, 174159a, 481a1a6, f668474, b7b9cee, plus the 04D and 04C2
+     commits once approved).
+  5. Verified delivery of a fictional EXISTING-service request into
+     Zenward's own Request Hub (owner-approved QA submission).
+  6. Airport Transportation enabled in Nemryn Settings -> Services for
+     Zenward's organization, if Zenward uses configured offerings
+     (otherwise airport requests get Nemryn's generic 400 and the site
+     shows "couldn't submit ... call us").
+  7. Airport-form activation verified end-to-end: one owner-approved,
+     clearly labelled fictional airport request, confirmed in Zenward's
+     Request Hub with service "Airport transportation".
+
+
+8. RELEASE ORDER
+----------------
+  a. Owner approves and commits 04D and 04C2 separately (each with its own
+     inventory).
+  b. Gate items 1–2 (Nemryn connection + Vercel env).
+  c. Push / deploy (gate 3–4).
+  d. Gate 5 (existing-service QA request).
+  e. Gate 6 (enable Airport in Nemryn Services if offerings are
+     configured).
+  f. Gate 7 (airport QA request). Only then promote Airport (and run ads
+     for it).
+  g. Separately: privacy/legal alignment before any conversion tracking
+     (04D §25).
+
+
+9. KNOWN BLOCKERS
+-----------------
+  - Production intake connection still unverified (04A-exit B2).
+  - Production still serves d7782a3, which contains the old false-success
+    stub path (fixed locally in 209d4c9, not deployed).
+  - Zenward's Nemryn Services configuration (Airport enabled?) unknown.
+  - End-to-end airport acceptance needs an owner-approved live QA request.
+  - 04D remains uncommitted pending owner approval.
+
+STOP. Local implementation and reporting complete. Not production-ready.

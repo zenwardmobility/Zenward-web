@@ -11,10 +11,10 @@
  *   pending  the service is public, but the Nemryn contract can't carry it
  *            yet (CONTRACT_PENDING_SERVICE_LABELS). Its quote link goes to
  *            the plain request form (no preselection), and the value never
- *            reaches the form, the Server Action or the wire.
+ *            reaches the form, the Server Action or the wire. None today:
+ *            Airport Transportation went live in ZW-WEB-04C2.
  */
 import {
-  CONTRACT_PENDING_SERVICE_LABELS,
   SERVICE_TYPE_LABELS,
   requestHrefFor,
   type ContractPendingService,
@@ -59,16 +59,6 @@ const live = (
   related,
 });
 
-const pending = (slug: ServiceSlug, pendingValue: ContractPendingService, related: ServiceSlug[]): CatalogEntry => ({
-  slug,
-  path: `/services/${slug}`,
-  label: CONTRACT_PENDING_SERVICE_LABELS[pendingValue],
-  intake: { kind: "pending", pendingValue },
-  // Plain form: no `?service=` for a value the intake can't accept.
-  requestHref: "/request-transportation",
-  related,
-});
-
 export const SERVICE_CATALOG: Record<ServiceSlug, CatalogEntry> = {
   "medical-appointments": live("medical-appointments", "medical_appointment", [
     "senior-medical-transportation",
@@ -103,7 +93,7 @@ export const SERVICE_CATALOG: Record<ServiceSlug, CatalogEntry> = {
     "dialysis-transportation",
     "airport-transportation",
   ]),
-  "airport-transportation": pending("airport-transportation", "airport_transportation", [
+  "airport-transportation": live("airport-transportation", "airport_transportation", [
     "senior-medical-transportation",
     "wheelchair-transportation",
     "medical-appointments",

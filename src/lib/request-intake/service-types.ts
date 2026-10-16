@@ -25,6 +25,8 @@ export const SERVICE_TYPES = [
   "recurring_care",
   "senior_medical",
   "wheelchair_transportation",
+  // Accepted by Nemryn since migration 20261015135000 / app a0a65aa (ZW-WEB-04C2).
+  "airport_transportation",
   "other",
 ] as const;
 
@@ -39,6 +41,7 @@ export const PUBLIC_SERVICE_TYPES = [
   "recurring_care",
   "senior_medical",
   "wheelchair_transportation",
+  "airport_transportation",
   "other",
 ] as const satisfies readonly ServiceType[];
 
@@ -59,6 +62,7 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   recurring_care: "Recurring Care Transportation",
   senior_medical: "Senior Medical Transportation",
   wheelchair_transportation: "Wheelchair-Accessible Transportation",
+  airport_transportation: "Airport Transportation",
   other: "Other",
 };
 
@@ -97,6 +101,7 @@ export const PUBLIC_SERVICE_PARAMS = {
   recurring_care: "recurring_care",
   senior_medical: "senior_medical",
   wheelchair_transportation: "wheelchair_transportation",
+  airport_transportation: "airport_transportation",
 } as const satisfies Partial<Record<PublicServiceType, PublicServiceType>>;
 
 export type PublicServiceParam = keyof typeof PUBLIC_SERVICE_PARAMS;
@@ -144,9 +149,11 @@ export function resolveServiceParam(raw: unknown): PublicServiceType | undefined
  * PUBLIC_SERVICE_PARAMS, update the contract doc and the parity/gate tests,
  * and switch its catalogue intake to `live` in src/lib/service-catalog.ts.
  */
-export const CONTRACT_PENDING_SERVICE_LABELS = {
-  airport_transportation: "Airport Transportation",
-} as const;
+//
+// History: Airport Transportation was gated here in ZW-WEB-04C1 and activated
+// in ZW-WEB-04C2 once Nemryn accepted `airport_transportation` (Core migration
+// 20261015135000, app release a0a65aa). No service is pending today.
+export const CONTRACT_PENDING_SERVICE_LABELS = {} as const satisfies Record<string, string>;
 
 export type ContractPendingService = keyof typeof CONTRACT_PENDING_SERVICE_LABELS;
 

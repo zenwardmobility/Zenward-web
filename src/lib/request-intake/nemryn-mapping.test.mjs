@@ -35,6 +35,8 @@ const NEMRYN_SERVICE_TYPES = [
   "recurring_care",
   "senior_medical",
   "wheelchair_transportation",
+  // Nemryn Core migration 20261015135000 / app a0a65aa (released 2026-10-15).
+  "airport_transportation",
   "other",
 ];
 const PROTECTED = ["organizationId", "tenantId", "passengerId", "driverId", "vehicleId", "tripId", "state", "source"];

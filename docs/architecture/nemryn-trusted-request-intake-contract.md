@@ -92,7 +92,7 @@ A recurring request replaces `preferredDate` / `preferredTime` with a structured
 | `preferredDate`, `preferredTime` | no | One-time requests only; omitted when blank and always absent on recurring requests. |
 | `returnTripNeeded` | yes | `yes` / `no` / `not_sure`. On recurring requests the form derives `yes`/`no` from `recurringSchedule.returnTripExpected`. |
 | `assistanceNotes`, `additionalNotes` | no | The requester's own text, unchanged. `additionalNotes` is **never** used to carry passenger, service or schedule data. |
-| `serviceType` | yes (from the form) | **Structured**, sent directly. Closed enum, identical value-for-value on both sides: `medical_appointment`, `dialysis`, `rehabilitation`, `hospital_discharge`, `recurring_care`, `senior_medical`, `wheelchair_transportation`, `other`. |
+| `serviceType` | yes (from the form) | **Structured**, sent directly. Closed enum, identical value-for-value on both sides: `medical_appointment`, `dialysis`, `rehabilitation`, `hospital_discharge`, `recurring_care`, `senior_medical`, `wheelchair_transportation`, `airport_transportation`, `other`. `airport_transportation` was added by Nemryn Core migration `20261015135000` (app release `a0a65aa`, PR #9) and activated on Zenward-Web in ZW-WEB-04C2. It is sent as itself and never remapped to `other`. Nemryn also requires the receiving organization to offer the service: if its Settings → Services are configured, Airport must be enabled there, or the request is rejected with the generic `400`. |
 | `recurringSchedule` | no | **Structured object**, sent directly, only for a recurring request; the key is absent (never `null`) for a one-time request. Members: `daysOfWeek` (1–7 distinct lowercase weekday names, Mon→Sun), `startDate` (`YYYY-MM-DD`), optional `endDate` (`YYYY-MM-DD`, ≥ `startDate`), optional `appointmentTime` (`HH:MM`, 24 h), optional `returnTripExpected` (strict boolean). |
 
 - Optional fields are omitted, not sent as `null` / `""`.
@@ -103,9 +103,11 @@ A recurring request replaces `preferredDate` / `preferredTime` with a structured
 - **A supported `serviceType` is not a service offering.** Nemryn accepting a value does not mean Zenward Mobility
   offers it publicly; what the site presents is governed by `docs/product/marketing-scope.md`. Zenward-Web keeps
   the full enum in its internal/wire model (`SERVICE_TYPES`) and separately lists what it offers and accepts from
-  visitors (`PUBLIC_SERVICE_TYPES`). Today the two are equal: wheelchair transportation is an owner-confirmed approved
-  service (ZW-WEB-03B2, 2026-09-19) and is offered on the form and its own service page. A type Nemryn accepts but Zenward
-  does not offer stays out of `PUBLIC_SERVICE_TYPES`.
+  visitors (`PUBLIC_SERVICE_TYPES`). Today the two are equal (nine values): wheelchair transportation is an owner-confirmed
+  approved service (ZW-WEB-03B2, 2026-09-19), and Airport Transportation (ZW-WEB-04C1; intake activated ZW-WEB-04C2) is
+  offered on the form, preselectable with `?service=airport_transportation`, and has its own service page. A type Nemryn
+  accepts but Zenward does not offer stays out of `PUBLIC_SERVICE_TYPES`; a service Zenward offers that Nemryn does not yet
+  accept is held in `CONTRACT_PENDING_SERVICE_LABELS` (empty today).
 - **A request expresses intent only.** `recurringSchedule` creates no recurring arrangement, and a website submission
   creates no Passenger, Trip, Driver assignment or Vehicle assignment. It stops at a pending Request that an operator
   reviews, reconciles to a Passenger and (optionally) turns into a Trip manually.
