@@ -7,6 +7,7 @@ import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { CallButton } from "@/components/public/CallButton";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { ClosingCta } from "@/components/public/ClosingCta";
+import { TrustStrip } from "@/components/public/TrustStrip";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import type { CampaignContent } from "@/lib/campaigns";
@@ -67,6 +68,9 @@ export function CampaignPage({ campaign }: { campaign: CampaignContent }) {
               A request isn&rsquo;t a confirmed ride. Zenward reviews it and contacts you to confirm availability, next
               steps and pricing.
             </p>
+            {/* Owner-confirmed operating standards (ZW-WEB-04F): high on the page,
+                but below the service, market, quote and phone. */}
+            <TrustStrip variant="compact" tone="dark" className="mt-6 border-t border-white/15 pt-5" />
           </div>
           <BrandImage
             asset={campaign.image.asset}

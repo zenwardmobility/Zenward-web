@@ -10,20 +10,24 @@ import { CallButton } from "@/components/public/CallButton";
 import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
+import { TrustStrip } from "@/components/public/TrustStrip";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
 import { business } from "@/lib/business";
 import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
 import { SERVICES, SERVICE_ORDER } from "@/lib/services";
+import { OPERATING_STANDARDS } from "@/lib/trust";
 import { areaServedJsonLd, homeMetadataCopy, serviceAreaFaqAnswer, servingLine } from "@/lib/service-area";
 
 /*
  * Homepage (ZW-WEB-04B). Conversion hierarchy, top to bottom:
- *   hero -> quick request/call band -> services -> how it works -> why Zenward
- *   -> patients & families -> healthcare providers -> FAQ -> final CTA
- * Claim discipline: docs/product/marketing-scope.md. Nothing here adds a
- * capability, metric, credential or geography that is not already confirmed.
+ *   hero -> quick request/call band -> trust strip (ZW-WEB-04F) -> services
+ *   -> how it works -> why Zenward -> patients & families -> healthcare
+ *   providers -> FAQ -> final CTA
+ * Claim discipline: docs/product/marketing-scope.md. Trust and operating
+ * claims come only from src/lib/trust.ts (owner-confirmed). Nothing here adds
+ * a capability, metric, credential or geography that is not confirmed.
  */
 
 const homeCopy = homeMetadataCopy();
@@ -56,21 +60,13 @@ const PROCESS_STEPS = [
   },
 ];
 
-const WHY_POINTS = [
-  {
-    title: "Reviewed by a person",
-    description:
-      "Every request is reviewed by the Zenward team before transportation is confirmed. Mobility and assistance needs are part of that review.",
-  },
-  {
-    title: "Planned around the appointment",
-    description:
-      "Requests are considered in the context of scheduled care, including the appointment time and whether a return trip is needed.",
-  },
-  {
-    title: "Clear communication",
-    description: "You get pickup information as it is confirmed, and a point of contact if plans change.",
-  },
+// Operational proof first (ZW-WEB-04F, wording from src/lib/trust.ts), then
+// recurring care and the non-emergency boundary.
+const WHY_POINTS: { title: string; description: string; link?: { href: string; label: string } }[] = [
+  OPERATING_STANDARDS.punctuality,
+  OPERATING_STANDARDS.drivers,
+  OPERATING_STANDARDS.readiness,
+  OPERATING_STANDARDS.communication,
   {
     title: "Room for recurring care",
     description:
@@ -224,6 +220,10 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* 2b. Trust strip (ZW-WEB-04F) — owner-confirmed operating facts, after
+             the reassurance band and before the service content. */}
+      <TrustStrip className="pt-lg sm:pt-xl" />
 
       {/* 3. Services — the eight approved services from the canonical catalogue
              (7 medical transportation services + Airport Transportation, 4x2 on desktop). */}

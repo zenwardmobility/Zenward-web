@@ -8,6 +8,8 @@ import { BrandImage } from "@/components/layout/BrandImage";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { CallButton } from "@/components/public/CallButton";
 import { PracticalFacts } from "@/components/public/PracticalFacts";
+import { TrustStrip } from "@/components/public/TrustStrip";
+import { OPERATING_STANDARDS, type OperatingStandardKey } from "@/lib/trust";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { ClosingCta } from "@/components/public/ClosingCta";
 import { LinkButton } from "@/components/ui/LinkButton";
@@ -43,6 +45,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     path: `/locations/${market.slug}`,
   });
 }
+
+// Restrained operations layer (ZW-WEB-04F): owner-confirmed standards from
+// src/lib/trust.ts. No address, counties, fleet, years or trip counts.
+const HUB_STANDARDS: OperatingStandardKey[] = ["punctuality", "drivers", "care", "licensed"];
 
 const NEMT_SLUGS = SERVICE_ORDER.filter((slug) => slug !== "airport-transportation");
 
@@ -133,6 +139,7 @@ export default async function MarketHubPage({ params }: Params) {
               </TrackedLinkButton>
               <CallButton surface="market_page" onDark className="w-full sm:w-auto" />
             </div>
+            <TrustStrip variant="compact" tone="dark" className="mt-6 border-t border-white/15 pt-5" />
           </div>
           <BrandImage
             asset={brandImages.vanWalkerAssist}
@@ -212,6 +219,21 @@ export default async function MarketHubPage({ params }: Params) {
             </li>
           ))}
         </ol>
+
+        <div className="mt-3xl border-t border-border-subtle pt-2xl">
+          <h2 className={cn(typography.sectionTitle, "text-text-primary")}>How Zenward operates in {market.name}</h2>
+          <div className="mt-xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-4">
+            {HUB_STANDARDS.map((key) => {
+              const standard = OPERATING_STANDARDS[key];
+              return (
+                <div key={key} className="border-t-2 border-brand-route-teal pt-4">
+                  <h3 className={cn(typography.body, "font-semibold text-text-primary")}>{standard.title}</h3>
+                  <p className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{standard.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </Section>
 
       {/* 5. Wheelchair-accessible transportation */}

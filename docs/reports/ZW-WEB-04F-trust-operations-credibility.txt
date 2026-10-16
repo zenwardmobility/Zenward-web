@@ -1,0 +1,488 @@
+ZW-WEB-04F — TRUST + OPERATIONS CREDIBILITY LAYER
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL. Owner-approved and committed at close-out (§26); not pushed
+or deployed. No analytics, no Google
+Ads/GA4/GTM tracking, no Nemryn or intake change, no redesign, no new page.
+
+
+1. STARTING GIT STATE
+---------------------
+  git status ......... clean, "up to date with 'origin/main'"
+  git diff --check ... clean
+  HEAD ............... 5dc368eff829c76cae23d8c8dab0da43877f3db3
+                       "Complete Zenward production launch readiness" (04E)
+  origin/main ........ 5dc368eff829c76cae23d8c8dab0da43877f3db3
+  ahead/behind ....... 0 / 0
+Note: 04D + 04E were pushed outside this session after the 403 recorded in
+the last release attempt. This phase did not push.
+
+
+2. OWNER-CONFIRMED TRUST FACTS (brief §2, 2026-10-16)
+-----------------------------------------------------
+  - professional NEMT in Metro Atlanta
+  - licensed and insured
+  - punctual/on-time transportation is a core operating standard; current
+    on-time service record
+  - drivers professionally trained and vetted; screening/background checks
+    part of the operating standard
+  - passengers treated with patience, dignity and compassion
+  - wheelchair-accessible transportation
+  - quote/enquiry response within 2 hours during working hours
+All public trust wording now comes from ONE module: src/lib/trust.ts.
+The "current on-time service record" is NOT stated as a statistic or
+record claim. Punctuality is presented as a standard (see §16).
+
+
+3. CLAIMS DELIBERATELY EXCLUDED
+-------------------------------
+Not stated anywhere (verified by the claim scan in §21 and by tests):
+exact operating hours, working-hour clock range, 24/7, seven-day
+availability, ADA certification, hydraulic lift, securement/tie-down
+specs, power-chair or size/weight limits, flight tracking, meet-and-greet,
+fleet size, years in business, trip counts, review counts, star ratings,
+Medicaid/Medicare/insurance acceptance, private-pay-only, door-through-door,
+lifting/transfers, oxygen, stretcher service (still stated only as NOT
+provided), clinical monitoring, licence authority/number/policy, named
+certifications, "guaranteed on time", "100%", "always".
+The owner's "always on time" was deliberately expressed as "On-Time
+Transportation" / "Punctuality is our standard" (brief §16).
+
+
+4. CPR / CERTIFICATION FINDING
+------------------------------
+Searched src/ and docs/ for CPR, first aid, certif*, licen*, insured,
+background check, vetted, drug test. No owner-confirmed CPR or
+named-certification fact exists anywhere in the project. The only hits are
+prior reports and code comments that list these as NOT to be claimed.
+  CPR-certified ............... OWNER CONFIRMATION REQUIRED (not used)
+  Any named certification ..... OWNER CONFIRMATION REQUIRED (not used)
+  Drug testing ................ not confirmed (not used)
+  "Professionally trained and vetted drivers" and "screening, including
+  background checks" ......... USED (owner-confirmed in the brief)
+
+
+5. TRUST COMPONENT ARCHITECTURE
+-------------------------------
+  src/lib/trust.ts (NEW, pure data, no imports)
+    TRUST_POINTS           4 points: key, label, compactLabel, detail
+    QUOTE_RESPONSE_LINE    request-page expectation
+    CONTACT_RESPONSE_LINE  contact-page expectation
+    RESPONSE_IS_NOT_CONFIRMATION
+    OPERATING_STANDARDS    punctuality, drivers, care, readiness,
+                           communication, licensed (category, title,
+                           description)
+    The header documents the owner-confirmed facts and the wording rules.
+  src/components/public/TrustStrip.tsx (NEW, server component)
+    variant "band"     icon + label + detail. 2x2 from 640px and 4 across
+                       on desktop. On phones it shows the compact labels
+                       only, so it stays short.
+    variant "compact"  icon + label only; 2x2 phones, one row desktop;
+                       tone "light" | "dark" (dark for navy heroes)
+    Plain Phosphor icons (ShieldCheck, Clock, IdentificationCard,
+    ChatCircleText). No seals, badges, emblems, stars or certification
+    marks. Colors: Care Navy, Calm Mist icon chips, Interactive/Route
+    Teal icons, white on dark. No Arrival Gold added.
+  Rule: no page states a trust fact in its own words. Pages render
+  TrustStrip or read OPERATING_STANDARDS / the response lines.
+
+
+6. HOMEPAGE TRUST LAYER
+-----------------------
+Placement: directly after the existing reassurance card (hero overlap) and
+before Services, so the locked 04B order is otherwise unchanged:
+  hero -> reassurance card -> TRUST STRIP -> services -> how it works ->
+  why Zenward -> families -> providers -> FAQ -> final CTA
+Content (desktop and tablet):
+  Licensed & Insured        Professional transportation you can request
+                            with confidence.
+  On-Time Transportation    Punctuality is our standard. Trips are planned
+                            around pickup and appointment times.
+  Trained & Vetted Drivers  Professional drivers selected with passenger
+                            safety and care in mind.
+  Response Within 2 Hours   Quote requests received during working hours
+                            are answered within 2 hours.
+Phones (<640px): 2x2 compact labels, the last reading "2-Hour Response
+During Working Hours". The first attempt rendered the details on phones
+too: 400px tall at 390px. Reduced to 208px. Heights: 208 (390/430),
+292 (768), 242 (1024), 218 (1440). An sr-only H2 "Why you can rely on
+Zenward" labels the section.
+
+
+7. WHY ZENWARD ENHANCEMENT
+--------------------------
+The section heading and lede are unchanged. Points (top to bottom):
+  On-time transportation ............ OPERATING_STANDARDS.punctuality (NEW)
+  Trained and vetted drivers ........ OPERATING_STANDARDS.drivers (NEW)
+  Transportation prepared for the
+  trip .............................. OPERATING_STANDARDS.readiness (NEW;
+                                      review of mobility/assistance needs
+                                      incl. wheelchair-accessible; no
+                                      equipment claims)
+  Clear follow-up ................... OPERATING_STANDARDS.communication
+                                      (NEW; "answered within 2 hours" +
+                                      "confirms availability ... before any
+                                      trip is arranged")
+  Room for recurring care ........... kept
+  Non-emergency, and clear about it . kept
+Removed (generic, now covered): "Reviewed by a person" (still stated in the
+reassurance card and How it works), "Planned around the appointment"
+(now punctuality), "Clear communication" (now Clear follow-up).
+
+
+8. QUOTE RESPONSE EXPECTATION (/request-transportation)
+-------------------------------------------------------
+Stronger wording chosen (owner committed to the standard):
+  "Requests received during working hours are reviewed and answered within
+  2 hours." (semibold, directly under the lede)
+Kept immediately after it, unchanged: "Submitting this form is a request,
+not a confirmed booking, and availability isn't guaranteed until Zenward
+confirms it with you." The lede still says Zenward will confirm
+availability, next steps and pricing. Form and Server Action unchanged.
+
+
+9. CONTACT RESPONSE EXPECTATION (/contact)
+------------------------------------------
+  "We reply within 2 hours during working hours." (under the lede)
+The 911 line, phone CTA ("Prefer to call?") and form are unchanged. No
+working-hour schedule is stated.
+
+
+10. SERVICE-PAGE INTEGRATION (all 8 service pages)
+--------------------------------------------------
+Compact light TrustStrip in a thin white band right before the closing
+CTA (after Related services), so it supports the final decision without
+pushing service content down. Heights: 132px (390), 84 (430), 60 (768),
+48 (1024/1440). The existing PracticalFacts strip under the hero is
+unchanged. Service-specific content is unchanged.
+
+
+11. CAMPAIGN-PAGE INTEGRATION (4 pages)
+---------------------------------------
+Compact DARK TrustStrip inside the hero, below the Request a Quote / Call
+buttons and the "A request isn't a confirmed ride" line, separated by a
+thin white/15 rule. The primary message stays first: service + Metro
+Atlanta (H1) -> lede -> Request a Quote + phone. The hero quote CTA and
+phone remain above the fold at all widths. Row height: 153px (390), 105
+(430), 81 (768), 141 (1024, two rows in the narrower column), 117 (1440).
+robots "noindex, follow" unchanged; still absent from sitemap; no new
+campaign page; /metro-atlanta/airport-transportation still 404.
+
+
+12. HEALTHCARE-PROVIDER ENHANCEMENT
+-----------------------------------
+New white section before the closing navy CTA:
+  H2 "Operating standards your team can rely on". The suggested "Transportation
+  your team can rely on" was adjusted because the page H1 is already
+  "Transportation coordination your team can rely on".
+  Points: On-time transportation; Trained and vetted drivers; Clear
+  follow-up (2 hours during working hours); Recurring transportation
+  coordination; One operations process ("Requests your team submits go
+  directly into Zenward's transportation operations process, where our
+  team reviews them and confirms availability before any trip is
+  arranged."); Licensed and insured.
+  Footnote: "Zenward provides non-emergency transportation, not clinical
+  care. Availability is confirmed for each trip."
+No Nemryn or software wording, no clinical claims, no guaranteed vehicle
+availability.
+
+
+13. ABOUT-PAGE OPERATIONS LAYER
+-------------------------------
+New white section "How Zenward operates" ("The standards behind every trip,
+for every passenger."), six cards from OPERATING_STANDARDS: Punctuality,
+Driver standards, Passenger care (patience, dignity and compassion),
+Transportation readiness, Communication, Licensed & insured. Existing
+sections unchanged. No history, scale or statistics.
+(Pre-existing About copy "expanding service availability by market" is
+unchanged; flagged in 04A as pre-launch wording.)
+
+
+14. METRO ATLANTA HUB ENHANCEMENT
+---------------------------------
+  - Compact dark TrustStrip in the hero below Request a Quote / Call (same
+    pattern as the campaigns).
+  - Inside the existing white "How requests work" section, below the
+    steps: H2 "How Zenward operates in Metro Atlanta" with 4 standards
+    (on-time transportation; trained and vetted drivers; patience, dignity
+    and compassion; licensed and insured). Placing it inside the existing
+    section keeps the white/mist alternation.
+No address, counties, fleet count, years operating or trip counts. Hub is
+still indexable, self-canonical and in the sitemap. JSON-LD unchanged.
+
+
+15. LICENSED & INSURED WORDING
+------------------------------
+  Labels: "Licensed & Insured"
+  Statement: "Zenward Mobility is a licensed and insured transportation
+  provider."
+No authority, licence number, certificate, policy limit or regulatory
+scheme. Not added to JSON-LD.
+
+
+16. PUNCTUALITY WORDING
+-----------------------
+  Label: "On-Time Transportation"
+  "Punctuality is our standard. Trips are planned around pickup and
+  appointment times."
+  "Medical appointments run on schedules. Zenward plans each trip around
+  the pickup and appointment time, with punctuality treated as a core
+  operating standard."
+Never: guaranteed, 100%, always, "we guarantee arrival" (test-enforced).
+Pre-existing dialysis heading "Getting there on time for treatment" is
+consistent with the standard and unchanged.
+
+
+17. 2-HOUR RESPONSE WORDING
+---------------------------
+  "Response Within 2 Hours" + "Quote requests received during working hours
+    are answered within 2 hours." (homepage band)
+  "2-Hour Response During Working Hours" (compact label, every compact
+    use)
+  "Requests received during working hours are reviewed and answered within
+    2 hours." (request page)
+  "We reply within 2 hours during working hours." (contact page)
+  "...answered within 2 hours. Zenward then confirms availability and
+    details with you before any trip is arranged." (Clear follow-up)
+Every 2-hour string carries the working-hours qualifier and none says
+confirmed/booked within 2 hours (test-enforced). No clock range, 24/7,
+instant or immediate confirmation.
+
+
+18. SOCIAL-PROOF EXCLUSIONS
+---------------------------
+No testimonials, star ratings, review counts, trip counts, customer,
+hospital or partner logos, or awards. No aggregateRating/review in JSON-LD
+(test-enforced). Architecture left open: TrustStrip and
+OPERATING_STANDARDS can take a real "proof" item later (e.g. a link to a
+genuine Google Business Profile) in a dedicated Reviews/Trust Proof phase.
+
+
+19. REAL-PHOTO AUDIT + FUTURE SLOTS
+-----------------------------------
+Current photography (public/images, src/lib/images.ts):
+  zenward-hero-desktop-v3.jpg / zenward-hero-mobile-v3.jpg  staff member
+      with older passenger + walker beside a branded van (homepage hero;
+      hub wheelchair section)
+  zenward-van-walker-assist.jpg   same scene family (providers hero, hub
+      hero, campaign heroes)
+  zenward-staff-walking-assist.jpg  staff member walking with passenger
+      (homepage families, About)
+Their authenticity (real Zenward vehicle and staff vs approved
+representative imagery) is still unconfirmed (04A A-07). No obvious
+defect, so nothing was replaced in this phase.
+High-value future real-photo slots:
+  1. Zenward vehicle (exterior, branded): homepage hero, hub hero
+  2. Wheelchair-accessible vehicle / ramp: wheelchair service page and
+     wheelchair campaign hero (currently reuses the walker scene)
+  3. Driver with passenger: dialysis and appointment campaign heroes,
+     homepage families section
+  4. Driver/team portrait: About "How Zenward operates", providers page
+  5. Vehicle interior: wheelchair page, About readiness card
+  6. Dispatch/operations (phone/scheduling): providers "One operations
+     process", contact page
+These become the future real-proof layer alongside genuine reviews.
+
+
+20. RESPONSIVE QA
+-----------------
+Local production build (next start), headless Chrome, widths 390, 430,
+768, 1024, 1440. Routes: /, /services, /services/wheelchair-transportation,
+/services/dialysis-transportation, /services/airport-transportation,
+/request-transportation, /contact, /healthcare-providers, /about,
+/locations/metro-atlanta, all 4 campaign pages (70 page loads).
+  horizontal overflow ...... none
+  H1 ....................... exactly 1 everywhere
+  heading skips ............ none
+  phone above the fold ..... every route, every width
+  Request a Quote .......... still above the fold wherever it was before
+                             (homepage hero, service heroes, hub and
+                             campaign heroes; header CTA at >=1024)
+  trust strip height ....... §6, §10, §11. The homepage phone height was
+                             corrected from 400px to 208px.
+  header/footer ............ unchanged
+  page errors .............. none
+Visual review of screenshots (390 and 1440): homepage band, campaign hero
+row, request page expectation, About cards and the providers section are
+legible, on-brand and don't bury the CTA.
+Contrast: new text uses existing passing pairs (text-primary/secondary on
+white or mint >= 7:1; white on the navy-teal hero gradient >= 4.5:1 at the
+lightest teal end; icons are non-text).
+
+
+21. CLAIM SCAN (rendered text + meta of 21 routes, after implementation)
+-----------------------------------------------------------------------
+  Term              Hits  Classification
+  ----------------  ----  -------------------------------------------------
+  guaranteed/       2     /terms only: "does not guarantee ..."
+   guarantee              DISCLAIMER (acceptable)
+  100%              0
+  always            0
+  24/7              0
+  licensed          21    trust strip / "licensed and insured transportation
+  insured           21    provider". OWNER-CONFIRMED (§2)
+  CPR               0
+  ADA               0
+  certified         0
+  certification     1     /privacy disclaimer ("no claim of HIPAA
+                          certification"). DISCLAIMER
+  background        4     "Driver screening, including background checks,
+                          is part of our operating standard."
+                          OWNER-CONFIRMED (§2)
+  drug              0
+  door-through-door 0
+  hydraulic         0
+  flight tracking   0
+  Medicaid/Medicare 0
+  insurance         1     /terms disclaimer ("no representation about
+                          insurance"). DISCLAIMER
+  reviews           69    all the verb ("Zenward reviews it", "our team
+                          reviews"). NOT social proof
+  stars/rating/
+  testimonial       0
+  on-time/on time   19    "On-Time Transportation" / "On-time
+                          transportation" (OWNER-CONFIRMED standard) + the
+                          pre-existing dialysis heading. No guarantee
+  2 hours           7     always with "during working hours".
+                          OWNER-CONFIRMED (§2)
+  trained/vetted    18    "Trained & Vetted Drivers" / "Trained and vetted
+                          drivers". OWNER-CONFIRMED (§2)
+  Software terms    0     Nemryn, CRM, platform, AI-powered, smart,
+                          intelligent, optimization, automation, operating
+                          system
+Every positive claim maps to an owner-confirmed fact. JSON-LD: no rating,
+review, licence, credential, hours or address added.
+
+
+22. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+New: src/lib/trust.test.mjs (10 tests)
+  1  the four approved trust labels, in order
+  2  2-hour wording is a response during working hours, never a confirmed
+     ride
+  3  punctuality is a standard, not a guarantee (trust strings + all public
+     copy; comments stripped)
+  4  no invented operating hours or 24/7 / instant wording
+  5  no fake ratings, reviews, testimonials or counts
+  6  no unconfirmed credentials (CPR, ADA, certification, licence numbers)
+  7  trust copy reads as a transportation company, not software
+  8  trust layer is wired into the approved pages
+  9  campaign indexing is unchanged (noindex/follow, sitemap)
+  10 airport and Nemryn intake are untouched by the trust layer
+  git diff --check . clean
+  npm test ......... 94/94 pass (84 existing + 10 new)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+Also verified on the built site: 4 campaign pages "noindex, follow"; 0
+campaign URLs in sitemap.xml; ?service=airport_transportation
+preselects Airport; /metro-atlanta/airport-transportation 404.
+
+
+23. FILES MODIFIED (uncommitted)
+--------------------------------
+  A src/lib/trust.ts
+  A src/lib/trust.test.mjs
+  A src/components/public/TrustStrip.tsx
+  M src/app/page.tsx                         (trust strip; Why Zenward)
+  M src/app/request-transportation/page.tsx  (2-hour expectation)
+  M src/app/contact/page.tsx                 (2-hour expectation)
+  M src/app/healthcare-providers/page.tsx    (operating standards section)
+  M src/app/about/page.tsx                   ("How Zenward operates")
+  M src/app/locations/[market]/page.tsx      (hero trust row; operations
+                                              block)
+  M src/components/public/ServicePage.tsx    (compact strip before CTA)
+  M src/components/public/CampaignPage.tsx   (hero trust row)
+  M src/components/public/PracticalFacts.tsx (comment only)
+  M src/lib/services.ts                      (comment only)
+  M src/lib/campaigns.ts                     (comment only)
+  M docs/product/marketing-scope.md          (claim discipline: approved
+                                              trust facts)
+  A docs/reports/ZW-WEB-04F-trust-operations-credibility.txt (this report)
+Untouched (git-verified vs HEAD): request-intake/*, actions.ts,
+contact-intake, analytics, privacy, terms, public/ (brand + images),
+.env.example, package.json, service-types.ts, sitemap.ts, service-pages.ts.
+
+
+24. OWNER DECISIONS STILL REQUIRED
+----------------------------------
+  1. CPR / first-aid or any named driver certification: OWNER
+     CONFIRMATION REQUIRED before use.
+  2. Working-hours range: the 2-hour promise is qualified by "during
+     working hours", but the hours aren't published. Publishing them
+     (and phone answering hours) would make the promise concrete.
+  3. Drug testing: confirm before mentioning it in driver screening.
+  4. Photography authenticity and real-photo shoot (§19, 04A A-07).
+  5. Genuine reviews (e.g. a Google Business Profile) for a later Trust
+     Proof phase. Nothing is seeded.
+  6. Licence/insurance specifics: whether to name the licence type or
+     authority (only if documented).
+  7. Ad copy (04G and later): reuse the §15–§17 wording verbatim. Never
+     "guaranteed on time", "100%" or "24/7".
+  8. Optional: legal review of "Licensed & Insured" and the 2-hour
+     statement alongside the pending Privacy/Terms disposition (Gate G).
+  Minor note: the homepage band renders both the compact and full label
+  in the DOM (one hidden by CSS per breakpoint). Screen readers read
+  one; text scrapers may see both. Acceptable; could be refactored later.
+
+
+25. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Ready for owner review. Suggested review path: homepage (band + Why
+Zenward), /request-transportation, /contact, one service page (bottom),
+one campaign hero, /healthcare-providers, /about, /locations/metro-atlanta.
+If approved, stage exactly the §23 paths (never `git add .`) and commit,
+e.g. "Add owner-confirmed trust and operations layer". Then push and deploy
+under a separate authorization, and spot-check production. No tracking is
+involved; 04G (Google Ads conversion measurement) stays separate and
+blocked on Gate G legal items.
+
+26. CLOSE-OUT (2026-10-16, owner-approved)
+------------------------------------------
+Owner approved ZW-WEB-04F as implemented, in its current design direction.
+No additional trust claims were added at close-out: no CPR, named
+certification or drug-testing claim, no working-hours range, no reviews or
+testimonials, no new photography, no Google tracking. No source change was
+made after approval; this section is the only edit.
+
+Final validation:
+  git diff --check . clean
+  npm test ......... 94/94 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+  Built site: homepage trust strip 208px at 390/430 and 218px at 1440;
+  quote CTA above the fold (homepage, service and campaign heroes); 4
+  campaign pages "noindex, follow"; 0 campaign URLs in sitemap.xml;
+  ?service=airport_transportation preselects Airport. request-intake/*,
+  actions.ts, contact-intake, analytics, privacy, terms, public/,
+  .env.example, package.json, sitemap.ts and service-pages.ts are
+  unchanged vs HEAD. No Google/GA4/GTM/gtag/dataLayer in src or the client
+  bundle.
+
+Claim check (rendered text of 21 routes). Active public trust claims are
+limited to the approved facts: Licensed & Insured; On-Time Transportation;
+Trained & Vetted Drivers; background screening/checks; patience, dignity and
+compassion; wheelchair-accessible transportation; 2-hour response during
+working hours. Zero hits for: guaranteed on time, 100%, 24/7, CPR, ADA,
+drug-tested, named certification, review count, star rating, fleet count,
+years in business.
+
+Future owner inputs (not blockers):
+  - Working-hours range: the 2-hour promise stays qualified by "during
+    working hours" until the owner supplies the hours.
+  - Real photography (§19 slots) and genuine reviews remain the future
+    proof layer. Nothing is seeded or replaced.
+  - CPR / named certifications / drug testing remain OWNER CONFIRMATION
+    REQUIRED.
+
+Final recommendation: APPROVED AND COMMITTED. Ready to push and deploy
+under a separate owner authorization, followed by a production spot check
+of the homepage band, one service page, one campaign hero, /request-
+transportation and /contact. 04G (Google Ads conversion measurement) stays
+separate and blocked on the Gate G legal items.
+
+Committed as "Add owner-confirmed trust and operations layer", staging
+exactly the §23 paths.
+
+STOP. Not pushed or deployed. No Google tracking. 04G not started.

@@ -8,6 +8,7 @@ import { CallButton } from "@/components/public/CallButton";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { PracticalFacts } from "@/components/public/PracticalFacts";
 import { ClosingCta } from "@/components/public/ClosingCta";
+import { TrustStrip } from "@/components/public/TrustStrip";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { getDefaultMarket } from "@/lib/service-area";
@@ -268,6 +269,13 @@ export function ServicePage({ service }: { service: ServiceContent }) {
       </Section>
 
       <Related service={service} tone={relatedTone} />
+
+      {/* Compact operating standards (ZW-WEB-04F), right before the closing CTA. */}
+      <div className="border-t border-border-subtle bg-surface-elevated">
+        <SectionContainer className="pt-xl">
+          <TrustStrip variant="compact" />
+        </SectionContainer>
+      </div>
 
       <ClosingCta
         heading={service.ctaHeading}

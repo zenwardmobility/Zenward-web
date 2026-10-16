@@ -7,6 +7,7 @@ import { brandImages } from "@/lib/images";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { OPERATING_STANDARDS } from "@/lib/trust";
 
 export const metadata: Metadata = pageMetadata({
   title: "Healthcare Providers",
@@ -42,6 +43,25 @@ const VALUE_PROPS = [
     description:
       "One point of contact for your team's transportation needs — for one patient or an ongoing schedule.",
   },
+];
+
+// Operations-focused partnership points (ZW-WEB-04F). Trust wording comes from
+// src/lib/trust.ts. No clinical claims, no guaranteed vehicle availability.
+const OPERATIONS_POINTS = [
+  OPERATING_STANDARDS.punctuality,
+  OPERATING_STANDARDS.drivers,
+  OPERATING_STANDARDS.communication,
+  {
+    title: "Recurring transportation coordination",
+    description:
+      "Patients with repeating appointments, such as dialysis or rehabilitation, can be set up as a regular arrangement that Zenward reviews and confirms with your team.",
+  },
+  {
+    title: "One operations process",
+    description:
+      "Requests your team submits go directly into Zenward's transportation operations process, where our team reviews them and confirms availability before any trip is arranged.",
+  },
+  OPERATING_STANDARDS.licensed,
 ];
 
 export default function HealthcareProvidersPage() {
@@ -113,6 +133,26 @@ export default function HealthcareProvidersPage() {
         <p className={cn(typography.bodySmall, "mx-auto mt-lg max-w-[42rem] text-center text-text-muted-on-tint")}>
           Your team coordinates care; Zenward coordinates the transportation. Talk to our team about how your
           organization arranges transportation today, and how Zenward can help.
+        </p>
+      </Section>
+
+      <Section tone="white">
+        <div className="max-w-[40rem]">
+          <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Operating standards your team can rely on</h2>
+          <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
+            What your patients and your team can expect from Zenward on every trip.
+          </p>
+        </div>
+        <div className="mt-2xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-3">
+          {OPERATIONS_POINTS.map((point) => (
+            <div key={point.title} className="border-t-2 border-brand-route-teal pt-4">
+              <h3 className={cn(typography.body, "font-semibold text-text-primary")}>{point.title}</h3>
+              <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>{point.description}</p>
+            </div>
+          ))}
+        </div>
+        <p className={cn(typography.bodySmall, "mt-xl text-text-secondary")}>
+          Zenward provides non-emergency transportation, not clinical care. Availability is confirmed for each trip.
         </p>
       </Section>
 

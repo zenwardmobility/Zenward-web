@@ -8,10 +8,11 @@ import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
 import type { AnalyticsSurface } from "@/lib/analytics/events";
 
 /**
- * A restrained strip of CONFIRMED practical facts (ZW-WEB-04C). Only facts
- * already established for the public site belong here: no hours, response
- * times, certifications, licensing, insurance, ratings, counts or
- * guarantees.
+ * A restrained strip of CONFIRMED practical facts (ZW-WEB-04C): what Zenward
+ * does and how requests work. No hours, certifications, ratings, counts or
+ * guarantees. Owner-confirmed trust claims (licensed & insured, on-time
+ * standard, trained & vetted drivers, 2-hour response) belong to TrustStrip
+ * and src/lib/trust.ts (ZW-WEB-04F), not here.
  */
 export function PracticalFacts({ surface, className }: { surface: AnalyticsSurface; className?: string }) {
   const facts: { icon: Icon; text: string }[] = [

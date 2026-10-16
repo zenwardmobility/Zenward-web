@@ -11,7 +11,8 @@
  * Claim discipline as in services.ts: no ADA, securement, ramp/lift,
  * transfers/lifting, stretcher, door-through-door, oxygen, monitoring,
  * punctuality guarantees, automatic recurring booking, insurance/Medicaid,
- * pricing or availability promises.
+ * pricing or availability promises. Trust points come only from
+ * src/lib/trust.ts via TrustStrip (ZW-WEB-04F).
  */
 import type { FaqItem } from "@/components/public/FaqAccordion";
 import { business } from "@/lib/business";

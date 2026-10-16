@@ -5,6 +5,7 @@ import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { QUOTE_RESPONSE_LINE } from "@/lib/trust";
 import { resolveServiceParam } from "@/lib/request-intake/service-types";
 
 export const metadata: Metadata = pageMetadata({
@@ -39,7 +40,9 @@ export default async function RequestTransportationPage({
           Tell us about the trip you need. Zenward will review the details and contact you to confirm
           availability, next steps and pricing.
         </p>
-        <p className={cn(typography.bodySmall, "mt-3 text-text-muted-on-tint")}>
+        {/* Response expectation (ZW-WEB-04F): a reply, not a confirmed ride. */}
+        <p className={cn(typography.body, "mt-3 font-semibold text-text-primary")}>{QUOTE_RESPONSE_LINE}</p>
+        <p className={cn(typography.bodySmall, "mt-1 text-text-muted-on-tint")}>
           Submitting this form is a request, not a confirmed booking, and availability isn&rsquo;t guaranteed
           until Zenward confirms it with you.
         </p>

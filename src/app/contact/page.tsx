@@ -5,6 +5,7 @@ import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { CONTACT_RESPONSE_LINE } from "@/lib/trust";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact",
@@ -22,6 +23,7 @@ export default function ContactPage() {
           Whether you have a question, need support, or want to talk about transportation coordination for your
           organization, we&rsquo;d like to hear from you.
         </p>
+        <p className={cn(typography.body, "mt-3 font-semibold text-text-primary")}>{CONTACT_RESPONSE_LINE}</p>
         <p className={cn(typography.bodySmall, "mt-3 text-text-muted-on-tint")}>
           For medical emergencies, call 911. Zenward does not provide emergency transportation.
         </p>

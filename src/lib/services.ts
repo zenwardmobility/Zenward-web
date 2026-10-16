@@ -22,8 +22,10 @@
  * to stretcher, ambulance, emergency response, medical monitoring or clinical
  * care, oxygen administration, transfer/lifting assistance, door-through-door
  * assistance, vehicle/securement specifications, chair size or weight limits,
- * Medicaid/insurance, certification (incl. ADA), licensing, same-day
- * availability, guaranteed punctuality, pricing, or automatic scheduling.
+ * Medicaid/insurance, certification (incl. ADA), same-day availability,
+ * guaranteed punctuality, pricing, or automatic scheduling. Owner-confirmed
+ * trust facts (licensed & insured, on-time standard, trained & vetted
+ * drivers, 2-hour response) are stated only via src/lib/trust.ts (ZW-WEB-04F).
  */
 import type { Icon } from "@phosphor-icons/react";
 import {
