@@ -42,7 +42,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             required={required}
             aria-describedby={cn(helpId, errorId) || undefined}
             aria-invalid={Boolean(error) || undefined}
-            defaultValue={props.defaultValue ?? (placeholder ? "" : undefined)}
+            // Controlled selects (a `value` prop) must not also get a defaultValue.
+            {...(props.value === undefined ? { defaultValue: props.defaultValue ?? (placeholder ? "" : undefined) } : {})}
             className={cn(
               typography.body,
               "h-12 w-full appearance-none rounded-sm border bg-surface-elevated pl-4 pr-10 text-text-primary",

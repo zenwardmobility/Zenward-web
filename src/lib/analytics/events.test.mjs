@@ -93,20 +93,22 @@ test("track delivers only sanitised events, and a failing sink cannot block anyt
   assert.deepEqual(received, [{ name: "phone_cta_clicked", surface: "header" }]);
 });
 
-test("transportation_quote_submitted fires only in the delivered success branch", () => {
+test("transportation_quote_submitted fires only in the delivered success branch", async () => {
+  // ZW-WEB-04G: the form fires it behind isDeliveredConversion (ok && delivered === true).
   const form = readFileSync(path.join(src, "components/public/RequestTransportationForm.tsx"), "utf8");
   assert.equal(form.match(/transportation_quote_submitted/g).length, 1);
-  const ok = form.indexOf("if (result.ok) {");
-  const delivered = form.indexOf("if (result.delivered) {", ok);
-  const fire = form.indexOf('track({ name: "transportation_quote_submitted" })');
-  const elseBranch = form.indexOf("} else {", ok);
-  assert.ok(ok > 0 && delivered > ok && fire > delivered && fire < elseBranch);
+  assert.match(form, /if \(isDeliveredConversion\(result\)\) track\(\{ name: "transportation_quote_submitted" \}\);/);
+  const { isDeliveredConversion } = await import("../quote-form/model.ts");
+  assert.equal(isDeliveredConversion({ ok: true, delivered: true }), true);
+  assert.equal(isDeliveredConversion({ ok: true, delivered: false }), false);
+  assert.equal(isDeliveredConversion({ ok: false, delivered: false }), false);
   assert.equal(/request_form_submitted|hasReturnTrip/.test(form), false);
 });
 
 test("transportation_quote_started fires once per mount, without form values", () => {
+  // ZW-WEB-04G: a once() wrapper held in a ref for the component's lifetime.
   const form = readFileSync(path.join(src, "components/public/RequestTransportationForm.tsx"), "utf8");
-  assert.match(form, /if \(!hasStarted\.current\) \{\s*hasStarted\.current = true;[\s\S]*?track\(\{ name: "transportation_quote_started" \}\)/);
+  assert.match(form, /useRef\(once\(\(\) => track\(\{ name: "transportation_quote_started" \}\)\)\)/);
 });
 
 test("provider_enquiry_submitted fires only for a delivered provider-topic message", () => {

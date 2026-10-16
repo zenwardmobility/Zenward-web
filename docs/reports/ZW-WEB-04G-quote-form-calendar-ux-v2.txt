@@ -1,0 +1,508 @@
+ZW-WEB-04G — QUOTE FORM UX V2 + CALENDAR SCHEDULING EXPERIENCE
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL. Owner-approved with one adjustment and committed at close-out
+(§34); not pushed or deployed. Nemryn,
+the trusted intake contract, the Server Action and the adapter are
+unchanged. No Google Ads/GA4/GTM. 04H (Transportation Assistant) not
+started.
+
+
+1. STARTING GIT STATE
+---------------------
+  git status ......... clean, "ahead of 'origin/main' by 1 commit"
+  git diff --check ... clean
+  HEAD ............... 12e1d0c "Add owner-confirmed trust and operations
+                       layer" (04F close-out)
+  origin/main ........ 5dc368e
+  ahead/behind ....... 1 / 0
+  Tests .............. 94/94
+
+
+2. EXISTING INTAKE CONTRACT (verified in code, not assumed)
+-----------------------------------------------------------
+Chain: RequestTransportationForm (client) -> submitTransportationRequest
+(Server Action, actions.ts) -> getRequestIntakeAdapter() (adapter.ts) ->
+buildNemrynIntakeBody (nemryn-mapping.ts) -> Nemryn public intake.
+Wire body (NemrynIntakeRequestBody), built field by field:
+  integrationExternalId   server env only
+  idempotencyKey          the form's submissionId (UUID per mount, kept
+                          across retries; minted server-side if missing)
+  requesterName, requesterRelationship (self | family | caregiver |
+  facility_coordinator | other), requesterPhone, requesterEmail?,
+  passengerName, pickupDescription, destinationDescription,
+  preferredDate? (YYYY-MM-DD), preferredTime? (HH:MM 24h),
+  returnTripNeeded (yes | no | not_sure), assistanceNotes?,
+  additionalNotes?, serviceType (public enum incl. airport_transportation),
+  recurringSchedule? { daysOfWeek[1-7, Mon->Sun], startDate, endDate?,
+  appointmentTime? (HH:MM), returnTripExpected? (boolean) }
+Rules confirmed: one-time requests carry preferredDate/Time and omit
+recurringSchedule; recurring requests omit preferredDate/Time and derive
+returnTripNeeded from returnTripExpected. The Server Action rebuilds from a
+whitelist, rejects tenancy keys at any depth, and gates serviceType with
+isPublicServiceType. Honeypot + 2.5 s min / 6 h max fill-time guard.
+The list in the brief matches the code exactly. No contract change was
+needed or made.
+
+
+3. UX ARCHITECTURE
+------------------
+  src/lib/quote-form/dates.ts    pure calendar/time helpers (native Date +
+                                 Intl, market timezone, no dependency)
+  src/lib/quote-form/model.ts    pure model: steps, values, per-step
+                                 validation, reducer (set / next / back /
+                                 goto / submitStart / submitResult /
+                                 submitFailed), buildRequestInput, review
+                                 summary, service guidance, all copy
+  src/components/public/quote-form/QuoteCalendar.tsx
+  src/components/public/quote-form/PreferredTimeSelect.tsx
+  src/components/public/quote-form/QuoteStepper.tsx
+  src/components/public/RecurringScheduleFields.tsx  (rewritten,
+                                 controlled)
+  src/components/public/RequestTransportationForm.tsx (rewritten: thin
+                                 shell over the reducer; same export and
+                                 props, so page.tsx is unchanged)
+All logic that matters (validation, transitions, payload, conversion
+gating) is pure and unit-tested in node. The components only render it.
+
+
+4. STEP STRUCTURE (5 steps, as briefed)
+---------------------------------------
+  1 Trip       service (preselectable) + service guidance, pickup,
+               destination
+  2 Schedule   One-time / Recurring. One-time: preferred trip date
+               (calendar, REQUIRED since close-out §34), preferred pickup time
+               (optional), return trip (required). Recurring: days, first
+               trip date, until (ongoing / a date), typical appointment
+               time, return trip on those days.
+  3 Passenger  passenger name, mobility/assistance needs, trip notes
+  4 Contact    relationship, requester name, phone, email (optional)
+  5 Review     four summary cards with Edit, trust row, 2-hour line,
+               not-a-booking statement, Submit Quote Request
+Passenger and Contact were kept separate (not consolidated to 4 steps):
+the brief asks to distinguish the passenger from the person requesting,
+and each step stays short on a phone (2-3 fields).
+
+
+5. PROGRESS INDICATOR
+---------------------
+QuoteStepper. Phones (<640px): one line "Step 2 of 5 · Schedule" + a thin
+progress bar (36px total). sm+: horizontal list of the five steps with
+numbers, a check on completed steps and connecting rules (28px). Current
+step has aria-current="step"; completed steps include sr-only
+"(completed)"; state uses shape and text as well as colour. Not clickable,
+so validation can't be skipped. Movement is via Continue/Back and the
+review Edit buttons. Each step heading gets focus on step change and
+includes sr-only "Step n of 5:".
+
+
+6. SERVICE PRESELECTION
+-----------------------
+Unchanged path: page.tsx resolves ?service= with resolveServiceParam
+(allow-list) on the server and passes initialServiceType. initialValues
+accepts only isPublicServiceType values. Verified in the built site for
+airport_transportation, wheelchair_transportation and dialysis, and in
+tests for all 8 values (junk/empty preselect nothing). recurring_care
+still defaults the schedule to Recurring; choosing Recurring Care on step 1
+before touching the schedule does the same. The visitor can change the
+service.
+
+
+7. CALENDAR ARCHITECTURE
+------------------------
+QuoteCalendar: an internal, dependency-free monthly calendar.
+  - Opens on the selected date's month, or today's.
+  - Previous/Next month buttons (Previous disabled at the current month).
+  - Past dates disabled (disabled attribute + strike-through + muted).
+    No other date is ever disabled. There is no business rule for that.
+  - Today: bold + small dot, and ", today" in the button's name.
+  - Selected: filled Care Navy + ring + semibold + aria-pressed="true".
+    Plus "Selected: Friday, October 23, 2026" in a polite live region.
+  - "Clear date" for optional dates (now only the recurring end date).
+  - Keyboard: roving tabindex; arrows (day/week), Home/End (week),
+    PageUp/PageDown (month); Enter/Space select. Focus follows across
+    months.
+  - Cells min 44x44 (measured 44.6 x 44 at 390px).
+  - No availability dots, colours, lookups or server calls.
+Timezone: dates are YYYY-MM-DD strings and all arithmetic/formatting is
+done in UTC on those values, so a browser's timezone can't shift a day.
+"Today" is computed in America/New_York (Metro Atlanta), e.g. 03:30 UTC on
+Oct 17 is still Oct 16 (tested). The wire format is unchanged
+(YYYY-MM-DD).
+
+
+8. PREFERRED-TIME ARCHITECTURE
+------------------------------
+PreferredTimeSelect: one native <select>, 15-minute preferences, grouped
+Morning (5:00 AM–11:45 AM), Afternoon, Evening, Night (10:00 PM–4:45
+AM); 96 options + "No preference" (default). Labels "9:15 AM"; values
+24-hour "09:15" (the existing preferredTime wire format). Mobile approach:
+the OS-native picker, so there's no tall column of time buttons and the
+step stays compact. The same control is reused for the recurring "Typical
+appointment time" (the contract's appointmentTime).
+
+
+9. WHY TIME CHOICES ARE NOT AVAILABILITY
+----------------------------------------
+Labels: "Preferred trip date", "Preferred pickup time", "No preference".
+Reassurance at the top of the step: "Choose your preferred date and pickup
+time. Zenward will review availability and confirm the trip with you."
+Time help: "Choose the time you would like to be picked up. Zenward will
+confirm the final timing with you." Every time of day is listed, and none
+is marked or styled as available; dates are never greyed out except the
+past. A test bans "available times/slots/rides", "slot", "reserve",
+"book now", "book a/your ride", "confirm booking" and "choose an
+available" in all form code.
+
+
+10. RETURN-TRIP HANDLING
+------------------------
+"Do you need a return trip?" as a segmented choice: No / Yes / Not sure.
+Kept the existing third value (not_sure) because the contract and Server
+Action accept it and removing it would force a guess (e.g. discharge). It
+stays an obvious choice; the button reads "Not sure" (no wrap at 390px),
+and the review reads "Not sure yet". Yes shows: "Zenward will confirm
+return-trip timing with you." Required, as before. Recurring: "Return trip
+on these days?" No / Yes (strict boolean in the contract), with the same
+note.
+
+
+11. RETURN-TIME CONTRACT FINDING
+--------------------------------
+RETURN TIME CONTRACT GAP. The trusted contract has no structured return
+pickup time (only returnTripNeeded and, for recurring,
+returnTripExpected). 04G adds NO return-time control and puts nothing in
+assistanceNotes/additionalNotes (test-enforced: no returnTime/returnPickup
+field in form code; the notes are only what the visitor typed). Possible
+future Nemryn extension, e.g. optional `returnPreferredTime` (HH:MM) on
+one-time requests and `returnTime` inside recurringSchedule. That needs a
+Nemryn contract change first.
+
+
+12. RECURRING-CARE UX
+---------------------
+Contract-supported values only: daysOfWeek (7 day chips, 4-col on phones,
+7-col on sm+, sr-only full names), startDate (calendar, required),
+endDate (Ongoing / Until a date -> second calendar with min = start date;
+switching back clears it), appointmentTime (optional select), and
+returnTripExpected (required in the UI, as before). Copy: "A recurring
+request isn't an automatically booked series: Zenward reviews the schedule
+and confirms what can be arranged." No recurrence engine. Payload = the
+same recurringSchedule shape as before (validated by parseRecurringSchedule
+in tests).
+
+
+13. SERVICE-AWARE GUIDANCE
+--------------------------
+One short line under the service choice (Calm Mist panel), from
+SERVICE_GUIDANCE:
+  medical_appointment  Include the clinic or office name...; appointment
+                       time in the notes
+  dialysis             If this trip repeats on a treatment schedule,
+                       choose Recurring in the next step.
+  rehabilitation       For a series of therapy visits, choose Recurring...
+  hospital_discharge   Discharge times often change. Give your best
+                       estimate...
+  recurring_care       You'll describe the repeating schedule in the next
+                       step...
+  senior_medical       Family members and caregivers can request...
+  wheelchair_transp.   You can tell us about mobility or assistance needs
+                       in the passenger step.
+  airport_transp.      Include the airport and relevant trip details in the
+                       destination or notes.
+  other                Describe the trip in the notes...
+No new service claims, no medical advice.
+
+
+14. PASSENGER / ASSISTANCE UX
+-----------------------------
+"Passenger's name" (required; "The person who will be travelling."),
+"Mobility or assistance needs (optional)" with examples and "Only what
+helps us arrange the trip; please don't include medical details", and
+"Anything else about the trip? (optional)" (appointment time, entrance,
+airport/flight details). No diagnosis, record number, insurance ID, SSN or
+medication fields (test-enforced).
+
+
+15. REQUESTER / CONTACT UX
+--------------------------
+Intro: "The person requesting transportation. Zenward will follow up with
+you." Relationship select with the unchanged wire values and labels: I am
+the passenger / Family member / Caregiver / Healthcare provider or facility
+staff (was "Healthcare facility coordinator"; value still
+facility_coordinator) / Other. Choosing "I am the passenger" fills an
+empty requester name with the passenger's name. Phone required; email
+optional with a light format check (replaces the native type=email
+check, since the form is noValidate).
+
+
+16. REVIEW / EDIT UX
+--------------------
+Four cards: Trip, Schedule, Passenger, Requester. Plain-language values
+(e.g. "Friday, October 23, 2026", "9:15 AM", "Family member", "None
+added", "Not provided", "Ongoing"). Each card has "Edit" (named "Edit
+schedule details", etc., 44px) that returns to the step with all data
+kept. Continue then walks forward through validation to Review again.
+Edit can't jump past the furthest step reached. No internal ids
+(idempotency, integration, submissionId, tenant) appear (tested).
+
+
+17. SUBMIT LANGUAGE
+-------------------
+Button: "Submit Quote Request" (matches "Request a Transportation Quote" /
+"Request a Quote"). Directly above it: QUOTE_RESPONSE_LINE ("Requests
+received during working hours are reviewed and answered within 2 hours.")
+and "This is a transportation request, not a confirmed booking. Zenward will
+review availability and contact you to confirm the trip." Never "Confirm
+Booking", "Book Ride" or "Reserve Ride".
+
+
+18. SUCCESS STATE
+-----------------
+Semantics unchanged: success only when the Server Action returns ok:true;
+the delivered copy only when delivered === true (Nemryn's 200
+{"ok":true}). Delivered: "Request received" + "Zenward will review the
+request and follow up with you to confirm availability and next steps.
+Your trip isn't confirmed until we confirm it with you." + the 2-hour
+line. The legacy ok:true/delivered:false branch (unreachable with the
+fail-closed adapters) and the reference display are unchanged. Never "Ride
+confirmed".
+
+
+19. FAILURE STATE
+-----------------
+Fail-closed preserved. Any ok:false or thrown call keeps the visitor on
+Review with every value intact and the same submissionId (retry
+de-duplicates), and shows role="alert" with the Server Action's
+customer-safe message + "Call 678-935-5489" (TrackedPhoneLink,
+tel:+16789355489). Verified in the browser with intake unset: "Online
+requests are temporarily unavailable right now. Please call us to arrange
+transportation." No "Request received", no reference, no internal
+details, no external requests.
+
+
+20. 2-HOUR RESPONSE WORDING
+---------------------------
+From src/lib/trust.ts (04F): page header (unchanged) + once at Review next
+to Submit + on the delivered success screen. Not repeated on every step.
+Never says the ride is confirmed within 2 hours; no working-hour range.
+
+
+21. TRUST INTEGRATION
+---------------------
+Review step reuses <TrustStrip variant="compact" /> (Licensed & Insured,
+On-Time Transportation, Trained & Vetted Drivers, 2-Hour Response During
+Working Hours). No other trust copy added; canonical data only.
+
+
+22. ANALYTICS-EVENT BEHAVIOR
+----------------------------
+  transportation_quote_started    once per mount on the first focus inside
+                                  the form (step 1 for a new visitor), via
+                                  once() held in a ref. No values.
+  transportation_quote_submitted  only when isDeliveredConversion(result)
+                                  (ok && delivered === true). No values.
+Still no sink registered; no vendor. events.test.mjs's two 04D source-shape
+tests were updated to the new structure with the same intent (one fire
+site, delivery-gated; once per mount).
+
+
+23. FORM-STATE BEHAVIOR
+-----------------------
+All values live in one reducer state. Back/Next/Edit never clear data
+(tested). Validation runs for the current step only when Continue (or
+Enter) is pressed, never before interaction. Then a role="alert" summary
+appears, field errors show, and focus moves to the first invalid control.
+Editing a field clears its error. Switching One-time/Recurring clears only
+schedule errors.
+
+
+24. PRIVACY / BROWSER PERSISTENCE
+---------------------------------
+Decision: NO persistence. Request contents stay in memory; a refresh
+starts the form over. No localStorage, sessionStorage, IndexedDB, cookies
+or URL state (no history/router writes). Only the pre-existing allow-listed
+?service= is read. Verified in the browser (instrumented Storage.setItem:
+0 writes; 0 cookies) and test-enforced. Persisting passenger/trip details
+would need a privacy review first. Privacy/Terms unchanged (no statement
+became false).
+
+
+25. ACCESSIBILITY
+-----------------
+  stepper ...... nav "Request progress", aria-current="step", "(completed)"
+  headings ..... one H2 per step, focused on step change, sr "Step n of 5"
+  calendar ..... labelled table; buttons named by full date (+ today);
+                 aria-pressed selected; disabled past dates; live region;
+                 full keyboard model; 44px cells; month nav buttons named
+  time ......... native select with <label>, help/error via
+                 aria-describedby
+  choices ...... SegmentedChoice / day chips are real radios/checkboxes
+                 with legends and sr-only full day names
+  errors ....... role="alert" summary; aria-invalid + described errors;
+                 focus to first invalid control
+  focus ........ global :focus-visible outline
+  touch ........ no form control under 44px at any width (measured)
+  colour ....... selection, today, past and progress all have a non-colour
+                 cue
+
+
+26. RESPONSIVE QA
+-----------------
+Local production build, headless Chrome, 390 / 430 / 768 / 1024 / 1440:
+one-time airport flow (all 5 steps + failure) and recurring flow (days, two
+calendars, appointment time, return, review). Results at every width:
+no horizontal overflow, no calendar clipping, no control < 44px, stepper
+36px (phones) / 28px, Continue/Back full-width and stacked on phones
+(Continue on top), side by side on sm+. No console errors or warnings.
+Form heights (recurring schedule filled): 2097px (390) to 1885px (1440).
+Review step readable on phones (stacked label/value), two-column on sm+.
+Smoke routes (all 200): /, /services, /services/airport-transportation,
+/request-transportation, ?service=airport_transportation |
+wheelchair_transportation | dialysis (each preselected),
+/healthcare-providers, /contact, /locations/metro-atlanta, 4 campaign pages
+(noindex, follow; 0 in sitemap).
+
+
+27. PERFORMANCE / DEPENDENCIES
+------------------------------
+No new dependency (package.json unchanged). No calendar/date library:
+native Date + Intl only. Client JS on disk: 720 KB -> 764 KB (+44 KB for
+the form's components and model). No new images.
+
+
+28. CONTRACT PARITY
+-------------------
+Test "contract parity" replays the pre-04G form's payload logic (verbatim
+behaviour from 12e1d0c handleSubmit) with the same answers and asserts
+deepEqual with buildRequestInput for one-time and recurring requests. For
+one-time, recurring and airport: no tenancy keys (findTenancyKeys), every
+buildNemrynIntakeBody key is in the contract's 16-key set, and no UI key
+(frequency, step, errors, recurringDays, status, tripFrequency...) reaches
+the wire. A mocked-fetch adapter test sends an Airport request twice with
+the same submissionId: serviceType "airport_transportation",
+idempotencyKey identical on both, preferredDate/Time as chosen, no
+recurringSchedule. Untouched (git-verified): src/lib/request-intake/*,
+actions.ts, src/lib/forms/guard.ts, contact-intake, privacy, terms,
+.env.example, package.json, public/.
+
+
+29. TEST RESULTS
+----------------
+New: src/lib/quote-form/quote-form.test.mjs (19 tests): preselection;
+calendar past/future; timezone-safe dates; preferred time retained;
+no-availability wording; Back/Next preservation; per-step validation;
+return yes/no/not_sure; no fake return-time; recurring schedule; review
+values; edit navigation; contract parity; Airport wire + idempotency;
+success/conversion/failure gating; quote-started once; no persistence/
+vendor; accessibility semantics; no medical/ID fields.
+Updated: src/lib/analytics/events.test.mjs (2 source-shape tests).
+  git diff --check . clean
+  npm test ......... 113/113 pass (94 + 19); 114/114 at close-out (§34)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+
+
+30. FILES MODIFIED (uncommitted)
+--------------------------------
+  A src/lib/quote-form/dates.ts
+  A src/lib/quote-form/model.ts
+  A src/lib/quote-form/quote-form.test.mjs
+  A src/components/public/quote-form/QuoteCalendar.tsx
+  A src/components/public/quote-form/PreferredTimeSelect.tsx
+  A src/components/public/quote-form/QuoteStepper.tsx
+  M src/components/public/RequestTransportationForm.tsx  (multi-step shell)
+  M src/components/public/RecurringScheduleFields.tsx    (controlled,
+                                                          calendar-based)
+  M src/components/ui/Select.tsx    (no defaultValue when controlled;
+                                     avoids React's controlled+default
+                                     warning; uncontrolled uses unchanged)
+  M src/lib/analytics/events.test.mjs (2 tests follow the new structure)
+  A docs/reports/ZW-WEB-04G-quote-form-calendar-ux-v2.txt (this report)
+
+
+31. CONTRACT GAPS / FUTURE BACKEND EXTENSIONS
+---------------------------------------------
+  G1 RETURN TIME: no structured return pickup time (§11).
+  G2 Appointment time for one-time trips: the contract's preferredTime is a
+     PICKUP time; there is no separate appointment-time field for one-time
+     requests (recurring has appointmentTime). The visitor is invited to
+     add it in the notes, as before. Optional future field.
+  G3 Airport specifics (airport, terminal, flight number/time) are
+     free-text in destination/notes. A structured airport object would
+     need a contract extension.
+  G4 Acquisition/UTM (from the reset report) still not in the contract.
+  None blocks 04G. Each needs a Nemryn contract change first.
+  Recommendation (owner, close-out): consider G1 + G2 together as a small,
+  generic Nemryn scheduling-contract extension BEFORE 04H Transportation
+  Assistant. G3 can follow later as an airport-specific generic contract
+  enhancement. G4 stays separate.
+
+
+32. OWNER DECISIONS
+-------------------
+  1. RESOLVED (close-out): keep "Not sure".
+  2. RESOLVED (close-out): preferred date required for one-time trips.
+  3. RESOLVED for now (close-out): keep the all-day list until operating
+     hours are published.
+  4. Whether to pursue G1-G3 with Nemryn.
+  5. Visual sign-off of the stepper, calendar and review on a real phone.
+
+
+33. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Ready for owner review on a local build (suggested: /request-transportation
+?service=airport_transportation through all five steps on a phone, then a
+recurring_care request). If approved, stage exactly the §30 paths (never
+`git add .`) and commit, e.g. "Rebuild the quote form as a multi-step
+request with calendar scheduling". Deploying needs a separate
+authorization. After deploy, run one labelled production request each for
+a one-time and a recurring trip and confirm them in the Request Hub, since
+the browser-side flow is new even though the wire contract is identical.
+
+34. CLOSE-OUT (2026-10-16, owner-approved)
+------------------------------------------
+Owner approved 04G (five-step flow, calendar, preferred-time selector, No /
+Yes / Not sure return choice, recurring UX, review/edit, request-not-booking
+language, no browser persistence, exact trusted contract, accessibility)
+with ONE product adjustment, now made:
+
+  preferredDate REQUIRED for one-time trips. Validation/UX only: the
+  Schedule step blocks Continue with "Choose your preferred trip date.";
+  past dates are still rejected; the calendar label carries the required
+  marker; the one-time "Clear date" control was removed. Wire field
+  unchanged (preferredDate, YYYY-MM-DD; omitted only for recurring
+  requests, as before). The Server Action is unchanged.
+  preferredTime stays OPTIONAL. "No preference" ("") remains valid and
+  omits preferredTime from the payload, as before.
+  Recurring unchanged: startDate required.
+  Return trip: No / Yes / Not sure retained (contract: yes | no |
+  not_sure), with "Zenward will confirm return-trip timing with you."
+  Time list: the all-day 15-minute PREFERRED pickup times, unrestricted,
+  until operating hours are published. Still labelled as preferences, never
+  slots.
+  Contract gaps G1–G4 kept as documented, not solved. Recommendation added
+  in §31 (G1 + G2 before 04H; G3 later).
+
+Tests: new "one-time preferredDate is required; pickup time stays optional
+(No preference)", covering: required date; No preference valid and omitted
+from the wire body; Not sure carried as not_sure; recurring startDate
+still required and no preferredDate on recurring; required marker on the
+calendar. Existing tests still prove contract parity, no-availability
+wording, Airport wire payload and idempotency, and delivery-gated events.
+Browser check (390px, built site): Continue without a date stays on
+Schedule with the error; date + No preference advances to Passenger; no
+console errors.
+
+Final validation:
+  git diff --check . clean
+  npm test ......... 114/114 pass (94 + 20)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+
+Committed as "Rebuild quote form with calendar scheduling", staging
+exactly the §30 paths. Not pushed or deployed.
+
+STOP. Not pushed or deployed. 04H not started.
