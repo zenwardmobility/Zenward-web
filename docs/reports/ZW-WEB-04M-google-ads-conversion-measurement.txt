@@ -1,0 +1,540 @@
+ZENWARD-WEB — ZW-WEB-04M
+GOOGLE ADS CONVERSION MEASUREMENT ARCHITECTURE + PRIVACY-SAFE ACTIVATION GATE
+Date: 2026-10-17
+Mode: LOCAL IMPLEMENTATION + ARCHITECTURE READINESS ONLY.
+- Not committed, pushed or deployed.
+- No production environment changes.
+- Google Ads tracking NOT activated.
+- No GA4, GTM, Enhanced Conversions, remarketing or Customer Match.
+- No campaigns launched.
+
+==================================================
+1. STARTING GIT STATE
+==================================================
+- HEAD 9ab2df2 "Strengthen provider conversion, trust, local SEO and policy alignment" (04L
+  committed). main aligned with origin/main (0 ahead, 0 behind). git diff --check clean.
+- Working tree: clean except the untracked intake diagnostic report
+  (docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt), documentation from
+  earlier in this session. It was left as is and is not part of 04M.
+- Baseline: 231/231 tests.
+
+Note: an earlier "CLOSE ZW-WEB-04H" brief in this conversation was interrupted before
+any work. Nothing from it was performed, and 04H has long been committed (5d983e3,
+refined in 5527758).
+
+==================================================
+2. EXISTING ANALYTICS ARCHITECTURE (audited before changes)
+==================================================
+- src/lib/analytics/events.ts:
+  - closed AnalyticsEvent union
+  - per-event allowlist (EVENT_SCHEMA)
+  - sanitizeEvent rebuilds every event and drops all other keys
+  - track() is fire-and-forget: it swallows errors and isolates sinks
+  - registerAnalyticsSink is the only integration point
+- registerAnalyticsSink: called NOWHERE in the app (verified; tested).
+- Call sites (all audited):
+
+  | Event | Call site | Gate |
+  | --- | --- | --- |
+  | phone_cta_clicked{surface} | TrackedPhoneLink (every tracked tel: link) | none (click) |
+  | transportation_quote_started | RequestTransportationForm, once() ref, first focus | once per mount |
+  | transportation_quote_submitted | RequestTransportationForm.handleSubmit | isDeliveredConversion(result) = ok && delivered===true |
+  | provider_enquiry_submitted | ContactForm.handleSubmit | result.delivered && topic==="provider" |
+  | contact_started{topic} | ContactForm | first interaction |
+  | transportation_assistant_opened | AssistantLauncher | each open |
+  | transportation_assistant_quote_clicked | AssistantPanel | quote link click |
+  | request_transportation_clicked{source}, provider_cta_clicked{source} | TrackedLinkButton call sites | clicks |
+
+- /request-transportation success: the 04G3 reducer reaches "success" only for
+  isDeliveredConversion(result).
+- /contact success: the delivered flag comes from the contact adapter (a 2xx from the
+  email provider).
+- No vendor, script, cookie, dataLayer, CSP, headers config or middleware exists.
+
+==================================================
+3. CONVERSION CLASSIFICATION
+==================================================
+| Tier | Events |
+| --- | --- |
+| PRIMARY | transportation_quote_submitted (delivered:true only; once per submission; no parameters) |
+| SECONDARY | phone_cta_clicked (click intent, not a call); provider_enquiry_submitted (delivered, different funnel, separate action) |
+| DIAGNOSTIC | transportation_quote_started, request_transportation_clicked, provider_cta_clicked, contact_started, transportation_assistant_opened, transportation_assistant_quote_clicked |
+
+The canonical table is src/lib/analytics/conversions.ts (CONVERSION_TIERS,
+conversionKeyFor). The reasons are in docs/product/conversion-measurement.md §2.
+
+==================================================
+4. SENSITIVE-DATA RULES
+==================================================
+A Google-facing conversion carries ONLY one click identifier (gclid | gbraid | wbraid),
+the conversion action and the conversion time.
+
+Never sent:
+- serviceType, service label or slug
+- names, relationship, phone, email
+- pickup, destination, date, time, return trip, recurring schedule
+- assistance level or notes, additional notes, airport/flight details
+- integration, idempotency, organization, tenant, Request, Passenger or Trip IDs
+- page URL, path, query, title, referrer
+- any context object
+
+Enforcement:
+- buildClickConversion takes only the event NAME, so no event fields can reach it.
+- Its output is a fixed shape (tested with every forbidden field supplied as input).
+- The internal event layer is unchanged: serviceType is still never an event parameter.
+
+==================================================
+5. HEALTH / SERVICE URL RISK (critical finding)
+==================================================
+A conventional browser Google tag (gtag.js / the Google tag) reports, as part of its OWN
+requests:
+- the current page URL, INCLUDING the query string
+- the referrer
+- the page title, for page-level hits
+
+It does this on every page where it runs, and on conversion hits. Removing custom event
+parameters does NOT prevent it. With such a tag, Google would observe that an ad-click
+visitor viewed:
+- /services/dialysis-transportation
+- /services/wheelchair-transportation
+- /metro-atlanta/dialysis-transportation
+- "Dialysis Transportation in Metro Atlanta" (the page title)
+
+A conversion on /request-transportation?service=dialysis would carry "service=dialysis".
+The tag would also set first-party advertising cookies site-wide.
+
+Partial mitigations (page_location/page_referrer/page_title overrides, stripping
+?service= via history.replaceState, limiting which pages load the tag) each need
+network-level verification and do not stop the tag running and observing navigation.
+
+FINDING: a browser Google tag is not acceptable for Zenward unless owner/legal explicitly
+accept that exposure. This is treated as a BLOCKER for options A and B.
+
+==================================================
+6. ATTRIBUTION ARCHITECTURE OPTIONS
+==================================================
+| Option | Attribution | Exposure | Verdict |
+| --- | --- | --- | --- |
+| A. Site-wide Google tag | best | high | rejected (§5) |
+| B. Tag only at conversion time | largely lost | medium | rejected |
+| C. First-party click-ID capture + server upload | good same-visit | low | recommended |
+| C′. Nemryn-owned upload | best (confirmed trips) | low | future; needs an intake contract change |
+| D. Manual offline import (CSV) | as C | low | fallback if API access is delayed |
+
+Details:
+- A: conventional attribution, but every page URL, query, title and referrer goes to
+  Google, plus ad cookies on all pages.
+- B: the gclid lands on the landing page with nothing to record it. When the tag loads
+  later on the request page the URL no longer carries it, so attribution falls back to
+  Google's unreliable cross-site signals. The conversion hit still exposes the
+  request-page URL (?service=…).
+- C: Google receives only the click ID, the action and the time. No browser Google code,
+  so no URLs, titles, referrers or browsing. Needs Google Ads API access (OAuth +
+  developer token) on the server, no new browser processor, and no Google cookie.
+- C′: upload when the trip is actually confirmed. Requires carrying the click ID into
+  Nemryn, which is a Website Intake contract change and not allowed now.
+
+==================================================
+7. RECOMMENDED ARCHITECTURE
+==================================================
+Recommendation: C, a server-side click conversion upload with first-party click-ID
+capture. The click ID is kept for THIS VISIT ONLY (sessionStorage) as the starting
+point; a longer first-party cookie is a separate consent decision.
+
+Flow:
+  ad click with auto-tagging → landing URL ?gclid / gbraid / wbraid
+  → parseClickId keeps one ID (approved storage)
+  → request submitted
+  → Server Action: intake delivered:true
+  → buildClickConversion
+  → Google Ads uploadClickConversions, fire-and-forget
+
+Constraints:
+- The click ID never enters TransportationRequestInput, the Nemryn body, notes, events
+  or the assistant.
+- No browser Google script or cookie.
+- Phone clicks are not uploaded.
+- The provider enquiry can use the same path from the contact Server Action, under its
+  own action.
+
+Priority check:
+1. Health context protected: yes, Google sees no page context.
+2. Measures delivered requests: yes.
+3. Attribution: good within the visit; a cookie extension is possible.
+4. Processors/cookies: no Google cookie; Google Ads API only.
+5. No analytics stack.
+
+Owner/legal input is required before implementing capture: it is persistence plus
+sharing an identifier with Google after a health-adjacent request.
+
+==================================================
+8. GOOGLE ADS ADAPTER CHANGES
+==================================================
+New src/lib/analytics/google-ads.ts, pure, with:
+- MEASUREMENT_APPROVED = false: a code-level kill switch, so env alone can never
+  activate measurement
+- readGoogleAdsConfig(env): server-only variables; anything missing or malformed means
+  disabled; only the literal "true" enables
+- isGoogleAdsMeasurementActive(config): requires the code gate, the env switch, a
+  customer ID and the primary action
+- parseClickId(search): only gclid/gbraid/wbraid, with a strict format; ignores
+  ?service=, UTMs and everything else; no storage
+- buildClickConversion(eventName, clickId, time, config): returns {conversionAction:
+  "customers/<cid>/conversionActions/<id>", conversionDateTime: "yyyy-mm-dd
+  hh:mm:ss+00:00", gclid|gbraid|wbraid}, or null. Uploadable keys: quote_submitted,
+  provider_enquiry. Never phone_click, never diagnostic events.
+- createConversionSink(config, deliver): an AnalyticsSink-compatible boundary for any
+  future browser-side signal. It returns null unless active, passes only the conversion
+  key, sends the primary at most once per page, and swallows all errors.
+
+New src/lib/analytics/conversions.ts: the classification table.
+
+Design boundaries:
+- registerAnalyticsSink stays the browser integration boundary, and it is still
+  registered nowhere.
+- Components keep emitting internal events only.
+- Nothing imports either new module, so they are unreachable and tree-shaken.
+
+Also changed (duplicate protection, see §19): RequestTransportationForm and ContactForm.
+
+==================================================
+9. DEFAULT-OFF CONFIGURATION
+==================================================
+.env.example documents these, SERVER-only (no NEXT_PUBLIC_, because nothing runs in the
+browser):
+- GOOGLE_ADS_CONVERSIONS_ENABLED=false
+- GOOGLE_ADS_CUSTOMER_ID=
+- GOOGLE_ADS_QUOTE_CONVERSION_ACTION_ID=
+- GOOGLE_ADS_PROVIDER_CONVERSION_ACTION_ID=
+
+There are no IDs and no credentials. Actual .env files were not modified, and nothing was
+set in production. Even with every variable set, measurement stays inactive while
+MEASUREMENT_APPROVED is false (tested).
+
+==================================================
+10. SCRIPT-LOADING BEHAVIOR
+==================================================
+- No script loader exists, in code or in the future plan; the recommended architecture
+  needs no browser script.
+- While disabled, and in fact always in this release:
+  - no Google script
+  - no Google network request
+  - no advertising cookie
+  - no gtag, dataLayer or google_tag_manager global
+  - no queued events
+- Tested statically, and verified in the browser on the production build (section 21b).
+
+==================================================
+11. CONSENT ARCHITECTURE
+==================================================
+Audited, not built. The legal questions are listed in conversion-measurement.md §7:
+- CCPA/CPRA cross-context advertising "sharing"
+- Washington My Health My Data Act and similar consumer-health-data laws
+- FTC guidance on health information and tracking technologies
+- Zenward's HIPAA status in any arrangement
+
+These are framed as questions, not conclusions. The outcome (notice only / opt-out /
+opt-in) decides whether a consent state model (unknown → denied / granted) and a banner
+are needed. No banner was added. If one is ever required: an equally easy decline, no
+pre-checked boxes, and no capture before consent when opt-in applies.
+
+==================================================
+12. PRIVACY DECISION
+==================================================
+- The Privacy page is unchanged and remains truthful: no Google Analytics, GTM or Google
+  Ads tags are loaded, and the policy will be updated first (tested).
+- Activation wording for the recommended architecture is drafted internally only, in
+  docs/product/google-ads-conversion-activation-checklist.md, marked "DRAFT: NOT
+  PUBLISHED".
+- Rule: Google measurement and the Privacy wording change in the SAME production release.
+
+==================================================
+13. TERMS IMPACT
+==================================================
+None. No factual Terms requirement exists for this architecture; it is a Privacy and
+consent matter. Terms are unchanged (tested: no Google or conversion references).
+
+==================================================
+14. ENHANCED CONVERSIONS DECISION
+==================================================
+NOT APPROVED FOR CURRENT ZENWARD IMPLEMENTATION. No hashing and no
+email/phone/name/address are ever sent. The payload shape excludes user identifiers, and
+tests ban enhanced-conversion code and fields. Item 9 of the activation checklist: keep
+it OFF in the account.
+
+==================================================
+15. REMARKETING / AUDIENCE DECISION
+==================================================
+HEALTH/SERVICE-INTENT REMARKETING — NOT APPROVED. No remarketing pixel, audience,
+custom-audience or Customer Match code, and no service or assistant intents sent anywhere
+(tested). Item 10 of the activation checklist: keep it OFF in the account.
+
+==================================================
+16. PHONE CONVERSION SEMANTICS
+==================================================
+phone_cta_clicked = a click on a tel: link: intent only. It is not a completed, answered
+or qualified call. It is SECONDARY and is NOT uploaded by the recommended architecture.
+Real call measurement needs Google call reporting / forwarding numbers / call assets, or a
+call provider (an owner decision).
+
+==================================================
+17. PROVIDER CONVERSION SEMANTICS
+==================================================
+provider_enquiry_submitted = a genuinely delivered provider-topic message: SECONDARY, with
+its own conversion action ("Provider Enquiry"). It never falls back to, or merges with, the
+quote action (tested).
+
+==================================================
+18. QUOTE-START DECISION
+==================================================
+transportation_quote_started stays DIAGNOSTIC and is never a conversion: conversionKeyFor
+returns null and buildClickConversion returns null (tested). Campaigns must optimise toward
+delivered requests, not form starts.
+
+==================================================
+19. DUPLICATE-CONVERSION PROTECTION
+==================================================
+| Scenario | Outcome |
+| --- | --- |
+| Success re-renders | The event fires from the submit handler, not render or effects, so it never re-fires. |
+| React Strict Mode | It double-invokes renders and effects, not event handlers, so no duplicate. |
+| Retry after failure | The same submissionId; the conversion fires only on the delivered attempt. |
+| Back navigation / refresh | A fresh mount with a fresh submissionId, and no success state is restored, so no re-fire. |
+| Idempotent intake replay | Nemryn returns 200 {ok:true} for a replay, so the browser would count it again; the once() guard below prevents that. |
+
+DOUBLE-CLICK — a real gap was found and fixed. The quote form's guard read `status` from
+the closure, so two clicks in the same frame, before React re-rendered, could both
+submit. The second goes to Nemryn as an idempotent replay (no duplicate request) but would
+have emitted transportation_quote_submitted twice. The contact form had NO in-flight
+guard, so it could send two messages and count two provider enquiries.
+
+Fixes (no payload or semantics change):
+- RequestTransportationForm:
+  - a synchronous inFlight ref guard
+  - the conversion now fires through markSubmitted = useRef(once(...)): at most once per
+    mount, i.e. per submissionId
+  - still behind isDeliveredConversion
+- ContactForm:
+  - a synchronous inFlight ref guard (reset in finally)
+  - provider_enquiry_submitted at most once per mount
+- Google-side: the server upload should run only in the delivered branch of one Server
+  Action call, and createConversionSink sends the primary at most once per page.
+- The intake idempotency key stays authoritative for operations and is NOT sent to
+  Google.
+
+==================================================
+20. CAMPAIGN ATTRIBUTION FINDING
+==================================================
+- With auto-tagging, Google appends gclid (or gbraid/wbraid on iOS app/web flows) to the
+  landing URL. UTM parameters appear only if added to final URL suffixes.
+- Today nothing reads or keeps them. Next.js client navigation drops the query on the
+  next page, so attribution is lost after the landing page. This is why capture is
+  required for C.
+- The 04D campaign pages link to /request-transportation?service=<value> without
+  forwarding the click ID; under C, capture happens on landing, so no link changes are
+  needed.
+- Not done (tested): click IDs and UTMs are not added to Nemryn data, notes, the
+  assistant or analytics events.
+- For the approved implementation, documented in conversion-measurement.md §6:
+
+  | Item | Value |
+  | --- | --- |
+  | Identifiers | one of gclid/gbraid/wbraid; no UTMs |
+  | Storage | sessionStorage, this visit, recommended (a cookie up to 90 days is the consent alternative) |
+  | Deletion | when the tab closes (sessionStorage) or on expiry; cleared after upload |
+  | Consent | per legal |
+  | Server visibility | sent beside the request to Zenward-Web's Server Action only, then to Google Ads |
+
+- No persistence was implemented.
+
+==================================================
+21. URL PRIVACY FINDING
+==================================================
+?service= (for example ?service=dialysis) is never an event value or upload field
+(tested). Any browser-tag architecture would transmit the current URL including
+?service=…, so this is a BLOCKER for A and B, and the recommended C avoids it entirely.
+
+21b. Smoke QA (production build, tracking disabled):
+Run with Playwright and Chrome on the production build at 390 and 1440, across these
+routes, including ad-click URLs carrying a test gclid:
+- /?gclid=…
+- /request-transportation?service=dialysis&gclid=…
+- /contact
+- /healthcare-providers
+- /metro-atlanta/dialysis-transportation?gclid=…&utm_source=google
+- /services/dialysis-transportation
+- /services/wheelchair-transportation
+
+Results:
+- 0 external requests
+- no Google script, and no gtag, dataLayer or google_tag_manager global
+- 0 cookies, and nothing written to localStorage or sessionStorage (the gclid is NOT
+  captured)
+- no banner
+- one H1 per page, no overflow, no console errors
+- rendering unchanged
+
+==================================================
+22. CSP IMPACT
+==================================================
+- No CSP, security headers or middleware exist today.
+- The recommended architecture needs NO browser CSP changes: the server makes the
+  outbound call to the Google Ads API (googleads.googleapis.com, plus OAuth at
+  oauth2.googleapis.com).
+- If a browser tag were ever approved instead, a future CSP would need at least:
+  - script-src https://www.googletagmanager.com
+  - connect-src / img-src for https://www.google.com, https://googleads.g.doubleclick.net
+    and https://www.googleadservices.com, plus regional google.* domains
+  - frame-src https://td.doubleclick.net
+- These are documented only. Nothing was weakened or added.
+
+==================================================
+23. PERFORMANCE
+==================================================
+- Zero public runtime cost: no new package; both new modules are imported by nothing in
+  the app, so they are absent from the client bundles.
+- Verified by searching .next/static after the build: 0 client chunks contain the boundary (MEASUREMENT_APPROVED, conversionActions, GOOGLE_ADS_, action names), and 0 contain any Google domain.
+- The form guards add a few bytes (refs) to the existing quote and contact chunks.
+
+==================================================
+24. GBP EXCLUSION
+==================================================
+Google Business Profile is not part of 04M. No profile was created, linked or claimed, and
+no sameAs exists in the Organization schema (tested). The 04L checklist remains future work
+(vehicle branding still in progress).
+
+==================================================
+25. WORKING-HOURS DEPENDENCY
+==================================================
+Working hours remain owner-unconfirmed and were not invented. Before paid campaigns launch,
+define the hours behind the "2 hours during working hours" promise and preferably align the
+ad schedule with them (checklist items 11–12). This does not block the disabled code.
+
+==================================================
+26. ACTIVATION CHECKLIST
+==================================================
+New: docs/product/google-ads-conversion-activation-checklist.md. Items 1–17:
+1. account
+2. auto-tagging
+3. primary "Transportation Quote Submitted"
+4. secondary "Provider Enquiry" (server) and "Phone Click" (Google call reporting, not the
+   website)
+5. IDs supplied
+6. architecture and retention approved
+7. consent reviewed
+8. Privacy wording approved
+9. Enhanced Conversions OFF
+10. remarketing and audiences OFF
+11. working hours
+12. ad schedule
+13. production config, with one reviewed release including MEASUREMENT_APPROVED,
+    capture, transport and Privacy
+14. Google diagnostics
+15. synthetic conversion QA (exactly one upload per delivered request)
+16. vendor payload inspection (no health or trip data)
+17. launch authorisation
+
+It also contains the Privacy activation wording, marked DRAFT: NOT PUBLISHED.
+
+==================================================
+27. CONVERSION-MEASUREMENT DOC
+==================================================
+docs/product/conversion-measurement.md was rewritten. It covers:
+- the architecture today and the call-site table
+- PRIMARY / SECONDARY / DIAGNOSTIC with reasons
+- the sensitive-data rules
+- the health-URL risk
+- the options table
+- the recommended architecture and rules
+- consent framing
+- the decisions (Enhanced Conversions and remarketing NOT APPROVED, no GA4/GTM, GBP
+  excluded, working hours)
+- activation
+
+==================================================
+28. TESTS / TYPECHECK / LINT / BUILD
+==================================================
+New: src/lib/analytics/google-ads.test.mjs (13 tests) covering:
+- default OFF, and env alone can't activate
+- no script, network, cookie, global, queue or import anywhere in the app; no sink
+  registered
+- no GA4, GTM, Google tag, Enhanced Conversions, remarketing or audiences
+- the classification (one primary, two secondary, the rest diagnostic)
+- form start is never a conversion; phone is never uploaded; provider uses its own action
+- a minimal payload with every forbidden field supplied
+- click-ID parsing; click IDs and UTMs never reach intake, Nemryn, notes or the assistant
+- once per successful submission (form once()/inFlight, contact guards, sink dedupe)
+- failure isolation
+- Privacy truthful while disabled, with the activation draft internal only
+- Terms, intake contract, GBP and campaign indexing unchanged
+- .env.example default false, server-only, no IDs
+
+Updated, intent unchanged: events.test.mjs and quote-form.test.mjs (the conversion now
+fires through markSubmitted, still delivered-only), and events.test.mjs (provider enquiry
+once per mount).
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 244/244 pass, 0 fail (231 before 04M; 13 added) |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning (src/lib/contact-intake/assistant-callback.test.mjs:24) |
+| npm run build | success |
+
+==================================================
+29. FILES MODIFIED
+==================================================
+New:
+- src/lib/analytics/google-ads.ts
+- src/lib/analytics/conversions.ts
+- src/lib/analytics/google-ads.test.mjs
+- docs/product/google-ads-conversion-activation-checklist.md
+- docs/reports/ZW-WEB-04M-google-ads-conversion-measurement.txt
+
+Modified:
+- src/components/public/RequestTransportationForm.tsx: inFlight guard; conversion once
+  per mount
+- src/components/public/ContactForm.tsx: inFlight guard; provider enquiry once per mount
+- src/lib/analytics/events.test.mjs, src/lib/quote-form/quote-form.test.mjs: assertions
+  updated
+- docs/product/conversion-measurement.md: rewritten
+- .env.example: a documented, disabled, server-only block
+
+Not changed:
+- Website Intake contract, Nemryn mapping, adapter, Server Actions
+- quote-form payload/model, assistant privacy model, contact delivery
+- service taxonomy, campaign indexing, Privacy, Terms
+- GBP state, G1/G2 deferral, package.json
+
+==================================================
+30. OWNER / LEGAL DECISIONS STILL REQUIRED
+==================================================
+1. Approve the recommended architecture (C: server-side click conversions, no browser
+   tag), or explicitly accept a browser tag's health-context exposure (not recommended).
+2. Click-ID retention: this visit only (recommended) or a longer first-party cookie.
+3. Legal review of consent and notice obligations (conversion-measurement.md §7), and
+   approval of the Privacy wording draft.
+4. Google Ads account, auto-tagging, conversion actions and IDs; Google Ads API access
+   (developer token, OAuth).
+5. Phone measurement: Google call reporting / forwarding numbers, or none.
+6. Working hours and the ad schedule.
+7. Whether the provider enquiry should be uploaded at all (a secondary, separate action).
+
+==================================================
+31. RECOMMENDATION
+==================================================
+READY BUT DISABLED.
+- The conversion model, the privacy-safe boundary, duplicate protection and the
+  activation path are in place and tested.
+- Nothing reaches Google today.
+- Activation is BLOCKED on the owner/legal decisions in section 30. Once they're made,
+  activation is one reviewed release:
+  1. MEASUREMENT_APPROVED = true
+  2. the approved click-ID capture
+  3. the server upload transport with credentials
+  4. the delivered-branch call
+  5. the Privacy wording
+- Do not launch conversion-optimised campaigns before checklist items 1–17 are complete.
+
+STOPPED. Not committed, pushed or deployed. Google tracking not activated. No campaigns
+launched.

@@ -99,7 +99,9 @@ test("transportation_quote_submitted fires only in the delivered success branch"
   // ZW-WEB-04G: the form fires it behind isDeliveredConversion (ok && delivered === true).
   const form = readFileSync(path.join(src, "components/public/RequestTransportationForm.tsx"), "utf8");
   assert.equal(form.match(/transportation_quote_submitted/g).length, 1);
-  assert.match(form, /if \(isDeliveredConversion\(result\)\) track\(\{ name: "transportation_quote_submitted" \}\);/);
+  // ZW-WEB-04M: still behind isDeliveredConversion, and now once per mount via a once() ref.
+  assert.match(form, /const markSubmitted = useRef\(once\(\(\) => track\(\{ name: "transportation_quote_submitted" \}\)\)\);/);
+  assert.match(form, /if \(isDeliveredConversion\(result\)\) markSubmitted\.current\(\);/);
   const { isDeliveredConversion } = await import("../quote-form/model.ts");
   assert.equal(isDeliveredConversion({ ok: true, delivered: true }), true);
   assert.equal(isDeliveredConversion({ ok: true, delivered: false }), false);
@@ -115,7 +117,8 @@ test("transportation_quote_started fires once per mount, without form values", (
 
 test("provider_enquiry_submitted fires only for a delivered provider-topic message", () => {
   const contact = readFileSync(path.join(src, "components/public/ContactForm.tsx"), "utf8");
-  assert.match(contact, /if \(result\.delivered && input\.topic === "provider"\) \{\s*track\(\{ name: "provider_enquiry_submitted" \}\);/);
+  // ZW-WEB-04M: counted at most once per form mount.
+  assert.match(contact, /if \(result\.delivered && input\.topic === "provider" && !enquiryCounted\.current\) \{\s*enquiryCounted\.current = true;\s*track\(\{ name: "provider_enquiry_submitted" \}\);/);
 });
 
 test("no analytics vendor, tag, dataLayer or external network client exists", () => {

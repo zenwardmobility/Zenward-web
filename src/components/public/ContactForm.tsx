@@ -23,6 +23,8 @@ export function ContactForm() {
   const [delivered, setDelivered] = useState(false);
   const hasStarted = useRef(false);
   const startedAt = useRef<number>(0);
+  const inFlight = useRef(false);
+  const enquiryCounted = useRef(false);
   const successRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,6 +44,10 @@ export function ContactForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // ZW-WEB-04M: a synchronous in-flight guard, so a fast double-click can't send two
+    // messages (or count a provider enquiry twice) before React re-renders.
+    if (inFlight.current) return;
+    inFlight.current = true;
     setStatus("submitting");
     setError(undefined);
 
@@ -55,10 +61,15 @@ export function ContactForm() {
       message: String(formData.get("message") ?? ""),
     };
 
-    const result = await submitContactMessage(input, {
-      hp: String(formData.get("company_website") ?? ""),
-      startedAt: startedAt.current || undefined,
-    });
+    let result: Awaited<ReturnType<typeof submitContactMessage>>;
+    try {
+      result = await submitContactMessage(input, {
+        hp: String(formData.get("company_website") ?? ""),
+        startedAt: startedAt.current || undefined,
+      });
+    } finally {
+      inFlight.current = false;
+    }
 
     if (result.ok) {
       setStatus("success");
@@ -66,7 +77,8 @@ export function ContactForm() {
       setDelivered(result.delivered);
       // Provider-enquiry conversion: ONLY a genuinely delivered message on the
       // provider topic. No form contents are sent.
-      if (result.delivered && input.topic === "provider") {
+      if (result.delivered && input.topic === "provider" && !enquiryCounted.current) {
+        enquiryCounted.current = true;
         track({ name: "provider_enquiry_submitted" });
       }
     } else {

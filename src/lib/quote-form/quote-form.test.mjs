@@ -408,7 +408,7 @@ test("success only after ok; the conversion counts only delivered:true; failure 
   assert.equal(threw.status, "error");
 
   const form = read("components/public/RequestTransportationForm.tsx");
-  assert.match(form, /if \(isDeliveredConversion\(result\)\) track\(\{ name: "transportation_quote_submitted" \}\)/);
+  assert.match(form, /if \(isDeliveredConversion\(result\)\) markSubmitted\.current\(\);/);
   assert.equal((form.match(/transportation_quote_submitted/g) ?? []).length, 1);
   assert.match(form, /TrackedPhoneLink[\s\S]*?Call \{business\.phoneDisplay\}/);
 });

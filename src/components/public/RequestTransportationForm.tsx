@@ -90,6 +90,12 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
   const submissionId = useRef<string>("");
   // transportation_quote_started: first genuine interaction, once per mount, no form values.
   const markStarted = useRef(once(() => track({ name: "transportation_quote_started" })));
+  // The quote-submitted event (the PRIMARY conversion, ZW-WEB-04M): at most once per
+  // mount, i.e. per submissionId, whatever happens (double-click, retry, re-render).
+  const markSubmitted = useRef(once(() => track({ name: "transportation_quote_submitted" })));
+  // Synchronous in-flight guard: two clicks in the same frame can't both submit
+  // (the `status` check alone reads a stale value until React re-renders).
+  const inFlight = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const successRef = useRef<HTMLHeadingElement>(null);
@@ -141,7 +147,8 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
       dispatch({ type: "next", today: todayInMarket() });
       return;
     }
-    if (status === "submitting") return;
+    if (status === "submitting" || inFlight.current) return;
+    inFlight.current = true;
 
     const hp = String(new FormData(event.currentTarget).get("company_website") ?? "");
     dispatch({ type: "submitStart" });
@@ -156,11 +163,13 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
       // The call itself failed (e.g. the connection dropped). Keep everything the
       // visitor entered and the SAME submissionId, so a retry is de-duplicated.
       dispatch({ type: "submitFailed", message: "We couldn't submit your request just now. Please try again shortly, or call us." });
+      inFlight.current = false;
       return;
     }
+    inFlight.current = false;
     dispatch({ type: "submitResult", result });
-    // Only a genuinely delivered request counts as a conversion. No parameters.
-    if (isDeliveredConversion(result)) track({ name: "transportation_quote_submitted" });
+    // Only a genuinely delivered request counts as a conversion, once. No parameters.
+    if (isDeliveredConversion(result)) markSubmitted.current();
   }
 
   // The reducer only reaches "success" for a genuine delivered:true result.
