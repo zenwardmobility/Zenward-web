@@ -32,7 +32,7 @@ export default function ContactPage() {
           <ContactForm />
           <aside className="flex flex-col gap-4 rounded-lg border border-border-subtle bg-surface-app p-lg lg:self-start">
             <p className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>Prefer to call?</p>
-            <PhoneCtaButton tone="navy" className="w-full sm:w-auto" />
+            <PhoneCtaButton surface="contact_page" tone="navy" className="w-full sm:w-auto" />
             <p className={cn(typography.bodySmall, "text-text-secondary")}>
               To arrange a specific trip, use the{" "}
               <a href="/request-transportation" className="font-medium text-brand-interactive-teal underline">

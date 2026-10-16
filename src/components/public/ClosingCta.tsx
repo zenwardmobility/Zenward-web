@@ -3,7 +3,7 @@ import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { CallButton } from "@/components/public/CallButton";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
-import type { AnalyticsEvent } from "@/lib/analytics/events";
+import type { AnalyticsEvent, AnalyticsSurface } from "@/lib/analytics/events";
 
 /**
  * The inset Care Navy closing panel used at the end of pages (same treatment
@@ -15,12 +15,15 @@ export function ClosingCta({
   body,
   requestHref = "/request-transportation",
   event,
+  surface,
   note,
 }: {
   heading: string;
   body: string;
   requestHref?: string;
   event: Extract<AnalyticsEvent, { name: "request_transportation_clicked" }>;
+  /** Analytics surface for the phone CTA. */
+  surface: AnalyticsSurface;
   note?: string;
 }) {
   return (
@@ -42,7 +45,7 @@ export function ClosingCta({
               <TrackedLinkButton href={requestHref} size="lg" onDark event={event}>
                 Request a Quote
               </TrackedLinkButton>
-              <CallButton onDark />
+              <CallButton surface={surface} onDark />
             </div>
             {note && <p className={cn(typography.metadata, "max-w-[32rem] text-white/70")}>{note}</p>}
           </div>

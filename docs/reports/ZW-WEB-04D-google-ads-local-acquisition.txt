@@ -1,0 +1,521 @@
+ZW-WEB-04D — GOOGLE ADS LANDING PAGES + METRO ATLANTA LOCAL ACQUISITION
+             + PRIVACY-SAFE CONVERSION EVENT FOUNDATION
+Date: 2026-10-15
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL ONLY. Not committed, pushed or deployed. Google Ads, GA4, GTM,
+gtag.js, dataLayer and advertising cookies were NOT added. Privacy/Terms,
+Nemryn intake (adapter, mapping, Server Action) and the Airport contract
+gate are untouched.
+
+
+1. STARTING GIT STATE
+---------------------
+Clean tree; HEAD b7b9cee "Add Airport Transportation behind intake contract
+gate"; origin/main d7782a3 (9 behind). git diff --check clean.
+Requirements: 04A, 04A-exit, 04B, 04B2, 04C, 04C1 reports (authored in this
+session).
+
+
+2. ACQUISITION ARCHITECTURE
+---------------------------
+  A. Organic / local hub (indexable, in sitemap)
+       /locations/metro-atlanta      route /locations/[market]; built from
+                                     getActiveMarkets(); unknown slugs 404
+  B. Paid-search landing pages (noindex, follow; not in sitemap)
+       /metro-atlanta/non-emergency-medical-transportation
+       /metro-atlanta/wheelchair-transportation
+       /metro-atlanta/dialysis-transportation
+       /metro-atlanta/medical-appointment-transportation
+     route /metro-atlanta/[campaign]; only these four; others 404 (verified:
+     /metro-atlanta/airport-transportation and
+     /metro-atlanta/rehabilitation-transportation -> 404).
+  Not created (by design): city pages, an Airport campaign page,
+  rehabilitation/discharge/senior/recurring campaign pages.
+
+
+3. METRO ATLANTA MARKET HUB (/locations/metro-atlanta)
+------------------------------------------------------
+Sections: 1 hero (eyebrow "Serving Metro Atlanta"; H1 "Non-Emergency Medical
+Transportation in Metro Atlanta"; support copy; Request a Quote + phone;
+van photo) · practical facts · 2 transportation services (7 NEMT links;
+"Also available: Airport Transportation" below them) · 3 who Zenward serves
+(patients, families, caregivers, care teams) · 4 how requests work (4
+steps) · 5 wheelchair-accessible transportation (wheelchair/ramp photo +
+link) · 6 one-time and recurring · 7 families and caregivers · 8 healthcare
+providers (navy; provider page + Talk to Zenward) · 9 FAQ (5, incl. "Where
+does Zenward operate?" from config) · 10 closing CTA.
+All market text from src/lib/service-area.ts. No counties, municipalities,
+radius, address, hours or airport procedures.
+
+
+4. BROAD NEMT LANDING PAGE
+--------------------------
+/metro-atlanta/non-emergency-medical-transportation. H1 "Non-Emergency
+Medical Transportation in Metro Atlanta" (market in Arrival Gold). Quote ->
+plain /request-transportation. Use cases (patients, families, caregivers,
+care teams); the NEMT service family (7 links); Airport only as one
+"Also available" line below the family; how it works; "Good to know"
+(non-emergency only, reviewed then confirmed, mobility needs); 5 FAQs;
+links: "Zenward in Metro Atlanta", "All services".
+
+
+5. WHEELCHAIR LANDING PAGE
+--------------------------
+/metro-atlanta/wheelchair-transportation. H1 "Wheelchair-Accessible
+Transportation in Metro Atlanta". Wheelchair/ramp photo in the hero. Quote
+-> ?service=wheelchair_transportation. Glance: wheelchair-accessible ·
+scheduled, non-emergency medical trips · mobility needs reviewed before
+confirming. Considerations and FAQ reuse the approved 04C wheelchair copy.
+NOT claimed: ADA, securement, ramp/lift, transfers/lifting, stretcher,
+door-through-door, oxygen, monitoring.
+
+
+6. DIALYSIS LANDING PAGE
+------------------------
+/metro-atlanta/dialysis-transportation. H1 "Dialysis Transportation in
+Metro Atlanta". Quote -> ?service=dialysis. Use cases: treatment schedule
+(Recurring), the ride there, the ride home (timing talked through),
+schedule changes (call). Considerations and FAQ from approved 04C dialysis
+copy ("schedules reviewed, not automatic"). No punctuality, guaranteed
+arrival, automatic booking or monitoring claims.
+
+
+7. MEDICAL APPOINTMENT LANDING PAGE
+-----------------------------------
+/metro-atlanta/medical-appointment-transportation. H1 "Medical Appointment
+Transportation in Metro Atlanta". Quote -> ?service=medical_appointment.
+Use cases: physician, specialist, outpatient and diagnostic, follow-ups;
+intro states "Zenward provides the transportation, not medical care".
+Considerations and FAQ from approved 04C copy.
+
+
+8. CAMPAIGN-PAGE SHARED ARCHITECTURE
+------------------------------------
+  src/lib/campaign-routes.ts  pure registry: slugs, paths, quote hrefs (from
+                              the service catalogue), organic page, and
+                              campaignForPath() for the header
+  src/lib/campaigns.ts        content per campaign (label, eyebrow, lede,
+                              image, glance, use cases, service family,
+                              considerations, FAQ, CTA copy, meta)
+  src/components/public/CampaignPage.tsx  one renderer: bold hero (large H1,
+                              market in gold, early CTAs, "A request isn't a
+                              confirmed ride..." line, photo) · quick-answer
+                              strip · use cases · [service family] · how it
+                              works · considerations · FAQ + restrained
+                              links · ClosingCta
+  src/app/metro-atlanta/[campaign]/page.tsx  static params; dynamicParams
+                              false
+Visual direction: bolder than the informational pages (34–52px H1, gold
+market phrase) while keeping the Zenward palette, Manrope/Inter, the
+button system and approved photography. No red, no copied structure.
+
+
+9. HEADER / NAVIGATION TREATMENT
+--------------------------------
+PublicHeader detects campaign routes (usePathname + campaignForPath) and
+renders a focused CampaignHeader:
+  phones   logo (home) · "Call" · Request a Quote
+  sm+      logo (home) · Services · 678-935-5489 · Request a Quote
+The quote button in that header carries the campaign's own preselection.
+There's no hamburger. The site footer (all nav and legal links) is
+unchanged, so users aren't trapped. All other routes keep the normal
+header.
+
+
+10. CTA / PRESELECTION BEHAVIOR
+-------------------------------
+  broad NEMT     /request-transportation
+  wheelchair     /request-transportation?service=wheelchair_transportation
+  dialysis       /request-transportation?service=dialysis
+  appointments   /request-transportation?service=medical_appointment
+  market hub     /request-transportation
+(verified in rendered HTML; the site-wide footer link stays plain).
+Backend unchanged. airport_transportation is never used anywhere.
+
+
+11. INDEX / NOINDEX STRATEGY
+----------------------------
+  /locations/metro-atlanta   indexable, in sitemap
+  campaign pages             <meta name="robots" content="noindex, follow">,
+                             NOT in the sitemap, NOT blocked in robots.txt
+                             (ads and users can reach them; links are
+                             followed)
+Why: campaign pages overlap the organic service pages and the hub. Noindex
+prevents duplicate or cannibalising results; organic authority stays with
+/services/* and /locations/metro-atlanta.
+
+
+12. CANONICAL STRATEGY
+----------------------
+Every page has a self-referencing canonical (and og:url). Campaign pages
+deliberately do NOT point their canonical at the service page: combining
+noindex with a cross-URL canonical sends conflicting signals. Self-canonical
+plus noindex is unambiguous. (campaignMetadata in src/lib/service-pages.ts;
+test-enforced.)
+
+
+13. SITEMAP IMPACT
+------------------
+Added /locations/<slug> for every active market (1 URL). Campaign pages are
+not listed (test-enforced). Total: 8 core + 8 services + 1 hub = 17.
+
+
+14. INTERNAL LINKING
+--------------------
+Campaign pages: logo -> home; header Services; the service page (or hub
+for the broad page) as "About ..."; "All services"; "Zenward in Metro
+Atlanta"; quote and phone. The broad page also links the 7 NEMT service
+pages and Airport (one line). The hub links the 7 NEMT services, Airport
+(one line), wheelchair, recurring, provider page and contact. Existing
+pages don't link to campaign pages (paid-only destinations).
+
+
+15. GOOGLE ADS DESTINATION READINESS (per campaign page)
+--------------------------------------------------------
+  business identity    locked Zenward logo, footer identity, phone: yes
+  relevant headline    "<service> in Metro Atlanta" as H1: yes
+  usable navigation    home, Services, footer nav and legal: yes
+  working phone link   tel:+16789355489 (tracked, never blocked): yes
+  quote CTA            above the fold at all widths, preselected: yes
+  fast load            static pages, no new libraries or scripts: yes
+  mobile               no overflow at 390–1440: yes
+  dead links           smoke tested 200; unknown campaign/market slugs 404: none dead
+  urgency/scarcity     none (no timers, popups or "limited" language): yes
+  misleading claims    claim scan clean (§32): yes
+  request vs ride      hero line, steps, FAQ: yes
+Remaining for Ads approval (outside code): §36.
+
+
+16. EXISTING ANALYTICS AUDIT
+----------------------------
+Before 04D: src/lib/analytics/events.ts, a typed union with dispatch() as a
+no-op in production. Events: request_transportation_clicked,
+request_form_started, request_form_submitted {hasReturnTrip},
+provider_cta_clicked, contact_started. No gtag, GTM, GA4, Google Ads,
+dataLayer, Plausible, PostHog or @vercel/analytics anywhere (the only
+"plausible" match was an unrelated word in forms/guard.ts). Phone links
+were untracked.
+
+
+17. CONVERSION-EVENT ARCHITECTURE
+---------------------------------
+events.ts rewritten:
+  - Conversion events: phone_cta_clicked {surface}, transportation_quote_
+    started {}, transportation_quote_submitted {},
+    provider_enquiry_submitted {}. Engagement events kept:
+    request_transportation_clicked {source}, provider_cta_clicked
+    {source}, contact_started {topic}. request_form_* removed.
+  - sanitizeEvent(): rebuilds each event from a per-event key/value
+    allowlist; unknown names or values -> dropped (null).
+  - track(): sanitise -> registered sinks (each isolated in try/catch).
+    NO sink is registered anywhere, so production is a no-op (dev console
+    only).
+  - registerAnalyticsSink(): the single future integration point (not used).
+Documentation: docs/product/conversion-measurement.md.
+
+
+18. PRIVACY-SAFE PAYLOAD DESIGN
+-------------------------------
+Allowlisted context only: `surface` (header, hero, homepage, services,
+service_page, campaign_page, market_page, footer, request_form,
+provider_page, contact_page), plus the existing closed `source`/`topic`
+lists. Conversion events have NO parameters except phone's surface.
+Dropped by construction and test-proven: passenger/requester names,
+relationship, phone, email, pickup, destination, dates/times, notes,
+recurring schedule, integrationExternalId, idempotencyKey,
+organization/tenant/passenger/trip ids, URLs/query strings, hasReturnTrip,
+serviceType. No surface value names a service or health context.
+
+
+19. PHONE-CLICK EVENT
+---------------------
+New client primitive TrackedPhoneLink (href always business.phoneHref)
+fires phone_cta_clicked {surface} then lets the browser follow tel:. No
+preventDefault, and track() never throws. Used by CallButton (now requires
+`surface`), PhoneCtaButton (requires `surface`), both header modes,
+footer, homepage band/inline/FAQ links, PracticalFacts (requires
+`surface`) and ClosingCta (requires `surface`). Not converted (documented
+gap): the request form's undelivered-success fallback tel: link and the
+contact form's "message wasn't sent" tel: link, left unchanged to avoid
+touching form internals.
+
+
+20. QUOTE-START EVENT
+---------------------
+RequestTransportationForm: transportation_quote_started fires on the
+form's first focus, guarded by the existing hasStarted ref (once per
+mount), with no parameters. Page load does not fire it. Form behaviour is
+unchanged.
+
+
+21. QUOTE-SUCCESS EVENT
+-----------------------
+transportation_quote_submitted fires ONLY inside `if (result.ok)` ->
+`if (result.delivered)`, i.e. Nemryn returned 200 {"ok":true}. It doesn't
+fire on click, start, validation failure, delivery failure, the unlinked
+fail-closed state (ok:false), malformed responses, or network errors.
+There's no parameter, so hasReturnTrip was dropped. Test-enforced by
+source position.
+
+
+22. PROVIDER-ENQUIRY EVENT
+--------------------------
+ContactForm already returns `delivered` (true only after the email
+provider's 2xx). provider_enquiry_submitted fires only when
+`result.delivered && input.topic === "provider"`. No form content is sent,
+and contact delivery is unchanged. Note: production contact delivery mode
+(stub vs email) is still unverified (04A-exit), so in stub mode this event
+never fires.
+
+
+23. ANALYTICS TESTS (src/lib/analytics/events.test.mjs, 10)
+-----------------------------------------------------------
+  forbidden fields dropped from every event · serviceType never survives ·
+  phone surface allowlist (rejects service/URL values) · unknown events
+  (incl. old request_form_submitted) rejected · a failing sink can't throw
+  or block other sinks; only sanitised payloads delivered · quote-submitted
+  only in the delivered branch (and request_form_submitted/hasReturnTrip
+  gone) · quote-started once per mount · provider event only on delivered
+  provider topic · no vendor/tag/dataLayer/next/script/network client in
+  src, no fetch/sendBeacon/URL in events.ts, no sink registered in the app
+  · TrackedPhoneLink never calls preventDefault.
+Campaign tests (src/lib/campaign-routes.test.mjs, 6): four campaigns and
+paths · market slug equals the config default and the route folder exists
+· per-campaign preselection · no airport campaign or preselection ·
+noindex/follow + self canonical, not in sitemap, robots.txt not blocking ·
+header path detection.
+
+
+24. CONFIRMATION — NO GOOGLE TRACKING VENDOR INSTALLED
+------------------------------------------------------
+No Google Ads, GA4, GTM, gtag.js, dataLayer, next/script vendor tag,
+cookie or network call was added; package.json is unchanged. The
+test-enforced scan in §23 covers src/.
+
+
+25. PRIVACY / LEGAL BLOCKER (04E / owner + legal)
+-------------------------------------------------
+Google advertising/conversion measurement must NOT be enabled until the
+privacy language is reviewed and aligned with the actual tracking
+implementation. Today /privacy says the site "aims to use ... no
+advertising or cross-site tracking cookies" and that no third party
+processes request contents (the latter is already inaccurate, given
+Nemryn). Also open: HIPAA/state health-privacy review, URL exposure,
+consent (04A A-01/A-04/A-05, LP-01/LP-02). Privacy and Terms were not
+modified. The activation checklist is in docs/product/conversion-
+measurement.md.
+
+
+26. AIRPORT TRANSPORTATION HANDLING
+-----------------------------------
+Shown as an adjacent service on the broad campaign page and the hub (one
+"Also available" line each), plus existing homepage, /services and
+/services/airport-transportation. No Airport campaign page (404). No
+preselection anywhere. The contract gate files are untouched (git-verified),
+and ?service=airport_transportation preselects nothing (verified).
+
+
+27. STRUCTURED DATA
+-------------------
+  hub        Service ("Non-Emergency Medical Transportation in Metro
+             Atlanta"; provider Organization; areaServed Place Metro
+             Atlanta in State Georgia) + BreadcrumbList. NOT LocalBusiness:
+             no confirmed public address, hours or coordinates.
+  campaigns  BreadcrumbList only (Home > Metro Atlanta > page). No Service
+             schema; the canonical service pages already own it.
+No ratings, reviews, prices, hours, coordinates or availability.
+
+
+28. METADATA
+------------
+  /locations/metro-atlanta  "Non-Emergency Medical Transportation Services
+                            in Metro Atlanta | Zenward Mobility", indexable
+                            (H1 unchanged: "Non-Emergency Medical
+                            Transportation in Metro Atlanta")
+  campaign pages            "<label> in Metro Atlanta | Zenward Mobility",
+                            noindex,follow
+  descriptions: page-specific + "Serving Metro Atlanta."
+Note: resolved at close-out (§38). The hub metadata title now differs
+from the homepage title, which is unchanged. The broad campaign keeps the
+homepage's title stem; it is noindex, so this overlap is accepted.
+
+
+29. ACCESSIBILITY
+-----------------
+One H1 per page (verified at every width); h2 sections, h3 items; FAQ
+keyboard/region wiring unchanged; factual alt text (0 images without alt);
+the header logo inside its home link has alt="" with the link's aria-label;
+phone links labelled "Call Zenward at 678-935-5489"; descriptive links
+("About wheelchair-accessible transportation", "All services"); CTAs 44–56px
+(the only <44px item is the inline "Airport Transportation" text link
+inside a sentence); gold on Care Navy 7.4:1; CSS-only transitions.
+
+
+30. PERFORMANCE
+---------------
+Server-rendered pages (CampaignPage, hub); client JS only in the existing
+header, FAQ, tracked buttons and the new tiny TrackedPhoneLink. No new
+dependencies, video, animation or scripts. next/image for all photos
+(hero images priority). 28 routes prerendered.
+
+
+31. RESPONSIVE QA (local production build, headless Chrome, fresh profile)
+-------------------------------------------------------------------------
+390 / 430 / 768 / 1024 / 1440, all five new routes: no overflow; one H1;
+Request a Quote + phone above the fold at every width (390 phone CTA
+bottoms: hub 587, broad 587, wheelchair 587, dialysis 521, appointments
+493, all of 844); FAQ 5 panels each. Screenshots reviewed: wheelchair
+campaign 390 + 1440 first screens (focused header fits at 390: logo · Call ·
+Request a Quote), broad campaign 1440 full, hub 1440 full.
+Cosmetic note: in 3-column layouts the 7-service list leaves its last item
+on its own row.
+Core smoke: /, /services, /request-transportation, /healthcare-providers,
+/contact: 200.
+
+
+32. CLAIM SCAN (rendered text of the 5 new pages)
+-------------------------------------------------
+Terms: 24/7, always on time, guarantee*, licensed, insured, ADA, CPR,
+door-through-door, stretcher, oxygen, hydraulic, Medicaid, insurance,
+instant/free quote, best, #1, Nemryn, urgency/scarcity phrases.
+Hits: "stretcher" x5 (broad + wheelchair pages), all negations ("does not
+provide ambulance, stretcher or emergency transportation", "Not stretcher
+or ambulance transport"). No other hits.
+
+
+33. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+  npm test ......... 84/84 pass (68 committed at HEAD af41e3b + 10
+                     analytics + 6 campaign). See §38 for why the earlier
+                     "74/74" figure was stale.
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages (hub + 4 campaigns prerendered)
+  git diff --check . clean
+
+
+34. FILES MODIFIED
+------------------
+  A src/app/locations/[market]/page.tsx
+  A src/app/metro-atlanta/[campaign]/page.tsx
+  A src/components/public/CampaignPage.tsx
+  A src/components/public/TrackedPhoneLink.tsx
+  A src/lib/campaign-routes.ts
+  A src/lib/campaign-routes.test.mjs
+  A src/lib/campaigns.ts
+  A src/lib/analytics/events.test.mjs
+  A docs/product/conversion-measurement.md
+  M src/lib/analytics/events.ts               (conversion foundation)
+  M src/lib/service-pages.ts                  (campaignMetadata)
+  M src/app/sitemap.ts                        (market hubs)
+  M src/components/public/PublicHeader.tsx    (campaign mode; tracked phone)
+  M src/components/public/PublicFooter.tsx    (tracked phone)
+  M src/components/public/CallButton.tsx      (TrackedPhoneLink; surface)
+  M src/components/public/PhoneCtaButton.tsx  (TrackedPhoneLink; surface)
+  M src/components/public/PracticalFacts.tsx  (surface)
+  M src/components/public/ClosingCta.tsx      (surface)
+  M src/components/public/ServicePage.tsx     (surface props)
+  M src/components/public/HomeHero.tsx        (surface prop only)
+  M src/components/public/RequestTransportationForm.tsx (event names only)
+  M src/components/public/ContactForm.tsx     (provider_enquiry_submitted)
+  M src/app/page.tsx                          (tracked phone links)
+  M src/app/services/page.tsx                 (surface props)
+  M src/app/contact/page.tsx                  (surface prop)
+  M src/app/request-transportation/page.tsx   (surface prop)
+  A docs/reports/ZW-WEB-04D-google-ads-local-acquisition.txt
+Untouched (git-verified): public/brand, privacy, terms, adapter.ts,
+nemryn-mapping.ts, actions.ts, service-types.ts (airport gate), env files.
+
+
+35. REMAINING OWNER DECISIONS
+-----------------------------
+  - Title overlap: homepage, hub and broad campaign share "Non-Emergency
+    Medical Transportation in Metro Atlanta". The campaign is noindex. For
+    homepage vs hub, consider differentiating one title later.
+  - Which campaign pages to launch first and their ad copy (ad copy must
+    follow the same claim discipline).
+  - Whether the focused campaign header should also show a "How it works"
+    link (currently Services only).
+  - More real photography (dialysis/appointment campaigns reuse the van
+    photo with different crops).
+
+
+36. BLOCKERS BEFORE PRODUCTION / PAID TRAFFIC
+---------------------------------------------
+  1. 04A-exit B2: new Nemryn integration connected in Vercel plus a
+     verified QA request (the landing pages drive traffic into the form).
+  2. Privacy/legal alignment before ANY Google tracking (§25), plus the
+     consent decision.
+  3. Google Ads account, conversion actions and IDs (owner), and production
+     domain verification.
+  4. Contact form production mode (stub vs email) unverified, which affects
+     the provider-enquiry path and event.
+  5. Airport campaign: blocked until the owner confirms airport intake
+     contract activation for paid traffic (§38). No airport campaign
+     route exists.
+
+
+37. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Owner review of the four campaign pages (especially copy and the focused
+header) and the hub. If approved, commit exactly the paths in §34 as one
+change, e.g. "Add Metro Atlanta hub, campaign landing pages and conversion
+event foundation". Do not deploy until §36 items 1–2 are resolved. Do not
+enable tracking until §25 is cleared.
+
+STOP. Not committed, pushed or deployed. 04E not started.
+
+
+38. CLOSE-OUT (2026-10-16, owner-approved)
+------------------------------------------
+Owner approved ZW-WEB-04D: Metro Atlanta market hub, four paid-search
+landing pages, focused campaign header, noindex/follow campaign strategy,
+self-canonical campaign URLs, privacy-safe conversion-event abstraction,
+and no Google/GA4/GTM vendor integration.
+
+Final market-hub metadata title:
+  /locations/metro-atlanta  "Non-Emergency Medical Transportation Services
+                            in Metro Atlanta | Zenward Mobility"
+  H1 unchanged. Homepage title unchanged. Campaign titles unchanged. Route
+  structure unchanged. Only change: the title string in
+  src/app/locations/[market]/page.tsx generateMetadata.
+
+Campaign header: owner approved the focused header as built (Services
+link only). "How It Works" will NOT be added.
+
+Initial recommended campaign launch order:
+  1. Broad NEMT            /metro-atlanta/non-emergency-medical-transportation
+  2. Wheelchair            /metro-atlanta/wheelchair-transportation
+  3. Dialysis              /metro-atlanta/dialysis-transportation
+  4. Medical Appointment   /metro-atlanta/medical-appointment-transportation
+  (Subject to the §36 blockers. No paid traffic until they are cleared.)
+
+Airport: still visible as an adjacent public service and still absent from
+all paid campaign routes. An Airport campaign stays blocked until the owner
+confirms airport intake contract activation. Note: HEAD af41e3b (04C2)
+already activates airport_transportation for structured intake
+(service-types.ts). This phase did not change that activation. Paid-traffic
+use of it still needs explicit owner sign-off.
+
+Tracking: the conversion-event layer stays vendor-neutral and a no-op.
+None of these were added: Google Ads, GA4, GTM, gtag.js, dataLayer,
+advertising cookies, or external analytics network calls.
+
+Test count: 04D was authored on b7b9cee (§1). 04C2 (af41e3b) was then
+committed with 10 more airport-intake tests. The committed baseline is
+now 68 tests, so the correct total is 84/84, not 74/74. No test file was
+modified in this phase.
+
+Final validation (2026-10-16):
+  git diff --check . clean
+  npm test ......... 84/84 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+  Built HTML: hub <title> as above. Homepage <title> unchanged. All four
+  campaign pages have robots "noindex, follow" and a self-canonical URL,
+  and none are in sitemap.xml. The hub is in sitemap.xml.
+
+Committed as "Add Metro Atlanta acquisition pages and conversion event
+foundation", staging exactly the §34 paths. Not pushed or deployed.
+04E not started.

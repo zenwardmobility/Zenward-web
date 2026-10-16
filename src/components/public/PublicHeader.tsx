@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { List, Phone, X } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
@@ -9,6 +10,8 @@ import { LinkButton } from "@/components/ui/LinkButton";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { ZenwardLogo } from "@/components/brand/ZenwardLogo";
 import { business } from "@/lib/business";
+import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
+import { campaignForPath, type CampaignRoute } from "@/lib/campaign-routes";
 
 const NAV_LINKS = [
   { label: "Services", href: "/services" },
@@ -24,8 +27,61 @@ const NAV_LINKS = [
  *     the number from sm) · menu. Calling never needs the menu; Request a
  *     Quote is in the hero and the menu.
  *   - desktop (lg+): nav · phone icon + the real number · Request a Quote.
+ * On paid-search campaign pages (ZW-WEB-04D) it switches to a focused
+ * CampaignHeader: logo (home) · Services · phone · Request a Quote. It's
+ * still a real site header (home, services and footer navigation stay
+ * reachable), just with less to distract from the request.
  */
 export function PublicHeader() {
+  const pathname = usePathname();
+  const campaign = campaignForPath(pathname);
+  if (campaign) return <CampaignHeader campaign={campaign} />;
+  return <SiteHeader />;
+}
+
+function CampaignHeader({ campaign }: { campaign: CampaignRoute }) {
+  return (
+    <header className="sticky top-0 z-40 border-b border-border-subtle bg-surface-elevated/95 backdrop-blur">
+      <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-2 px-md sm:gap-3 sm:px-xl">
+        <Link href="/" aria-label="Zenward Mobility — home" className="flex shrink-0 items-center">
+          <ZenwardLogo height={32} alt="" priority />
+        </Link>
+        <div className="flex items-center gap-1 sm:gap-3">
+          <Link
+            href="/services"
+            className={cn(
+              typography.bodySmall,
+              "hidden min-h-11 items-center px-2 font-medium text-text-secondary hover:text-text-primary sm:inline-flex",
+            )}
+          >
+            Services
+          </Link>
+          <TrackedPhoneLink
+            surface="header"
+            aria-label={`Call Zenward at ${business.phoneDisplay}`}
+            className={cn(
+              typography.button,
+              "inline-flex h-11 items-center justify-center gap-2 rounded-md px-3 text-brand-care-navy hover:bg-surface-hover sm:h-12",
+            )}
+          >
+            <Phone className="size-5 text-brand-interactive-teal" weight="fill" aria-hidden />
+            <span className="sm:hidden">Call</span>
+            <span className="hidden sm:inline">{business.phoneDisplay}</span>
+          </TrackedPhoneLink>
+          <TrackedLinkButton
+            href={campaign.requestHref}
+            size="md"
+            event={{ name: "request_transportation_clicked", source: "campaign_page" }}
+          >
+            Request a Quote
+          </TrackedLinkButton>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const close = () => setMenuOpen(false);
 
@@ -49,8 +105,8 @@ export function PublicHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <a
-            href={business.phoneHref}
+          <TrackedPhoneLink
+            surface="header"
             aria-label={`Call Zenward at ${business.phoneDisplay}`}
             className={cn(
               typography.bodySmall,
@@ -59,7 +115,7 @@ export function PublicHeader() {
           >
             <Phone className="size-5 text-brand-interactive-teal" weight="fill" aria-hidden />
             <span>{business.phoneDisplay}</span>
-          </a>
+          </TrackedPhoneLink>
           <TrackedLinkButton
             href="/request-transportation"
             size="md"
@@ -70,8 +126,8 @@ export function PublicHeader() {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <a
-            href={business.phoneHref}
+          <TrackedPhoneLink
+            surface="header"
             aria-label={`Call Zenward at ${business.phoneDisplay}`}
             onClick={close}
             className={cn(
@@ -82,7 +138,7 @@ export function PublicHeader() {
             <Phone className="size-4" weight="fill" aria-hidden />
             <span className="sm:hidden">Call</span>
             <span className="hidden sm:inline">{business.phoneDisplay}</span>
-          </a>
+          </TrackedPhoneLink>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}

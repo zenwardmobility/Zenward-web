@@ -5,6 +5,7 @@ import { typography } from "@/design/typography";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ZenwardLogo } from "@/components/brand/ZenwardLogo";
 import { business } from "@/lib/business";
+import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
 import { servingLine } from "@/lib/service-area";
 
 const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] = [
@@ -45,13 +46,14 @@ export function PublicFooter() {
             <ZenwardLogo treatment="inverse" height={30} />
             <p className={cn(typography.body, "mt-4 max-w-[20rem] text-white/70")}>Care that gets you there.</p>
             <p className={cn(typography.bodySmall, "mt-1 text-white/70")}>{serving}</p>
-            <a
-              href={business.phoneHref}
+            <TrackedPhoneLink
+              surface="footer"
+              aria-label={`Call Zenward at ${business.phoneDisplay}`}
               className={cn(typography.body, "mt-4 inline-flex items-center gap-2 font-medium text-white hover:text-brand-calm-mist")}
             >
               <Phone className="size-4" weight="fill" aria-hidden />
               {business.phoneDisplay}
-            </a>
+            </TrackedPhoneLink>
           </div>
           {COLUMNS.map((column) => (
             <div key={column.heading}>

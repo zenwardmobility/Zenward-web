@@ -57,7 +57,7 @@ function Hero({ service }: { service: ServiceContent }) {
             >
               Request a Quote
             </TrackedLinkButton>
-            <CallButton onDark className="w-full sm:w-auto" />
+            <CallButton surface="service_page" onDark className="w-full sm:w-auto" />
           </div>
           {service.intakeNote && (
             <p className={cn(typography.bodySmall, "mt-4 max-w-[34rem] text-white/80")}>{service.intakeNote}</p>
@@ -253,7 +253,7 @@ export function ServicePage({ service }: { service: ServiceContent }) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd(service)) }} />
       <Hero service={service} />
-      <PracticalFacts />
+      <PracticalFacts surface="service_page" />
 
       {service.order.map((key, index) => {
         const Renderer = SECTION_RENDERERS[key];
@@ -274,6 +274,7 @@ export function ServicePage({ service }: { service: ServiceContent }) {
         body={service.ctaBody}
         requestHref={service.requestHref}
         event={{ name: "request_transportation_clicked", source: "service_page" }}
+        surface="service_page"
         note={service.closingNote ?? "Zenward provides non-emergency medical transportation only. In a medical emergency, call 911."}
       />
     </>

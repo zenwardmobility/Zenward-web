@@ -1,20 +1,25 @@
 import type { ReactNode } from "react";
 import { Phone } from "@phosphor-icons/react/dist/ssr";
 import { buttonClassNames, type ButtonSize, type ButtonVariant } from "@/components/ui/buttonStyles";
+import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
+import type { AnalyticsSurface } from "@/lib/analytics/events";
 import { business } from "@/lib/business";
 
 /**
  * A `tel:` call action styled with the shared button system, so phone CTAs
  * sit beside LinkButton / TrackedLinkButton with identical sizing (48-56px
- * targets). The number always comes from `src/lib/business.ts`.
+ * targets). The number always comes from `src/lib/business.ts`. Clicks fire
+ * `phone_cta_clicked` with `surface` only (see TrackedPhoneLink).
  */
 export function CallButton({
+  surface,
   variant = "outline",
   size = "lg",
   onDark = false,
   className,
   label,
 }: {
+  surface: AnalyticsSurface;
   variant?: ButtonVariant;
   size?: ButtonSize;
   onDark?: boolean;
@@ -26,8 +31,8 @@ export function CallButton({
   label?: ReactNode;
 }) {
   return (
-    <a
-      href={business.phoneHref}
+    <TrackedPhoneLink
+      surface={surface}
       aria-label={`Call Zenward at ${business.phoneDisplay}`}
       className={buttonClassNames(variant, size, false, className, onDark)}
     >
@@ -38,6 +43,6 @@ export function CallButton({
           <span className="hidden sm:inline">{business.phoneDisplay}</span>
         </>
       )}
-    </a>
+    </TrackedPhoneLink>
   );
 }

@@ -4,6 +4,8 @@ import { typography } from "@/design/typography";
 import { business } from "@/lib/business";
 import { cn } from "@/lib/cn";
 import { servingLine } from "@/lib/service-area";
+import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
+import type { AnalyticsSurface } from "@/lib/analytics/events";
 
 /**
  * A restrained strip of CONFIRMED practical facts (ZW-WEB-04C). Only facts
@@ -11,7 +13,7 @@ import { servingLine } from "@/lib/service-area";
  * times, certifications, licensing, insurance, ratings, counts or
  * guarantees.
  */
-export function PracticalFacts({ className }: { className?: string }) {
+export function PracticalFacts({ surface, className }: { surface: AnalyticsSurface; className?: string }) {
   const facts: { icon: Icon; text: string }[] = [
     { icon: MapPin, text: servingLine() },
     { icon: ShieldCheck, text: "Non-emergency medical transportation" },
@@ -30,14 +32,14 @@ export function PracticalFacts({ className }: { className?: string }) {
           </li>
         ))}
         <li>
-          <a
-            href={business.phoneHref}
+          <TrackedPhoneLink
+            surface={surface}
             aria-label={`Call Zenward at ${business.phoneDisplay}`}
             className={cn(typography.bodySmall, "inline-flex min-h-11 items-center gap-2.5 font-semibold text-brand-care-navy hover:underline underline-offset-4")}
           >
             <Phone className="size-5 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
             Call {business.phoneDisplay}
-          </a>
+          </TrackedPhoneLink>
         </li>
       </ul>
     </section>

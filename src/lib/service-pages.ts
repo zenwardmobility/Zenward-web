@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
 import { areaServedJsonLd, getDefaultMarket } from "@/lib/service-area";
 import type { ServiceContent } from "@/lib/services";
+import type { CampaignContent } from "@/lib/campaigns";
 
 export function serviceMetadata(service: ServiceContent): Metadata {
   const market = getDefaultMarket();
@@ -51,4 +52,23 @@ export function serviceJsonLd(service: ServiceContent) {
       { name: service.label, path: service.path },
     ]),
   ];
+}
+
+/**
+ * Campaign landing pages (ZW-WEB-04D): `noindex, follow`, self-referencing
+ * canonical, and excluded from the sitemap. They exist for paid traffic;
+ * organic authority stays with /services/* and /locations/<market>. A
+ * cross-page canonical is deliberately NOT used, because combining noindex
+ * with a canonical to another URL sends search engines conflicting signals.
+ */
+export function campaignMetadata(campaign: CampaignContent): Metadata {
+  const market = getDefaultMarket();
+  return {
+    ...pageMetadata({
+      title: `${campaign.label} in ${market.name}`,
+      description: `${campaign.metaDescription} Serving ${market.name}.`,
+      path: campaign.path,
+    }),
+    robots: { index: false, follow: true },
+  };
 }

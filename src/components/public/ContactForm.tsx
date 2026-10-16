@@ -64,6 +64,11 @@ export function ContactForm() {
       setStatus("success");
       setReferenceId(result.referenceId);
       setDelivered(result.delivered);
+      // Provider-enquiry conversion: ONLY a genuinely delivered message on the
+      // provider topic. No form contents are sent.
+      if (result.delivered && input.topic === "provider") {
+        track({ name: "provider_enquiry_submitted" });
+      }
     } else {
       setStatus("error");
       setError(result.error ?? "Something went wrong. Please try again.");

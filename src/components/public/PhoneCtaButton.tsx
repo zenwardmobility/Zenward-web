@@ -2,6 +2,8 @@ import { Phone } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
 import { business } from "@/lib/business";
+import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
+import type { AnalyticsSurface } from "@/lib/analytics/events";
 
 type Tone = "navy" | "teal" | "outline";
 
@@ -17,17 +19,19 @@ const toneClasses: Record<Tone, string> = {
  * target), visible focus via the global `:focus-visible` outline.
  */
 export function PhoneCtaButton({
+  surface,
   tone = "navy",
   className,
   label,
 }: {
+  surface: AnalyticsSurface;
   tone?: Tone;
   className?: string;
   label?: string;
 }) {
   return (
-    <a
-      href={business.phoneHref}
+    <TrackedPhoneLink
+      surface={surface}
       aria-label={`Call Zenward at ${business.phoneDisplay}`}
       className={cn(
         typography.button,
@@ -38,6 +42,6 @@ export function PhoneCtaButton({
     >
       <Phone className="size-4" weight="fill" aria-hidden />
       {label ?? `Call ${business.phoneDisplay}`}
-    </a>
+    </TrackedPhoneLink>
   );
 }

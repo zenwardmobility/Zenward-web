@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/seo";
 import { SERVICE_PATHS } from "@/lib/service-catalog";
+import { getActiveMarkets } from "@/lib/service-area";
 
 const ROUTES = [
   "/",
@@ -8,6 +9,9 @@ const ROUTES = [
   "/healthcare-providers",
   "/services",
   ...SERVICE_PATHS,
+  // Indexable market hubs (ZW-WEB-04D). Campaign landing pages under
+  // /<market>/<campaign> are noindex and deliberately NOT listed here.
+  ...getActiveMarkets().map((market) => `/locations/${market.slug}`),
   "/about",
   "/contact",
   "/privacy",

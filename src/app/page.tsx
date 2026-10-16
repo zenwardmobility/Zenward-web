@@ -7,6 +7,7 @@ import { BrandImage } from "@/components/layout/BrandImage";
 import { HomeHero } from "@/components/public/HomeHero";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { CallButton } from "@/components/public/CallButton";
+import { TrackedPhoneLink } from "@/components/public/TrackedPhoneLink";
 import { LinkButton } from "@/components/ui/LinkButton";
 import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { typography } from "@/design/typography";
@@ -162,8 +163,8 @@ const organizationJsonLd = {
 
 function TextPhoneLink({ onDark = false, className }: { onDark?: boolean; className?: string }) {
   return (
-    <a
-      href={business.phoneHref}
+    <TrackedPhoneLink
+      surface="homepage"
       className={cn(
         typography.bodySmall,
         "inline-flex min-h-11 items-center gap-2 font-semibold underline-offset-4 hover:underline",
@@ -173,7 +174,7 @@ function TextPhoneLink({ onDark = false, className }: { onDark?: boolean; classN
     >
       <Phone className={cn("size-4", onDark ? "text-brand-arrival-gold" : "text-brand-interactive-teal")} weight="fill" aria-hidden />
       Call {business.phoneDisplay}
-    </a>
+    </TrackedPhoneLink>
   );
 }
 
@@ -207,8 +208,8 @@ export default function HomePage() {
                 </span>
               </li>
               <li className="flex items-center gap-3 pt-3 lg:py-1 lg:pl-xl">
-                <a
-                  href={business.phoneHref}
+                <TrackedPhoneLink
+                  surface="hero"
                   aria-label={`Call Zenward at ${business.phoneDisplay}`}
                   className={cn(
                     typography.body,
@@ -217,7 +218,7 @@ export default function HomePage() {
                 >
                   <Phone className="size-6 shrink-0 text-brand-interactive-teal" weight="fill" aria-hidden />
                   {business.phoneDisplay}
-                </a>
+                </TrackedPhoneLink>
               </li>
             </ul>
           </div>
@@ -444,9 +445,9 @@ export default function HomePage() {
             Talk to our team
           </Link>{" "}
           or call{" "}
-          <a href={business.phoneHref} className="font-medium text-brand-interactive-teal underline">
+          <TrackedPhoneLink surface="homepage" className="font-medium text-brand-interactive-teal underline">
             {business.phoneDisplay}
-          </a>
+          </TrackedPhoneLink>
           .
         </p>
       </Section>
@@ -478,7 +479,7 @@ export default function HomePage() {
                 >
                   Request a Quote
                 </TrackedLinkButton>
-                <CallButton onDark />
+                <CallButton surface="homepage" onDark />
               </div>
             </div>
           </div>

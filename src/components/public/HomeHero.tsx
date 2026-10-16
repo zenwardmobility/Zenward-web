@@ -139,7 +139,7 @@ export function HomeHero() {
             >
               Request a Quote
             </TrackedLinkButton>
-            <CallButton onDark />
+            <CallButton surface="hero" onDark />
           </div>
         </div>
       </SectionContainer>

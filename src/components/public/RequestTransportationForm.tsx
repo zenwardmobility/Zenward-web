@@ -73,7 +73,8 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
   function markStarted() {
     if (!hasStarted.current) {
       hasStarted.current = true;
-      track({ name: "request_form_started" });
+      // First genuine interaction with the form; once per mount. No form values.
+      track({ name: "transportation_quote_started" });
     }
   }
 
@@ -149,7 +150,8 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
       setDelivered(result.delivered);
       // Only a genuinely delivered request counts as a conversion.
       if (result.delivered) {
-        track({ name: "request_form_submitted", hasReturnTrip: input.returnTripNeeded === "yes" });
+        // The accepted-request conversion. No parameters: no form values, no serviceType.
+        track({ name: "transportation_quote_submitted" });
       }
     } else {
       setStatus("error");
