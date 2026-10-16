@@ -3,11 +3,19 @@ import { Section } from "@/components/layout/Section";
 import { RequestTransportationForm } from "@/components/public/RequestTransportationForm";
 import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
 import { AssistantInlineEntry } from "@/components/public/assistant/AssistantInlineEntry";
+import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 import { QUOTE_RESPONSE_LINE } from "@/lib/trust";
 import { resolveServiceParam } from "@/lib/request-intake/service-types";
+import { commercialFaq } from "@/lib/operating-facts";
+
+// What happens after a request, from the canonical operating facts (ZW-WEB-04I). Below the form so it stays primary.
+const BEFORE_YOU_REQUEST = (() => {
+  const f = commercialFaq();
+  return [f.confirmation, f.response, f.pricing, f.payment, f.timing, f.returnTrip, f.recurring, f.hours];
+})();
 
 export const metadata: Metadata = pageMetadata({
   title: "Request a Transportation Quote",
@@ -63,6 +71,16 @@ export default async function RequestTransportationPage({
 
       <Section tone="white" narrow>
         <RequestTransportationForm initialServiceType={initialServiceType} />
+      </Section>
+
+      <Section tone="mist" narrow>
+        <h2 className={cn(typography.subsectionTitle, "text-text-primary")}>Before you request</h2>
+        <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>
+          What happens after you send a request, and how timing, pricing and payment are confirmed.
+        </p>
+        <div className="mt-lg">
+          <FaqAccordion items={BEFORE_YOU_REQUEST} />
+        </div>
       </Section>
     </>
   );

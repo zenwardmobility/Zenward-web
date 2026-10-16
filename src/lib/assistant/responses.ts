@@ -15,6 +15,7 @@ import { SERVICE_CATALOG, type ServiceSlug } from "../service-catalog.ts";
 import { NOT_A_BOOKING, PATHS, PHONE, PROCESS_STEPS, SERVICE_ORDER, SERVICE_TIPS, TRUST, serviceFact } from "./knowledge.ts";
 import { detectServices, detectTopics, isRecurring, normalize, type Topic } from "./intents.ts";
 import { hasSensitiveDetails, isEmergency } from "./safety.ts";
+import { CONFIRMED, factAnswer } from "../operating-facts.ts";
 import type { AssistantAction, AssistantContext, AssistantInput, AssistantReply, QuickReplyId } from "./types.ts";
 
 // ---------------------------------------------------------------- copy
@@ -26,8 +27,9 @@ export const EMERGENCY_TEXT =
   "Zenward provides non-emergency transportation. If this is a medical emergency, call 911 or your local emergency service.";
 export const UNKNOWN_TEXT = `I don't want to give you the wrong information. You can call Zenward at ${PHONE.display} or send our team a message.`;
 export const STATUS_TEXT = `The Transportation Assistant can't view request status yet. Please call Zenward at ${PHONE.display} for help with an existing request.`;
-export const PRICING_TEXT = "Pricing is confirmed after Zenward reviews the transportation request and trip details.";
-export const HOURS_TEXT = `Our exact working hours aren't published here yet. You can call ${PHONE.display}, and transportation requests received during working hours are answered within 2 hours.`;
+// Commercial answers come from the canonical operating facts (ZW-WEB-04I).
+export const PRICING_TEXT = CONFIRMED.pricing;
+export const HOURS_TEXT = factAnswer("workingHours");
 export const SENSITIVE_TEXT =
   "For your privacy, and to make sure the transportation team receives those details correctly, please use the secure Request a Quote form rather than this chat.";
 
@@ -157,7 +159,7 @@ function trustReply(topics: Topic[]): AssistantReply {
   return { kind: "trust", paragraphs: lines.slice(0, 3), actions: [quote(), reply("process", "How requests work")] };
 }
 
-function topicReply(topics: Topic[], ctx: AssistantContext): AssistantReply | undefined {
+function topicReply(topics: Topic[]): AssistantReply | undefined {
   const first = (...list: Topic[]) => list.find((t) => topics.includes(t));
   if (topics.includes("provider")) {
     return {
@@ -169,11 +171,11 @@ function topicReply(topics: Topic[], ctx: AssistantContext): AssistantReply | un
       actions: [providers, contact, quote()],
     };
   }
-  if (topics.includes("coverage")) {
+  if (topics.includes("coverage") || topics.includes("payment")) {
     return {
       kind: "coverage",
-      paragraphs: [`I can't confirm payment or coverage options here. Please call Zenward at ${PHONE.display} and our team can talk it through.`],
-      actions: [call(true), contact],
+      paragraphs: [factAnswer(topics.includes("coverage") ? "coverage" : "paymentMethods")],
+      actions: [call(true), contact, quote()],
     };
   }
   if (topics.includes("pricing")) {
@@ -190,28 +192,22 @@ function topicReply(topics: Topic[], ctx: AssistantContext): AssistantReply | un
       actions: [call(true), contact],
     };
   }
+  // Timing questions ("how early should I book?") before the generic process answer.
+  if (topics.includes("availability")) {
+    return {
+      kind: "availability",
+      paragraphs: ["I can't check vehicle availability.", factAnswer("advanceNotice"), factAnswer("sameDay")],
+      actions: [quote(), call()],
+    };
+  }
   if (topics.includes("process")) return process();
   if (first("trust_licensed", "trust_on_time", "trust_drivers", "trust_care", "trust_general")) return trustReply(topics);
   if (topics.includes("response_time")) {
     return { kind: "response_time", paragraphs: [TRUST.response, NOT_A_BOOKING], actions: [quote(), call()] };
   }
   if (topics.includes("hours")) return { kind: "hours", paragraphs: [HOURS_TEXT], actions: [call(true), quote()] };
-  if (topics.includes("availability")) {
-    return {
-      kind: "availability",
-      paragraphs: [
-        "I can't check vehicle availability. Send a quote request and Zenward will review it and confirm availability with you.",
-        `For a trip that's soon, calling ${PHONE.display} is the quickest way to reach our team.`,
-      ],
-      actions: [quote(), call()],
-    };
-  }
   if (topics.includes("area")) {
-    return {
-      kind: "area",
-      paragraphs: [`Zenward serves ${ctx.marketName}. Our team confirms availability for a specific trip when it reviews the request.`],
-      actions: [quote(), call()],
-    };
+    return { kind: "area", paragraphs: [factAnswer("serviceAreaDetail")], actions: [quote(), call()] };
   }
   if (topics.includes("medical")) {
     return {
@@ -276,7 +272,7 @@ function quick(id: QuickReplyId, ctx: AssistantContext): AssistantReply {
     case "airport":
       return serviceReply(["airport-transportation"], ctx, false);
     case "talk":
-      return topicReply(["contact"], ctx)!;
+      return topicReply(["contact"])!;
     case "process":
       return process();
     case "trust":
@@ -302,7 +298,12 @@ export function respond(input: AssistantInput, ctx: AssistantContext): Assistant
   if (isEmergency(t)) return emergency();
 
   const topics = detectTopics(t);
-  if (topics.includes("status")) return { kind: "status", paragraphs: [STATUS_TEXT], actions: [call(true), contact] };
+  if (topics.includes("status")) {
+    return { kind: "status", paragraphs: [STATUS_TEXT, CONFIRMED.notABooking], actions: [call(true), contact] };
+  }
+  if (topics.includes("policy")) {
+    return { kind: "manage", paragraphs: [factAnswer("cancellation")], actions: [call(true), contact] };
+  }
   if (topics.includes("manage")) {
     return {
       kind: "manage",
@@ -316,13 +317,13 @@ export function respond(input: AssistantInput, ctx: AssistantContext): Assistant
   let result: AssistantReply | undefined;
   if (topics.includes("provider")) {
     // A care coordinator mentioning a clinic or dialysis is still a provider enquiry first.
-    result = topicReply(["provider"], ctx);
+    result = topicReply(["provider"]);
   } else if (services.length > 0) {
     result = serviceReply(services, ctx, isRecurring(t));
   } else if (isRecurring(t) && !topics.some((x) => x !== "availability" && x !== "general")) {
     result = serviceReply(["recurring-care-transportation"], ctx, true);
   } else {
-    result = topicReply(topics, ctx);
+    result = topicReply(topics);
   }
 
   if (!result) {

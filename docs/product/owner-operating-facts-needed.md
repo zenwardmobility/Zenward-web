@@ -1,0 +1,19 @@
+# Owner operating facts needed (ZW-WEB-04I)
+
+The site answers these questions honestly today by handing off to the team. Each one becomes a direct answer as soon as you confirm it.
+
+**How activation works:** in `src/lib/operating-facts.ts`, set the fact's `status` to `"confirmed"` and write your exact public wording as its `statement`. The pages and the Transportation Assistant then use it automatically. Structured data (e.g. `openingHours`, `paymentAccepted`) is a separate, explicit step.
+
+| # | Fact (`key`) | What the site says now | Decision needed | Activates |
+|---|---|---|---|---|
+| 1 | Working hours (`workingHours`) | "Our exact working hours aren't published here yet. Transportation requests received during working hours are reviewed and answered within 2 hours. You can also call 678-935-5489." | Days and times the team answers calls and requests. Whether weekends or holidays differ. | FAQ on /request-transportation and /contact; assistant "hours"; optional future `openingHours` JSON-LD |
+| 2 | Payment methods (`paymentMethods`) | "Payment and coverage options can depend on the transportation arrangement. Please contact Zenward at 678-935-5489 so our team can confirm the options for your request." | Which methods are accepted (card, cash, ACH, online, other); whether deposits apply; when payment is taken. | FAQ on home, hub, /request-transportation, /contact; assistant "payment" |
+| 3 | Medicaid / Medicare / insurance (`coverage`) | Same as #2 | Zenward's position on each (accepted, not accepted, via a broker, case-by-case, private pay only). | Same as #2; assistant "coverage" |
+| 4 | Specific area served (`serviceAreaDetail`) | "Zenward serves Metro Atlanta. For a specific pickup or destination, send a transportation request or call our team at 678-935-5489 and we'll confirm whether the trip can be arranged." | The counties and/or cities currently served (or a radius), and how out-of-area requests are handled. | FAQ on home, hub, /contact; assistant "area"; optional future `areaServed` detail |
+| 5 | Same-day and minimum notice (`sameDay`, `advanceNotice`) | "Availability depends on the trip details and requested time. Submit your request as early as possible, and Zenward will review what can be arranged. Same-day availability must be confirmed by the Zenward team. For a trip today, calling 678-935-5489 is the quickest way to reach us." | Whether same-day requests are accepted; any minimum notice or daily cutoff time. | FAQ on /request-transportation and /contact; assistant "same-day / how early" |
+| 6 | Cancellation policy (`cancellation`) | "If your plans change, please call 678-935-5489 as soon as possible so our team can help with your request." | Cancellation window and any fee. Needs legal review alongside the Terms (04L). | FAQ on /contact; assistant "cancellation policy" |
+| 7 | No-show policy (`noShow`) | Same as #6 | Whether a no-show charge applies, and how much. Legal review. | Assistant; future Terms |
+| 8 | Wait-time policy (`waitTime`) | Not answered as a policy. Visitors are asked to share appointment timing and return-trip needs on the request. | Included wait time; any charge after that. Legal review. | Future FAQ and Terms |
+| 9 | Facility billing (`facilityBilling`) | "Talk to our team about how payment would work for your organization's requests. Call 678-935-5489 or send us a message." | Whether facilities can be invoiced, and on what terms. | /healthcare-providers FAQ |
+
+Not on this list because they're already confirmed: the 2-hour response during working hours, Licensed & Insured, On-Time Transportation standard, Trained & Vetted Drivers with background checks, patience/dignity/compassion, wheelchair-accessible transportation, Metro Atlanta, pricing confirmed after review, and request ≠ confirmed ride.

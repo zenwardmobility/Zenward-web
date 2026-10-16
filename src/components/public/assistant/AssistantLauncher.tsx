@@ -15,6 +15,15 @@ const loadPanel = () => import("./AssistantPanel").then((m) => m.AssistantPanel)
 const AssistantPanel = dynamic(loadPanel, { ssr: false, loading: () => null });
 
 /**
+ * Pages whose form starts in the first viewport. There the floating launcher
+ * is hidden below lg (it could cover form controls) and is the compact symbol
+ * from lg. /request-transportation also has an inline entry; /contact is
+ * itself the human-contact page. (/contact added in ZW-WEB-04I after QA found
+ * the same overlap there.)
+ */
+const FORM_PAGES = new Set(["/request-transportation", "/contact"]);
+
+/**
  * Site-wide entry to the Zenward Transportation Assistant (ZW-WEB-04H): a
  * restrained bottom-right button with the Zenward symbol. Hidden while the
  * panel is open; focus returns here when the panel closes. Respects the
@@ -29,7 +38,7 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
   // On the quote form itself the visitor is already in the funnel (the form has its own service guidance
   // and phone panel). There the launcher shows only from lg, where the centred form leaves a side
   // gutter, and collapses to the symbol, so it never sits over form controls.
-  const compact = usePathname() === "/request-transportation";
+  const compact = FORM_PAGES.has(usePathname());
 
   useEffect(() => {
     if (wasOpen.current && !open) {

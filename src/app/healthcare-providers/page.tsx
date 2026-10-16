@@ -3,11 +3,19 @@ import { CalendarCheck, Hospital, ChatCircleText, UsersThree } from "@phosphor-i
 import { Section } from "@/components/layout/Section";
 import { BrandImage } from "@/components/layout/BrandImage";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
+import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { brandImages } from "@/lib/images";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 import { OPERATING_STANDARDS } from "@/lib/trust";
+import { commercialFaq } from "@/lib/operating-facts";
+
+// Care-team questions from the canonical operating facts (ZW-WEB-04I). No portal, contract billing or SLA claims.
+const PROVIDER_FAQ = (() => {
+  const f = commercialFaq();
+  return [f.howToRequest, f.response, f.confirmation, f.recurring, f.facilityBilling];
+})();
 
 export const metadata: Metadata = pageMetadata({
   title: "Healthcare Providers",
@@ -154,6 +162,13 @@ export default function HealthcareProvidersPage() {
         <p className={cn(typography.bodySmall, "mt-xl text-text-secondary")}>
           Zenward provides non-emergency transportation, not clinical care. Availability is confirmed for each trip.
         </p>
+      </Section>
+
+      <Section tone="mist" narrow>
+        <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>Questions from care teams</h2>
+        <div className="mt-2xl">
+          <FaqAccordion items={PROVIDER_FAQ} />
+        </div>
       </Section>
 
       <Section tone="navy">

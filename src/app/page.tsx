@@ -18,7 +18,8 @@ import { business } from "@/lib/business";
 import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
 import { SERVICES, SERVICE_ORDER } from "@/lib/services";
 import { OPERATING_STANDARDS } from "@/lib/trust";
-import { areaServedJsonLd, homeMetadataCopy, serviceAreaFaqAnswer, servingLine } from "@/lib/service-area";
+import { areaServedJsonLd, homeMetadataCopy, servingLine } from "@/lib/service-area";
+import { commercialFaq } from "@/lib/operating-facts";
 
 /*
  * Homepage (ZW-WEB-04B). Conversion hierarchy, top to bottom:
@@ -98,12 +99,13 @@ const PROVIDER_POINTS = [
   { title: "One point of contact", description: "A consistent contact for your team's transportation requests, so you know who to call." },
 ];
 
+// Commercial answers (confirmation, pricing, payment, area) come from src/lib/operating-facts.ts (ZW-WEB-04I).
+const COMMERCIAL = commercialFaq();
+
 const FAQ_ITEMS = [
-  {
-    question: "Is submitting a request a confirmed booking?",
-    answer:
-      "No. A request tells Zenward what transportation you need. Our team reviews it and contacts you, and the trip is confirmed only once we have confirmed availability and details with you.",
-  },
+  COMMERCIAL.confirmation,
+  COMMERCIAL.pricing,
+  COMMERCIAL.payment,
   {
     question: "Can a family member or caregiver arrange transportation?",
     answer:
@@ -129,10 +131,7 @@ const FAQ_ITEMS = [
     answer:
       "No. Zenward provides non-emergency medical transportation only. If you are experiencing a medical emergency, call 911.",
   },
-  {
-    question: "Where does Zenward operate?",
-    answer: serviceAreaFaqAnswer(),
-  },
+  { question: "Where does Zenward operate?", answer: COMMERCIAL.area.answer },
 ];
 
 // Conservative, accurate schema.org type — see docs/product/marketing-scope.md

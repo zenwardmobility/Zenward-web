@@ -50,6 +50,8 @@ export function detectServices(t: string): ServiceSlug[] {
 export type Topic =
   | "status"
   | "manage"
+  | "policy"
+  | "payment"
   | "pricing"
   | "coverage"
   | "process"
@@ -73,9 +75,12 @@ export type Topic =
 /** Topic patterns in priority order. */
 const TOPIC_PATTERNS: [Topic, RegExp][] = [
   ["status", /\bstatus\b|\bwhere('s| is) my (ride|request|driver|booking|trip)\b|\bwas my (request|ride|booking)\b|\b(did|have) you (get|got|receive[d]?)\b|\bmy (request|ride|booking) (been )?(accepted|confirmed|approved)\b|\btrack (my )?(ride|driver)\b|\beta\b/],
+  // Policy questions (cancellation/no-show/wait-time/refund) come before "manage" (which also matches "cancel").
+  ["policy", /\bcancell?ation (policy|fee|charge)s?\b|\bno[- ]?show\b|\bwait(ing)? (time )?(fee|charge)s?\b|\blate (cancel\w* )?fees?\b|\brefunds?\b/],
   ["manage", /\bcancel\w*|\breschedul\w*|\bchange my (ride|booking|trip|request|pickup)\b|\bmodify my\b/],
   ["coverage", /\bmedicaid\b|\bmedicare\b|\binsurance\b|\binsurer\b|\bcovered by\b|\bvoucher\b/],
-  ["pricing", /\bprices?\b|\bpricing\b|\bcosts?\b|\bhow much\b|\bfares?\b|\brates?\b|\bfees?\b|\bcharge\b|\bexpensive\b|\bafford\w*|\bpay(ment)?\b|\bcheap\w*/],
+  ["payment", /\bpay(ing|ment)?\b|\bcards?\b|\bcredit\b|\bdebit\b|\bcash\b|\bcheck\b|\bcheque\b|\binvoic\w*|\bbilling\b|\bdeposits?\b|\bzelle\b|\bvenmo\b|\bpaypal\b|\bprivate pay\b/],
+  ["pricing", /\bprices?\b|\bpricing\b|\bcosts?\b|\bhow much\b|\bfares?\b|\brates?\b|\bfees?\b|\bcharge\b|\bexpensive\b|\bafford\w*|\bcheap\w*/],
   ["provider", /\bcare coordinator\b|\bcoordinator\b|\bcase manager\b|\bsocial worker\b|\bdischarge planner\b|\bfacility\b|\bnursing (home|facility)\b|\bassisted living\b|\b(our|my) patients\b|\brefer(ral|ring)?\b|\bhealthcare provider\b|\bprovider\b|\bon behalf of (a|our) (clinic|hospital)\b/],
   // Specific certifications/programs that are NOT owner-confirmed: answered honestly, never affirmed.
   ["credential", /\bcpr\b|\bfirst aid\b|\bada\b|\bcertif\w*|\bdrug (test|screen)\w*|\bdrug tested\b|\blicen[cs]e number\b|\binsurance (policy|limit|certificate)s?\b/],
@@ -87,8 +92,8 @@ const TOPIC_PATTERNS: [Topic, RegExp][] = [
   ["response_time", /\bhow (fast|quick(ly)?|soon|long)\b.*\b(reply|respond|answer|hear|get back|call)\b|\b(reply|respond|response|get back|hear back|call me back)\b/],
   ["hours", /\bhours\b|\bopen(ing)?\b|\bclos(e|ed|ing)\b|\bweekends?\b|\bholidays?\b|\b24 ?\/? ?7\b|\b24 hours\b|\bovernight\b/],
   ["process", /\bhow (do|can) i (book|request|get|schedule|order|arrange)\b|\bbook(ing)?\b|\bschedule a (ride|trip)\b|\brequest a (ride|quote|trip)\b|\bget a quote\b|\bhow (does|do) (it|this|you) work\b|\bhow it works\b|\bsign up\b/],
-  ["availability", /\bavailab\w*|\bdo you have (a )?(car|van|vehicle|driver)\b|\btoday\b|\btonight\b|\btomorrow\b|\bright now\b|\basap\b|\bsame ?day\b|\burgent\w*/],
-  ["area", /\bwhere do you\b|\bdo you (serve|cover|go to|operate|work in)\b|\bservice area\b|\bwhich (areas|cities|counties)\b|\batlanta\b|\bgeorgia\b|\bcounty\b/],
+  ["availability", /\bavailab\w*|\bdo you have (a )?(car|van|vehicle|driver)\b|\btoday\b|\btonight\b|\btomorrow\b|\bright now\b|\basap\b|\bsame ?day\b|\burgent\w*|\bin advance\b|\bahead of time\b|\bhow (early|far ahead|far in advance)\b|\bnotice\b|\bbook ahead\b|\bnext day\b/],
+  ["area", /\bwhere do you\b|\bdo you (serve|cover|go to|operate|work in|come to)\b|\bservice area\b|\bwhich (areas|cities|counties)\b|\batlanta\b|\bgeorgia\b|\bcounty\b|\bstatewide\b|\bmy (area|city|town|zip)\b|\bzip ?code\b/],
   ["medical", /\bshould i (take|go|see)\b|\bis it safe to\b|\bsymptoms?\b|\bmedications?\b|\bdos(e|age)\b|\bdiagnos\w*/],
   ["contact", /\btalk to\b|\bspeak (to|with)\b|\bcall (you|zenward)\b|\bphone number\b|\bcontact\b|\bhuman\b|\breal person\b|\bsomeone\b|\brepresentative\b|\bemail you\b|\bmessage (you|your team)\b/],
   ["greeting", /^ (hi|hello|hey|good (morning|afternoon|evening))\b/],

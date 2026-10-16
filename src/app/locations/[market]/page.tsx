@@ -17,7 +17,8 @@ import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { brandImages } from "@/lib/images";
 import { absoluteUrl, pageMetadata, siteName, siteUrl } from "@/lib/seo";
-import { areaServedJsonLd, getActiveMarkets, getMarket, serviceAreaFaqAnswer, type Market } from "@/lib/service-area";
+import { areaServedJsonLd, getActiveMarkets, getMarket, type Market } from "@/lib/service-area";
+import { commercialFaq } from "@/lib/operating-facts";
 import { breadcrumbJsonLd } from "@/lib/service-pages";
 import { SERVICE_CATALOG, SERVICE_ORDER } from "@/lib/service-catalog";
 import { SERVICES } from "@/lib/services";
@@ -88,13 +89,13 @@ export default async function MarketHubPage({ params }: Params) {
   const market = getMarket((await params).market);
   if (!market) notFound();
 
+  // Commercial answers from src/lib/operating-facts.ts (ZW-WEB-04I).
+  const commercial = commercialFaq();
   const faq = [
-    { question: "Where does Zenward operate?", answer: serviceAreaFaqAnswer(market) },
-    {
-      question: "Is submitting a request a confirmed ride?",
-      answer:
-        "No. Our team reviews every request and contacts you, and the trip is confirmed only once we've confirmed availability, details and pricing with you.",
-    },
+    { question: "Where does Zenward operate?", answer: commercial.area.answer },
+    commercial.confirmation,
+    commercial.pricing,
+    commercial.payment,
     {
       question: "Do you offer wheelchair-accessible transportation?",
       answer:

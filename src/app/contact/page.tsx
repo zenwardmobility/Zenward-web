@@ -2,10 +2,18 @@ import type { Metadata } from "next";
 import { Section } from "@/components/layout/Section";
 import { ContactForm } from "@/components/public/ContactForm";
 import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
+import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 import { CONTACT_RESPONSE_LINE } from "@/lib/trust";
+import { commercialFaq } from "@/lib/operating-facts";
+
+// Commercial questions people often contact us about, from the canonical operating facts (ZW-WEB-04I).
+const CONTACT_FAQ = (() => {
+  const f = commercialFaq();
+  return [f.hours, f.payment, f.pricing, f.area, f.timing, f.changes];
+})();
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact",
@@ -43,6 +51,13 @@ export default function ContactPage() {
               form instead — it captures the trip details our team needs.
             </p>
           </aside>
+        </div>
+      </Section>
+
+      <Section tone="mist" narrow>
+        <h2 className={cn(typography.subsectionTitle, "text-text-primary")}>Common questions</h2>
+        <div className="mt-lg">
+          <FaqAccordion items={CONTACT_FAQ} />
         </div>
       </Section>
     </>

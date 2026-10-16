@@ -164,13 +164,16 @@ test("unknown questions route to human help without guessing", () => {
 });
 
 test("status, changes, pricing, hours and coverage never fabricate anything", () => {
-  assert.deepEqual(say("where is my request?").paragraphs, [`The Transportation Assistant can't view request status yet. Please call Zenward at ${business.phoneDisplay} for help with an existing request.`]);
+  // 04I: status keeps the 04H wording and adds the canonical not-a-booking line.
+  assert.equal(say("where is my request?").paragraphs[0], `The Transportation Assistant can't view request status yet. Please call Zenward at ${business.phoneDisplay} for help with an existing request.`);
+  assert.match(say("where is my request?").paragraphs[1], /isn't a confirmed ride/);
   assert.equal(say("Was my request accepted?").kind, "status");
   assert.equal(say("Can you cancel my ride?").kind, "manage");
   const price = say("how much?");
   assert.equal(price.paragraphs[0], "Pricing is confirmed after Zenward reviews the transportation request and trip details.");
   assert.ok(price.actions.some((a) => a.kind === "link" && a.quote));
-  assert.equal(say("What time are you open?").paragraphs[0], `Our exact working hours aren't published here yet. You can call ${business.phoneDisplay}, and transportation requests received during working hours are answered within 2 hours.`);
+  // 04I: the hours answer comes from operating-facts.ts.
+  assert.equal(say("What time are you open?").paragraphs[0], `Our exact working hours aren't published here yet. Transportation requests received during working hours are reviewed and answered within 2 hours. You can also call ${business.phoneDisplay}.`);
   assert.equal(say("do you work 24/7?").kind, "hours");
   assert.equal(say("Do you take Medicaid?").kind, "coverage");
   assert.equal(say("How fast do you reply?").paragraphs[0], QUOTE_RESPONSE_LINE);
@@ -303,7 +306,8 @@ test("quote page: inline entry below 1024px, compact launcher from 1024px, one s
   assert.match(inline, /onClick=\{openTransportationAssistant\}/);
   assert.doesNotMatch(inline, /respond\(|AssistantPanel|lib\/assistant/, "no second engine or panel");
   const launcher = read("components/public/assistant/AssistantLauncher.tsx");
-  assert.match(launcher, /usePathname\(\) === "\/request-transportation"/);
+  assert.match(launcher, /const FORM_PAGES = new Set\(\["\/request-transportation", "\/contact"\]\)/);
+  assert.match(launcher, /const compact = FORM_PAGES\.has\(usePathname\(\)\)/);
   assert.match(launcher, /compact \? "hidden w-12 justify-center lg:inline-flex" : "inline-flex pl-2 pr-4"/);
   assert.match(launcher, /window\.addEventListener\(OPEN_ASSISTANT_EVENT, onOpen\)/);
   assert.equal((launcher.match(/<AssistantPanel\b/g) ?? []).length, 1);

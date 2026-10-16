@@ -23,7 +23,7 @@
  *
  * Do not list counties or cities here until the owner confirms them.
  */
-import { business } from "@/lib/business";
+import { business } from "./business.ts";
 
 export interface Market {
   /** URL-safe id, e.g. for a future /locations/<slug> route. */
@@ -76,10 +76,8 @@ export function servingLine(market: Market = getDefaultMarket()): string {
   return `Serving ${market.name}`;
 }
 
-/** Answer for the homepage FAQ "Where does Zenward operate?". */
-export function serviceAreaFaqAnswer(market: Market = getDefaultMarket()): string {
-  return `Zenward currently provides non-emergency medical transportation in ${market.name}. Call ${business.phoneDisplay} or request a quote so our team can confirm whether we can provide your specific trip.`;
-}
+// "Where does Zenward operate?" answers now come from src/lib/operating-facts.ts
+// (serviceAreaDetail), the single source for commercial answers (ZW-WEB-04I).
 
 /** Homepage <title> stem and meta description (market named once in each). */
 export function homeMetadataCopy(market: Market = getDefaultMarket()): { title: string; description: string } {

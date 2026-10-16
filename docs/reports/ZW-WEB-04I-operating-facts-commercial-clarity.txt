@@ -1,0 +1,417 @@
+ZW-WEB-04I — OPERATING FACTS + COMMERCIAL CLARITY
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL. Owner-approved and committed at close-out (§27); not pushed
+or deployed. Nemryn,
+the Website Intake contract, Server Action, quote-form payload and
+idempotency unchanged. No Google Ads/GA4/GTM, no external AI. 04J not
+started.
+
+
+1. STARTING GIT STATE
+---------------------
+  git status ......... clean, up to date with origin/main
+  git diff --check ... clean
+  HEAD = origin/main . 5d983e3 "Add Zenward Transportation Assistant V1"
+  ahead/behind ....... 0 / 0
+  Tests .............. 131/131
+
+
+2. CURRENT COMMERCIAL-INFORMATION AUDIT (before 04I)
+----------------------------------------------------
+  Topic                 Where it was answered          Gap
+  --------------------  -----------------------------  ----------------------
+  ride confirmation     home/hub FAQ, every service    consistent; several
+                        page, campaigns, form          near-duplicate wordings
+  pricing               "confirm availability, next    no standalone answer
+                        steps and pricing" (many
+                        pages); assistant
+  response time         trust.ts lines (04F)           none
+  recurring             service pages, home FAQ, form  none
+  return trips          form (04G), dialysis FAQ       no general answer
+  service area          serviceAreaFaqAnswer (home,    no specific-location
+                        hub)                           wording
+  same-day / advance    airport FAQ only               no general answer
+  working hours         assistant only (own text)      not on any page
+  payment / coverage    assistant only ("can't         not on any page
+                        confirm, call")
+  cancellation / no-    nowhere                        not answered
+  show / wait time
+  facility billing      nowhere                        not answered
+Assistant commercial answers were hard-coded inside responses.ts.
+
+
+3. CANONICAL OPERATING-FACTS ARCHITECTURE
+-----------------------------------------
+src/lib/operating-facts.ts (pure, node-testable; relative imports):
+  CONFIRMED         owner-confirmed statements restated from canonical
+                    sources: business, response (trust.ts), notABooking,
+                    pricing, serviceArea (service-area.ts), returnTrip,
+                    recurring, howToRequest
+  OPERATING_FACTS   Record<FactKey, { status, statement?, fallback }>,
+                    status = confirmed | unpublished | unconfirmed |
+                    needs_review (internal only, never shown)
+  factAnswer(key)   owner statement once confirmed, else the professional
+                    hand-off
+  commercialFaq()   shared commercial FAQ entries built from the above
+                    (howToRequest, response, confirmation, pricing, payment,
+                    hours, timing, area, returnTrip, recurring, changes,
+                    facilityBilling)
+Activation (§24): set status "confirmed" + the owner's exact `statement`;
+every page and the assistant pick it up. No CMS.
+Supporting change: src/lib/service-area.ts now imports business via
+"./business.ts" (relative, so node tests can load the canonical market);
+serviceAreaFaqAnswer() removed (its job moved to serviceAreaDetail).
+
+
+4. CONFIRMED FACTS (published)
+------------------------------
+  - Zenward Mobility provides non-emergency medical transportation in Metro
+    Atlanta.
+  - Requests received during working hours are reviewed and answered within
+    2 hours.
+  - Licensed & Insured; On-Time Transportation; Trained & Vetted Drivers;
+    background checks; patience, dignity and compassion;
+    wheelchair-accessible transportation (04F, unchanged).
+  - A request isn't a confirmed ride. Zenward reviews availability, trip
+    details and pricing, and transportation is arranged only after we
+    confirm it with you.
+  - Pricing is confirmed after Zenward reviews the transportation request
+    and trip details.
+
+
+5. UNKNOWN FACTS (internal status; hand-off answers)
+----------------------------------------------------
+  workingHours        unpublished
+  paymentMethods      unconfirmed
+  coverage            unconfirmed  (Medicaid, Medicare, insurance, broker,
+                                    private-pay)
+  serviceAreaDetail   unconfirmed  (counties, cities, radius, statewide)
+  sameDay             unconfirmed
+  advanceNotice       unconfirmed
+  cancellation        needs_review (legal + operations)
+  noShow              needs_review
+  waitTime            needs_review
+  facilityBilling     unconfirmed
+None is inferred from competitors. Public copy never says "unknown",
+"unconfirmed", "TBD" or "coming soon" (test-enforced).
+
+
+6. REQUEST-PAGE IMPROVEMENTS
+----------------------------
+The header (04F/04G/04H) already states the request ≠ booking, 2-hour
+response, "confirm availability, next steps and pricing", and the phone and
+inline assistant. The 04G form already covers preferred date/time ≠
+availability, return-trip confirmation and recurring review.
+Added BELOW the form (form stays primary; formFirst verified at all
+widths): "Before you request". One sentence of context + a collapsed FAQ
+(first item open): Is my ride confirmed when I submit a request? · When
+will Zenward reply? · How is pricing confirmed? · What payment or coverage
+options are available? · How far in advance should I request? Can I
+request same-day transportation? · Can I request a return trip? · Can I
+request recurring transportation? · What are your working hours?
+Page height at 390px: 3500px. The form section is unchanged.
+
+
+7. PRICING GUIDANCE
+-------------------
+"Pricing is confirmed after Zenward reviews the transportation request and
+trip details." (CONFIRMED.pricing), with Request a Quote + Call in the
+assistant. No starting prices, per-mile, flat rates or ranges (test bans
+"$<digit>", "per mile", "starting at/from", "flat rate").
+
+
+8. PAYMENT / COVERAGE GUIDANCE
+------------------------------
+"Payment and coverage options can depend on the transportation
+arrangement. Please contact Zenward at 678-935-5489 so our team can confirm
+the options for your request." Used for payment-method AND
+Medicaid/Medicare/insurance questions, with Call first, then Contact and
+Request a Quote. Never "we accept ...", "private pay", "cards", "cash"
+(test-enforced).
+
+
+9. HOURS GUIDANCE
+-----------------
+"Our exact working hours aren't published here yet. Transportation requests
+received during working hours are reviewed and answered within 2 hours. You
+can also call 678-935-5489." No times, weekdays or 24/7 (0 hits in the
+rendered scan).
+
+
+10. SERVICE-AREA GUIDANCE
+-------------------------
+"Zenward serves Metro Atlanta. For a specific pickup or destination, send
+a transportation request or call our team at 678-935-5489 and we'll confirm
+whether the trip can be arranged." Used by the homepage and hub FAQ ("Where
+does Zenward operate?"), the /contact FAQ ("Do you serve my area?") and the
+assistant ("do you serve Marietta?", "do you serve all Georgia?").
+Never "all Metro Atlanta", "all Georgia", "statewide", counties or cities.
+
+
+11. SAME-DAY / ADVANCE GUIDANCE
+-------------------------------
+"Availability depends on the trip details and requested time. Submit your
+request as early as possible, and Zenward will review what can be
+arranged." + "Same-day availability must be confirmed by the Zenward team.
+For a trip today, calling 678-935-5489 is the quickest way to reach us."
+Same-day is neither promised nor ruled out. The existing airport-specific
+FAQ ("As early as practical...") is consistent and unchanged.
+
+
+12. RETURN-TRIP GUIDANCE
+------------------------
+"Yes. Tell us on the request whether you need a return trip, or that you're
+not sure yet. Zenward confirms return-trip timing with you." Matches 04G
+(No / Yes / Not sure). No structured return-time claim; G1 stays deferred.
+
+
+13. RECURRING GUIDANCE
+----------------------
+"Yes. You can describe a repeating schedule on one request. Submitting it
+doesn't automatically create or confirm a series of rides; Zenward reviews
+the schedule and confirms what can be arranged." recurringSchedule contract
+unchanged.
+
+
+14. CONTACT CHANGES
+-------------------
+/contact already had: phone (Prefer to call?), the contact form, "We reply
+within 2 hours during working hours.", "use the Request Transportation form
+instead" and the 911 line. Added below: "Common questions" (collapsed):
+What are your working hours? · What payment or coverage options are
+available? · How is pricing confirmed? · Do you serve my area? · How far in
+advance... same-day? · What if my plans change?
+QA finding (fixed): the floating assistant launcher sat over the contact
+form's phone field (390/430) and topic select (768) in the first viewport.
+This was a 04H behaviour; /contact wasn't in 04H's QA set. /contact now
+follows the same form-page rule as /request-transportation: launcher hidden
+below 1024px, compact from 1024px (FORM_PAGES in AssistantLauncher). No
+inline entry, since /contact is itself the human-contact page. APPROVED by
+the owner at close-out (§27).
+
+
+15. SERVICE-PAGE IMPACT
+-----------------------
+No change. Each service page already answers the four briefed questions in
+place: how to request (Expect section), when Zenward replies (compact
+TrustStrip "2-Hour Response During Working Hours", 04F), ride ≠ confirmed
+and pricing (Expect step + FAQ "Is my ride confirmed..."). Adding a shared
+FAQ block to eight pages would repeat existing content.
+
+
+16. PROVIDER-PAGE IMPACT
+------------------------
+Added "Questions from care teams" (collapsed FAQ, mist band before the navy
+CTA): How do I request transportation? · When will Zenward reply? · Is my
+ride confirmed when I submit a request? · Can I request recurring
+transportation? · How is payment arranged for our organization's requests?
+(-> "Talk to our team about how payment would work for your organization's
+requests..."). The 04F operating-standards section (punctuality,
+trained/vetted drivers, 2-hour follow-up, recurring, one operations
+process, licensed and insured) and discharge coordination are unchanged. No
+portal, contract billing, monthly invoicing, API, account manager or SLA
+(test-enforced).
+
+
+17. ASSISTANT UPDATES
+---------------------
+responses.ts now takes PRICING_TEXT (= CONFIRMED.pricing), HOURS_TEXT (=
+factAnswer("workingHours")), coverage/payment, area, same-day/advance,
+status (+ CONFIRMED.notABooking) and cancellation answers from
+operating-facts.ts. No parallel wording remains (test-enforced).
+intents.ts: new "payment" topic (card, cash, credit, invoice, billing, ...;
+"pay" moved out of pricing), new "policy" topic (cancellation/no-show/
+wait-time fees, refunds; before "manage"), and timing phrases (in advance,
+how early, notice, next day) added to "availability". Timing is now
+answered before the generic "how requests work". Area adds statewide/my
+city/zip.
+Matrix (tested): what are your hours? -> hours + Call first · do you take
+Medicaid/Medicare? · do you accept insurance? -> coverage + Call · can I
+pay with a card? -> payment + Call · can you pick me up today? -> same-day
+must be confirmed · how early should I book? -> as early as possible ·
+do you serve Marietta? / all Georgia? -> Metro Atlanta + confirm the trip
+(no statewide) · how much? -> pricing after review · when will you reply?
+-> 2 hours during working hours · Is my request confirmed? -> can't view
+status + request ≠ confirmed ride · cancellation policy? -> plans-change
+hand-off + Call. Every reply passes validateReply and offers a next step.
+
+
+18. FAQ ARCHITECTURE
+--------------------
+Commercial/operations answers have one source (commercialFaq()) and are
+used on: home (confirmation, pricing, payment, area), hub (area,
+confirmation, pricing, payment), /request-transportation (8),
+/contact (6), /healthcare-providers (5). The homepage's own
+confirmation wording and the hub's are replaced by the shared one.
+Service-specific FAQs (services.ts, campaigns.ts) are deliberately NOT
+centralised.
+
+
+19. LEGAL / TERMS FINDINGS (audit only; for 04L)
+------------------------------------------------
+  - Terms has no payment, cancellation, no-show, wait-time or refund terms
+    (correctly omitted until counsel). 04I publishes no such policy, so
+    there is no conflict. Facts #6–#8 need Terms language before
+    activation.
+  - Terms "What Zenward provides" still omits Airport (04E T-1). Terms calls
+    the form "Request Transportation form" (04E T-2). Unchanged.
+  - Privacy: no new technical statement was introduced (no new data flow,
+    storage or processor). Unchanged. Legal-review notices kept.
+
+
+20. STRUCTURED-DATA IMPACT
+--------------------------
+None. Organization JSON-LD unchanged (ContactPoint + areaServed Metro
+Atlanta). No openingHours, paymentAccepted, priceRange, currenciesAccepted,
+county/city areaServed or insurance data (test + built-page check).
+
+
+21. RESPONSIVE QA
+-----------------
+Local production build, headless Chrome, 390/430/768/1024/1440 on /,
+/services, /request-transportation, /contact, /healthcare-providers,
+/about, /services/medical-appointments, /services/wheelchair-transportation,
+/services/airport-transportation, /metro-atlanta/dialysis-transportation,
+/locations/metro-atlanta (55 loads):
+  - no horizontal overflow; no console errors
+  - request page: form before "Before you request" at every width
+  - new FAQ sections render collapsed (first item open), so growth is modest
+    (e.g. 390px: request 3500px, contact 3403px, providers 6233px)
+  - phone above the fold everywhere; quote CTA above the fold on every page
+    that had it before. /contact, /healthcare-providers and /about below
+    1024 rely on the header Call button (pre-existing 04B/04E behaviour).
+  - assistant launcher covers nothing after the /contact fix (§14)
+  - screenshots reviewed: request-page FAQ (390), contact and providers
+    (390/1440)
+
+
+22. CLAIM SCAN (rendered text, 21 routes)
+-----------------------------------------
+  24/7 0 · always available 0 · same-day guaranteed 0 · Medicaid 0 ·
+  Medicare 0 · private pay 0 · credit card 0 · cash 0 · weekday names 0 ·
+  cancellation fee 0 · no-show 0 · wait-time fee 0
+  guaranteed 5   all disclaimers ("availability isn't guaranteed until
+                 Zenward confirms it"; Terms/Privacy "does not guarantee",
+                 "no ... guarantees")
+  insurance 1    Terms disclaimer ("makes no representation about
+                 insurance")
+  licensed /     21 each: the approved "Licensed & Insured" trust strip and
+  insured        "licensed and insured transportation provider" (04F)
+  working hours  28: only the approved 2-hour response wording and the
+                 approved hours hand-off
+Every positive commercial statement maps to an owner-confirmed fact.
+
+
+23. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+New: src/lib/operating-facts.test.mjs (9 tests): facts model and statuses;
+future activation; no internal status/placeholder wording; no unconfirmed
+claims + every answer has a next step (and exact approved wordings);
+assistant commercial matrix (§28); no parallel assistant wording; pages
+use commercialFaq (no copies; FAQ below the form; serviceAreaFaqAnswer
+removed); structured data adds nothing; facts never touch intake/network.
+Updated: src/lib/assistant/assistant.test.mjs (hours/status assertions now
+match the canonical facts; FORM_PAGES rule).
+  git diff --check . clean
+  npm test ......... 140/140 pass (131 + 9); 140/140 at close-out (§27)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+Regression (git-verified unchanged): request-intake/*, quote-form/*,
+request-transportation/actions.ts, forms/guard, contact-intake,
+service-catalog.ts, services.ts, trust.ts, privacy, terms, .env.example,
+package.json. Campaign pages noindex/follow and out of the sitemap;
+Airport preselects; no Google/AI in src or the bundle; assistant still
+memory-only.
+
+
+24. FILES MODIFIED (uncommitted)
+--------------------------------
+  A src/lib/operating-facts.ts
+  A src/lib/operating-facts.test.mjs
+  A docs/product/owner-operating-facts-needed.md
+  A docs/reports/ZW-WEB-04I-operating-facts-commercial-clarity.txt
+  M src/lib/service-area.ts                 (relative business import;
+                                             serviceAreaFaqAnswer removed)
+  M src/app/page.tsx                        (FAQ: shared confirmation,
+                                             pricing, payment, area)
+  M src/app/locations/[market]/page.tsx     (FAQ: shared answers)
+  M src/app/request-transportation/page.tsx ("Before you request" below
+                                             the form)
+  M src/app/contact/page.tsx                ("Common questions")
+  M src/app/healthcare-providers/page.tsx   ("Questions from care teams")
+  M src/lib/assistant/responses.ts          (answers from operating facts)
+  M src/lib/assistant/intents.ts            (payment, policy, timing)
+  M src/lib/assistant/assistant.test.mjs    (canonical wording; FORM_PAGES)
+  M src/components/public/assistant/AssistantLauncher.tsx (/contact
+                                             form-page rule)
+
+
+25. OWNER FACTS PACK
+--------------------
+docs/product/owner-operating-facts-needed.md lists the 9 open decisions
+(working hours; payment methods; Medicaid/Medicare/insurance; specific
+cities/counties; same-day and minimum notice; cancellation; no-show;
+wait-time; facility billing), each with the current public wording, the
+exact decision needed and what activates once confirmed.
+
+
+26. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Ready for owner review. Suggested: /request-transportation (scroll below
+the form), /contact, /healthcare-providers and the homepage FAQ, plus the
+assistant with "what are your hours?", "do you take Medicaid?", "can I pay
+by card?", "can you pick me up today?" and "do you serve Marietta?".
+Decisions: confirm the /contact launcher rule (§14), and answer any of the
+9 owner facts to activate them. If approved, stage exactly the §24 paths
+(never `git add .`) and commit, e.g. "Add operating facts and commercial
+clarity". Push/deploy only under separate authorization.
+
+27. CLOSE-OUT (2026-10-16, owner-approved)
+------------------------------------------
+Owner approved 04I as built: the canonical operating-facts architecture,
+the shared commercial FAQ approach, "Before you request" below the form,
+the /contact "Common questions", the provider "Questions from care teams",
+the assistant's commercial answers taken from operating-facts, and the
+honest hand-off for unconfirmed payment/coverage/hours/policy facts.
+
+/contact assistant behaviour APPROVED: floating launcher hidden below
+1024px, compact launcher from 1024px, no inline entry on /contact (the page
+already provides direct human contact; QA showed overlap on smaller
+widths).
+
+Unknown owner facts remain DEFERRED and unactivated, with the current
+professional hand-off wording: exact working hours, payment methods,
+Medicaid/Medicare/insurance position, named cities/counties, same-day
+policy, minimum advance notice, cancellation, no-show, wait-time, facility
+billing. No placeholders, no TBD, nothing competitor-derived. The decisions
+are listed in docs/product/owner-operating-facts-needed.md.
+Privacy and Terms unchanged. 04L legal/policy follow-ups retained (§19):
+cancellation/no-show/wait-time/payment policies are not activated before
+the owner provides the facts and the legal/policy pass is done.
+
+Final validation:
+  git diff --check . clean
+  npm test ......... 140/140 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+  Unchanged (git-verified): request-intake/*, quote-form/* (payload,
+  idempotency), request-transportation/actions.ts, forms/guard,
+  service-catalog.ts (taxonomy), privacy, terms, .env.example,
+  package.json, package-lock.json. Built site: 4 campaign pages "noindex,
+  follow", 0 campaign URLs in sitemap.xml, ?service=airport_transportation
+  preselects Airport. No Google tracking or external AI in src or the
+  bundle. Assistant still memory-only (no storage/cookies).
+
+Final recommendation: APPROVED AND COMMITTED. Push/deploy only under a
+separate authorization. Then spot-check production: /request-transportation
+(below the form), /contact on a phone (no launcher) and desktop (compact
+launcher), and the assistant hours/coverage/same-day/area answers. Activate
+owner facts one at a time as they are confirmed.
+
+Committed as "Add operating facts and commercial clarity", staging exactly
+the §24 paths.
+
+STOP. Not pushed or deployed. 04J not started.
