@@ -46,6 +46,8 @@ const SAMPLE = {
   request_transportation_clicked: { source: "campaign_page" },
   provider_cta_clicked: { source: "homepage" },
   contact_started: { topic: "general" },
+  transportation_assistant_opened: {},
+  transportation_assistant_quote_clicked: {},
 };
 
 test("forbidden passenger/trip/identifier fields are dropped from every event", () => {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Section } from "@/components/layout/Section";
 import { RequestTransportationForm } from "@/components/public/RequestTransportationForm";
 import { PhoneCtaButton } from "@/components/public/PhoneCtaButton";
+import { AssistantInlineEntry } from "@/components/public/assistant/AssistantInlineEntry";
 import { typography } from "@/design/typography";
 import { pageMetadata } from "@/lib/seo";
 import { cn } from "@/lib/cn";
@@ -56,6 +57,8 @@ export default async function RequestTransportationPage({
           </div>
           <PhoneCtaButton surface="request_form" tone="navy" className="shrink-0" />
         </div>
+        {/* Below 1024px the floating launcher is hidden here (it could cover form controls); this opens the same assistant. */}
+        <AssistantInlineEntry className="mt-4" />
       </Section>
 
       <Section tone="white" narrow>

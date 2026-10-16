@@ -1,0 +1,535 @@
+ZW-WEB-04H — ZENWARD TRANSPORTATION ASSISTANT V1
+(internal: On-Duty Transportation Assistant)
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL. Owner-approved and committed at close-out (§33); not pushed
+or deployed. Nemryn,
+the Website Intake contract, the Server Action and the quote form are
+unchanged. G1/G2 not implemented. No Google Ads/GA4/GTM. No external AI.
+
+
+1. STARTING GIT STATE
+---------------------
+  git status ......... clean
+  git diff --check ... clean
+  HEAD = origin/main . 3b872e8 "Rebuild quote form with calendar scheduling"
+                       (04G, pushed; Vercel deployment success)
+  ahead/behind ....... 0 / 0
+  Tests .............. 114/114
+
+
+2. ASSISTANT SCOPE
+------------------
+A website concierge for guidance and routing. It does:
+  - welcome visitors and explain what Zenward does
+  - explain the eight services (each with its canonical summary)
+  - help identify the right service (typed text or guided buttons)
+  - explain wheelchair-accessible, Airport and recurring transportation
+  - explain the request process, request ≠ confirmed ride, and the 2-hour
+    response standard
+  - share the approved 04F trust facts
+  - give the phone number and route to service pages, the quote form (with
+    the service preselected), Contact and Healthcare Providers
+It never: checks availability, quotes or calculates prices, books, confirms,
+reschedules or cancels, looks up requests or passengers, calls Nemryn or any
+CRM, creates entities, dispatches, promises pickup times, gives medical
+advice, takes payment, or implies a person is chatting.
+
+
+3. PUBLIC NAMING
+----------------
+"Zenward Transportation Assistant" (panel title). The welcome text is
+exactly as briefed: "Hi, I'm Zenward's Transportation Assistant. I can
+help you choose a transportation service, understand how requests work, or
+get in touch with our team." Launcher: Zenward symbol + "Need help?"
+(accessible name "Open the Zenward Transportation Assistant"). No human
+name, no portrait, no robot or sparkle icon. Only the locked Zenward symbol
+SVGs are used. A standing note under the title is honest about what it is:
+"I share general information and can't see or change bookings. To talk to
+our team, call 678-935-5489." No "AI", "chatbot", "agent", "manager" or
+"dispatcher" anywhere in public copy (test-enforced).
+
+
+4. ARCHITECTURE
+---------------
+  src/lib/assistant/          (pure TypeScript, no React, no network)
+    types.ts       replies, actions, inputs, context
+    knowledge.ts   KNOWLEDGE: canonical facts + short assistant wording
+    intents.ts     CONVERSATION: normalisation, service and topic detection
+    safety.ts      emergency + sensitive-detail detection, BANNED_OUTPUT,
+                   isAllowedHref, validateReply
+    responses.ts   ROUTING: deterministic respond(input, ctx) and quick
+                   replies
+    provider.ts    FUTURE AI PROVIDER boundary (interface + deterministic
+                   provider + safeRespond)
+    assistant.test.mjs
+  src/components/public/assistant/   (UI)
+    AssistantLauncher.tsx   site-wide button; lazy-loads the panel
+    AssistantPanel.tsx      dialog, conversation log, input
+    AssistantMessage.tsx    reply + AssistantQuickActions
+    context.ts              server-built canonical context
+  Wiring: PublicLayout renders <AssistantLauncher context={...} /> on every
+  route. Actions (D) are typed data (link | tel | reply) built in
+  responses.ts and rendered by AssistantQuickActions.
+
+
+5. CANONICAL KNOWLEDGE SOURCES
+------------------------------
+  services, labels, pages, quote links  src/lib/service-catalog.ts
+  service summaries                     src/lib/services.ts (via context.ts)
+  market name                           src/lib/service-area.ts (via
+                                        context.ts)
+  phone                                 src/lib/business.ts
+  trust facts + 2-hour line             src/lib/trust.ts (04F)
+  quote preselection                    catalogue requestHref ->
+                                        /request-transportation?service=
+                                        (04G allow-list)
+No parallel service catalogue. Summaries and market are built on the
+SERVER in PublicLayout and passed as a ~1 KB prop, so the lazy panel
+never imports the full service-page content (this cut its chunk from
+110 KB to 28 KB).
+
+
+6. LAUNCHER / PANEL UX
+----------------------
+Launcher: 48px-tall pill, bottom-right (16px phones / 24px sm+), respects
+env(safe-area-inset-bottom), white with soft shadow; hidden while the panel
+is open; focus returns to it on close. On /request-transportation it is
+hidden below 1024px and collapses to the 48px symbol from 1024px (see §25).
+Panel: non-modal dialog (role="dialog", aria-modal="false", labelled by
+the title). Phones: a bottom sheet, max 80dvh (measured 80% at 390, 74% at
+430), the page stays visible above it. sm+: a 380px floating panel,
+bottom-right, max 40rem. Care Navy header with the inverse symbol, close
+button, honest note, scrolling conversation (internal scroll), input pinned
+at the bottom. Opening focuses the panel title (not the input, so phones
+don't pop the keyboard). Escape closes it from anywhere, and so does the
+close button. Following any in-site link closes it.
+
+
+7. QUICK ACTIONS
+----------------
+Start: Request transportation · Which service do I need? · Wheelchair
+transportation · Recurring transportation · Airport transportation · Talk
+to Zenward.
+"Which service do I need?" shows 4 choices (Doctor or clinic visit,
+Dialysis, Therapy or rehab, Leaving the hospital) + "More options" (Trips
+that repeat, An older adult's medical trip, Wheelchair accessibility,
+Airport trip, Something else: Request a Quote). Never all eight at once.
+After a service: Request <Service> (primary) · Learn about <Service> ·
+Choose another service. Follow-up buttons show only under the latest
+reply. Links and phone actions stay usable in earlier replies.
+
+
+8. NATURAL-LANGUAGE INTENT ROUTING
+----------------------------------
+Deterministic: text normalised (lowercase, punctuation stripped, max 500
+chars), then bounded keyword patterns. Precedence:
+emergency -> status/changes -> provider -> services -> topics (coverage,
+pricing, credentials, process, trust, response time, hours, availability,
+area, medical, contact, thanks, greeting, general transport) -> sensitive-
+only -> unknown. No general conversation, no model.
+Verified phrases (tests): ride to my doctor -> Medical Appointment;
+dialysis three times a week -> Dialysis + recurring tip; wheelchair ride ->
+Wheelchair; ride from the airport -> Airport; hospital is discharging my
+mother -> Hospital Discharge; therapy appointments every week ->
+Rehabilitation + recurring tip; senior transportation -> Senior Medical; I
+need a ride every Monday -> Recurring Care; I need an ambulance now ->
+emergency; how much? -> pricing; where is my request? -> status; are you
+insured? -> Licensed & Insured; are you always on time? -> punctuality
+standard.
+
+
+9. SERVICE SELECTION
+--------------------
+One service: "Zenward provides <Label> in Metro Atlanta. <canonical
+summary>" + one tip + "I can take you to the quote request with <Label>
+selected." Two services (disambiguation, max two): both offered as
+Request buttons. When wheelchair is one of them it leads, per the brief:
+"Zenward provides both Dialysis Transportation and Wheelchair-Accessible
+Transportation in Metro Atlanta. If wheelchair accessibility is the key
+transportation need, I can open the request form with Wheelchair-Accessible
+Transportation selected, and you can note the dialysis details in the trip
+notes." A generic "doctor/clinic" mention is dropped when dialysis or
+rehab is named. No diagnosis, no inferred conditions.
+
+
+10. QUOTE-FORM HANDOFF
+----------------------
+Only /request-transportation?service=<serviceType>, taken from
+SERVICE_CATALOG[slug].requestHref (or the plain /request-transportation).
+isAllowedHref permits exactly one query key, `service`, with an
+allow-listed value. Anything else (name, pickup, date, &extra, #hash,
+"other", unknown slugs, external URLs) is rejected (tested). No
+localStorage or URL state carries request data. Browser-verified at all
+widths: "Request Dialysis Transportation" -> /request-transportation
+?service=dialysis with Dialysis preselected in the 04G form; panel closed.
+
+
+11. EMERGENCY HANDLING
+----------------------
+Detected first and deterministically (also in safeRespond, before any
+future provider): 911, ambulance, "emergency" (but not "non-emergency"),
+chest pain, can't/not breathing, unconscious, collapsed, overdose, severe
+bleeding, "having a stroke/heart attack/seizure", suicide wording ("rehab
+after a stroke" is not an emergency, tested).
+Reply: "Zenward provides non-emergency transportation. If this is a medical
+emergency, call 911 or your local emergency service." + "Zenward doesn't
+provide ambulance or stretcher transportation." Actions: Call 911 (tel:911)
+and "This isn't an emergency". No service or quote links. No medical
+instructions.
+
+
+12. HUMAN HANDOFF
+----------------
+Call 678-935-5489 (business.phoneHref), Send a message (/contact),
+Healthcare providers (/healthcare-providers), Request a Quote. Never "an
+agent will join". The panel note says it can't see or change bookings.
+
+
+13. PRICING
+-----------
+"Pricing is confirmed after Zenward reviews the transportation request and
+trip details." + not-a-booking line; Request a Quote + Call. No estimates,
+no currency amounts (validator bans "$<digit>"). Coverage (Medicaid,
+Medicare, insurance) is a separate honest reply: "I can't confirm payment
+or coverage options here. Please call..." (never "we accept").
+
+
+14. REQUEST-STATUS HANDLING
+---------------------------
+"The Transportation Assistant can't view request status yet. Please call
+Zenward at 678-935-5489 for help with an existing request." Also for "was
+my request accepted / is my booking confirmed". Cancel/reschedule/change:
+"I can't change or cancel a trip here. Please call...". Nothing is queried.
+
+
+15. TRUST RESPONSES
+-------------------
+Only 04F facts, quoted from trust.ts: licensed & insured; "Punctuality is
+our standard. Trips are planned around pickup and appointment times.";
+trained and vetted drivers with background checks; patience, dignity and
+compassion; 2-hour response during working hours. Questions about CPR,
+first aid, ADA, certification, drug testing, licence numbers or policies
+get: "I can't confirm specific certifications or programs here." + the
+approved facts + call (never affirmed; tested). Hours: the briefed
+"aren't published here yet" answer; "24/7" questions route there too.
+
+
+16. AIRPORT HANDLING
+--------------------
+Explains Airport Transportation (canonical summary), tip "Include the
+airport and trip details in the destination or notes. Zenward will confirm
+the timing with you.", links to /services/airport-transportation and
+/request-transportation?service=airport_transportation. No flight
+tracking, meet-and-greet, baggage, escort, permit or 24/7 claims
+(validator + test). "Do you track flights?" gets the Airport service
+answer without affirming tracking.
+
+
+17. WHEELCHAIR HANDLING
+-----------------------
+Canonical summary + the existing hub wording ("Tell us about the
+passenger's mobility needs in the request, and Zenward will review the trip
+and confirm the arrangement with you."). No ADA, lift/ramp specs, weight
+limits, securement, lifting/transfers, oxygen or stretcher claims
+(validator + test).
+
+
+18. CONVERSATION STATE / PRIVACY
+--------------------------------
+The conversation lives in the panel component's memory only. Closing the
+panel or refreshing the page clears it. No localStorage, sessionStorage,
+IndexedDB, cookies, URL/history writes, server calls or logging (tested +
+browser-verified: 0 storage writes, 0 cookies, 0 external requests).
+
+
+19. SENSITIVE-DATA HANDLING
+---------------------------
+Detected (never stored): phone numbers, emails, street addresses,
+month/day dates, clock times, "my/his/her name is", medical terms
+(diagnoses, medications, DOB). Then the reply leads with: "For your
+privacy, and to make sure the transportation team receives those details
+correctly, please use the secure Request a Quote form rather than this
+chat." with "Continue to Request a Quote" (service-only link if a service
+was recognised). Replies never echo the visitor's text (tested with a
+unique token, an address, a phone number and an email).
+
+
+20. TRANSCRIPT POLICY
+---------------------
+No transcripts anywhere: not emailed, not sent to Nemryn, not sent to
+analytics, not persisted server-side. There is no server code in 04H at
+all.
+
+
+21. FUTURE AI-PROVIDER BOUNDARY
+-------------------------------
+provider.ts defines `AssistantProvider { id; respond(input, ctx) }` and
+`deterministicProvider` (the only one used). `safeRespond(provider, ...)`
+keeps emergency handling deterministic, runs the provider, and falls back
+to the deterministic reply if the provider throws or its reply fails
+`validateReply` (canonical links only, ?service= only, approved claims
+only). Tested with a provider that returns "Your ride is confirmed." and a
+leaky link, and with one that throws.
+Activation path (NOT done; needs owner + legal decisions, privacy-policy
+update, vendor DPA and credentials):
+  1. Server-only provider behind a Server Action or route handler, key in
+     server env, never NEXT_PUBLIC_.
+  2. Send only the current message + knowledge.ts facts. No transcripts,
+     no request/passenger data, no Nemryn.
+  3. Constrain output to AssistantReply JSON and pass every reply through
+     safeRespond/validateReply.
+  4. No logging of message content; disclose the processor in /privacy.
+No API key was invented and no SDK was added.
+
+
+22. NEMRYN ISOLATION
+--------------------
+The assistant imports nothing from request-intake's adapter, mapping,
+tenancy or the Server Action, makes no fetch/XHR/WebSocket calls, and the
+client bundle contains no Nemryn, intake, vendor or model strings (tested
++ bundle scan). Its only path into Nemryn is the visitor completing the
+unchanged 04G form.
+
+
+23. G1 / G2 DEFERRAL
+--------------------
+Not implemented and not worked around: no return-time or appointment-time
+fields, and nothing hidden in assistant messages or URLs. The assistant
+tips tell visitors to use the form's existing fields and notes, as 04G
+does. Deferred to a later Nemryn scheduling-contract phase (04G §31).
+
+
+24. ACCESSIBILITY
+-----------------
+  launcher ..... button, accessible name, aria-haspopup="dialog", 48px tall,
+                 focus restored on close
+  panel ........ role="dialog" aria-modal="false" labelled by the title;
+                 title focused on open; Escape closes from anywhere (bug
+                 found and fixed during QA: after Send disabled itself,
+                 focus fell to <body> and Escape was lost; now a
+                 document-level Escape handler + focus returned to the
+                 input)
+  conversation . role="log" aria-live="polite" labelled "Conversation";
+                 sr-only "Transportation Assistant:" / "You:" prefixes
+  actions ...... real <a>/<button>, min 44px (measured: none under 44 at
+                 any width)
+  input ........ <label> (sr-only) "Ask a transportation question", 16px on
+                 phones (no iOS zoom), Enter sends; Send button
+                 "Send message"
+  contrast ..... existing tokens (navy/white, text-primary on
+                 surface-secondary, muted placeholder 4.69:1)
+Not a modal and no focus trap; the page behind stays usable, as briefed.
+
+
+25. RESPONSIVE QA
+-----------------
+Local production build, headless Chrome, 390/430/768/1024/1440, on /,
+/services, /request-transportation, /services/wheelchair-transportation,
+/services/airport-transportation, /healthcare-providers and
+/metro-atlanta/dialysis-transportation:
+  - no horizontal overflow, with the panel open or closed
+  - launcher never overlaps a quote CTA, phone link or form control in the
+    first viewport. A finding at 768 and 1024: the pill (then the 48px
+    symbol) sat over the right end of the quote form's service select,
+    because the form has no side gutter there. Fix: on
+    /request-transportation the launcher is hidden below 1024px (the form
+    has its own guidance and phone panel) and is the compact symbol from
+    1024px. Re-measured: no overlap anywhere.
+  - panel: 390x675 (80%), 430x623 (74%), 380x640 at sm+; input always in
+    view; internal scroll; Escape and focus return verified
+  - full journeys: Which service -> Dialysis; typed disambiguation; typed
+    emergency -> Call 911; Escape; reopen; typed dialysis -> Request
+    Dialysis Transportation -> quote form with Dialysis preselected
+  - no console errors or warnings
+Screenshots reviewed: phone welcome sheet, desktop conversation.
+
+
+26. PERFORMANCE / BUNDLE IMPACT
+-------------------------------
+No new dependency (package.json unchanged). Native React only, no chat
+framework or animation library.
+  - The panel + engine load only on first open, as a 28 KB chunk
+    (uncompressed). It is prefetched on launcher hover/focus.
+  - Client JS on disk: 764 KB (04G) -> 808 KB (+44 KB total, including the
+    lazy chunk and the small launcher).
+  - Each page's HTML carries the ~1 KB assistant context prop.
+  - Homepage initial JS after 04H: 11 files, 513 KB uncompressed.
+
+
+27. CLAIM SCAN
+--------------
+Every reply to 29 representative + adversarial phrases (incl. "Do you
+track flights?", "Are you ADA certified?", "are drivers CPR certified?",
+"drug tested?", "Is my booking confirmed?", "Can I book instantly?", "is it
+guaranteed?", "Do you have a human agent?", "Do you take Medicare?") and
+all 19 quick replies:
+  AI 0 · chatbot 0 · manager 0 · human agent 0 · guaranteed 0 · 100% 0 ·
+  24/7 0 · ADA 0 · CPR 0 · certified 0 · drug-tested 0 · live availability 0
+  · available slots 0 · confirmed booking 0 · instant booking 0 ·
+  flight tracking 0 · Medicaid 0 · Medicare 0
+Source: the words appear only in safety.ts patterns (what to detect/ban),
+in tests, and in comments describing what is NOT done. Component code is
+scanned with comments stripped: no AI, chatbot, robot, sparkle or portrait.
+Every positive statement maps to an owner-confirmed fact (04F) or existing
+site copy.
+
+
+28. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+New: src/lib/assistant/assistant.test.mjs (16 tests): intent routing;
+disambiguation; provider routing; canonical routes + ?service=-only
+handoff; no URL data / no echo; emergency -> 911; unknown -> human help;
+status/changes/pricing/hours/coverage; every reply validated + wheelchair/
+airport/process wording; unconfirmed credentials never affirmed; no fake
+identity / no AI wording; no network, Nemryn, intake or AI call (fetch
+stubbed: 0 calls); no persistence; analytics (two parameter-free events
+only, sanitised); provider fallback; accessibility semantics.
+Updated: src/lib/analytics/events.test.mjs (SAMPLE includes the two new
+events).
+  git diff --check . clean
+  npm test ......... 130/130 pass (114 + 16); 131/131 at close-out (§33)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+Smoke: /, /services, /services/airport-transportation,
+/request-transportation (+ ?service=airport_transportation),
+/healthcare-providers, /contact, /locations/metro-atlanta, a campaign
+page, /privacy, /terms all 200; campaign pages still absent from the
+sitemap.
+
+
+29. FILES MODIFIED (uncommitted)
+--------------------------------
+  A src/lib/assistant/types.ts
+  A src/lib/assistant/knowledge.ts
+  A src/lib/assistant/intents.ts
+  A src/lib/assistant/safety.ts
+  A src/lib/assistant/responses.ts
+  A src/lib/assistant/provider.ts
+  A src/lib/assistant/assistant.test.mjs
+  A src/components/public/assistant/AssistantLauncher.tsx
+  A src/components/public/assistant/AssistantPanel.tsx
+  A src/components/public/assistant/AssistantMessage.tsx
+  A src/components/public/assistant/context.ts
+  A src/components/public/assistant/open-assistant.ts      (close-out)
+  A src/components/public/assistant/AssistantInlineEntry.tsx (close-out)
+  M src/app/request-transportation/page.tsx   (close-out: inline entry,
+                                               header only; form untouched)
+  M src/components/layout/PublicLayout.tsx    (mounts the launcher)
+  M src/lib/analytics/events.ts               (+2 parameter-free events)
+  M src/lib/analytics/events.test.mjs         (SAMPLE +2)
+  A docs/reports/ZW-WEB-04H-transportation-assistant-v1.txt (this report)
+Untouched (git-verified vs HEAD): request-intake/*, request-transportation/*
+(page, actions), forms/guard, contact-intake, quote-form/*, trust.ts,
+service-catalog.ts, services.ts, privacy, terms, .env.example,
+package.json, public/.
+
+
+30. OWNER DECISIONS
+-------------------
+  1. Working hours: still unpublished. The hours answer says so. Publishing
+     them would let the assistant answer directly.
+  2. RESOLVED (close-out): inline entry on the quote page below 1024px.
+  3. RESOLVED (close-out): launcher kept on campaign pages.
+  4. RESOLVED (close-out): both parameter-free events kept.
+  5. Coverage questions (Medicaid/Medicare/insurance): currently "can't
+     confirm, please call". Supply an approved answer if one exists.
+  6. Future natural-language provider: requires privacy/legal sign-off,
+     a processor disclosure, a vendor agreement and credentials (§21).
+
+
+31. RECOMMENDED 04H2 / FUTURE INTEGRATION PATH
+----------------------------------------------
+  04H2 (website only): owner review tweaks; optional inline assistant entry
+       on the quote page; publish working hours; answer refinements from
+       real questions (gathered by the owner, not from transcripts).
+  Nemryn scheduling contract (G1 return pickup time, G2 one-time
+       appointment time): before structured scheduling help.
+  Request status (later, separate phase): needs a Nemryn-side,
+       privacy-safe, verified lookup (e.g. reference + phone verification),
+       never browser access to Nemryn. Not started.
+  Natural-language provider (optional, later): server-side behind
+       safeRespond, after the decisions in §30.6.
+
+
+32. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Ready for owner review on a local build. Suggested: open the assistant on a
+phone and a desktop, try "Which service do I need?", a typed dialysis or
+wheelchair request through to the quote form, "how much?", "where is my
+request?", and an emergency phrase. If approved, stage exactly the §29
+paths (never `git add .`) and commit, e.g. "Add Zenward Transportation
+Assistant V1". Push/deploy only under separate authorization.
+
+33. CLOSE-OUT (2026-10-16, owner-approved)
+------------------------------------------
+Owner approved 04H V1 as built (public name, deterministic/local engine,
+free-text routing, quick actions, service guidance, service-only
+preselection, site-wide availability, emergency handling, human handoff,
+pricing/status limits, no Nemryn, no external AI, no transcripts, provider
+boundary, two parameter-free events).
+
+Request-page inline entry (owner adjustment). Responsive behavior on
+/request-transportation:
+  < 1024px  floating launcher hidden (QA showed it could cover form
+            controls); ONE inline row in the page header, under the phone
+            card and before the form: "Need help choosing a service?" +
+            "Ask the Transportation Assistant" (Zenward symbol, accent-on-
+            tint link style, 44px). Not inside any form step.
+  >= 1024px inline row hidden (lg:hidden); compact floating launcher shown.
+  Never both at once (measured at 390/430/768/1024/1440).
+The inline entry opens the SAME panel: AssistantInlineEntry calls
+openTransportationAssistant(), which dispatches a data-free window event
+(open-assistant.ts). The single AssistantLauncher in PublicLayout listens
+and opens its panel. One launcher, one panel, one engine. The launcher
+remembers the opener and returns focus to it on close (the inline button
+on phones/tablets, the launcher otherwise), falling back to the launcher.
+The opened event fires from the same code path for both entries.
+
+Campaign pages: launcher kept (site-wide); no assistant section added;
+"noindex, follow" and sitemap exclusion re-verified on all four.
+Internal events: transportation_assistant_opened and
+transportation_assistant_quote_clicked retained, parameter-free, no sink,
+no vendor; no new events.
+Working hours: still unpublished; the honest hours answer is unchanged.
+Future provider: provider.ts stays architecture only; deterministicProvider
+is the only active provider. No model, SDK, key, AI Server Action or
+Privacy change.
+
+Final QA (local production build, headless Chrome):
+  Quote page, 390/430/768: inline entry visible (44px), launcher hidden;
+  opening via the entry shows the same panel (675/623/640px) and answers
+  "wheelchair" with Request Wheelchair-Accessible Transportation; Escape
+  closes and focus returns to the inline button; typed pickup text and the
+  Airport preselection are kept; no overlap with the first viewport's
+  controls, the calendar or Continue. 1024/1440: inline hidden, compact
+  launcher visible, same checks pass, focus returns to the launcher.
+  Homepage, /services, wheelchair, airport, healthcare providers, a
+  campaign page: launcher 142x48, no overlap, no overflow; panel checks
+  (title focus, Escape, 911, quote handoff) pass at all widths; lazy chunk
+  28 KB. No console errors.
+  Claim scan (adversarial phrases incl. "are you a chatbot?", "are you
+  AI?", "human agent?", "talk to the manager", "is it guaranteed?", ADA,
+  CPR, drug testing, Medicare, Medicaid, 24/7, slots, instant, flight
+  tracking + all quick replies): 0 hits for every term. Unknown or
+  unconfirmed questions still route to human help.
+
+Tests: +1 ("quote page: inline entry below 1024px, compact launcher from
+1024px, one shared assistant"); the scanned assistant file list now
+includes open-assistant.ts and AssistantInlineEntry.tsx (no network, no
+storage, no Nemryn, no AI, no vendor).
+  git diff --check . clean
+  npm test ......... 131/131 pass (114 + 17)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+Untouched (git-verified): request-intake/*, quote-form/*,
+request-transportation/actions.ts, forms/guard, privacy, terms,
+.env.example, package.json, package-lock.json.
+
+Committed as "Add Zenward Transportation Assistant V1", staging exactly the
+§29 paths. Not pushed or deployed.
+
+STOP. Not pushed or deployed. Nemryn not modified. No request-status
+integration. No Google Ads work.

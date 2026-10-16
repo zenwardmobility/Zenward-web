@@ -72,7 +72,11 @@ export type AnalyticsEvent =
   // Navigation / engagement events.
   | { name: "request_transportation_clicked"; source: (typeof REQUEST_CLICK_SOURCES)[number] }
   | { name: "provider_cta_clicked"; source: (typeof PROVIDER_CLICK_SOURCES)[number] }
-  | { name: "contact_started"; topic: (typeof CONTACT_TOPICS)[number] };
+  | { name: "contact_started"; topic: (typeof CONTACT_TOPICS)[number] }
+  // Transportation Assistant (ZW-WEB-04H). No parameters: never message text,
+  // never the service (it can reveal health context), never a URL.
+  | { name: "transportation_assistant_opened" }
+  | { name: "transportation_assistant_quote_clicked" };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
 
@@ -85,6 +89,8 @@ const EVENT_SCHEMA: Record<AnalyticsEventName, Record<string, readonly string[]>
   request_transportation_clicked: { source: REQUEST_CLICK_SOURCES },
   provider_cta_clicked: { source: PROVIDER_CLICK_SOURCES },
   contact_started: { topic: CONTACT_TOPICS },
+  transportation_assistant_opened: {},
+  transportation_assistant_quote_clicked: {},
 };
 
 /**
