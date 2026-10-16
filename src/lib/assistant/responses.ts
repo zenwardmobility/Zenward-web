@@ -16,6 +16,7 @@ import { NOT_A_BOOKING, PATHS, PHONE, PROCESS_STEPS, SERVICE_ORDER, SERVICE_TIPS
 import { detectServices, detectTopics, isRecurring, normalize, type Topic } from "./intents.ts";
 import { hasSensitiveDetails, isEmergency } from "./safety.ts";
 import { CONFIRMED, factAnswer } from "../operating-facts.ts";
+import { resourcePath, type ResourceSlug } from "../resources/slugs.ts";
 import type { AssistantAction, AssistantContext, AssistantInput, AssistantReply, QuickReplyId } from "./types.ts";
 
 // ---------------------------------------------------------------- copy
@@ -51,6 +52,17 @@ const learn = (slug: ServiceSlug): AssistantAction => ({
   label: `Learn about ${SERVICE_CATALOG[slug].label}`,
   href: SERVICE_CATALOG[slug].path,
 });
+
+// Resource links (ZW-WEB-04K): canonical paths from the catalogue, short
+// labels only. Article text never ships in the assistant bundle.
+function resourceLink(slug: ResourceSlug, label: string, primary = false): AssistantAction {
+  return { kind: "link", label, href: resourcePath(slug), primary };
+}
+const SERVICE_RESOURCE: Partial<Record<ServiceSlug, [ResourceSlug, string]>> = {
+  "dialysis-transportation": ["dialysis-transportation-guide", "Read the dialysis transportation guide"],
+  "wheelchair-transportation": ["wheelchair-accessible-transportation-guide", "Read the wheelchair transportation guide"],
+  "hospital-discharge-transportation": ["hospital-discharge-transportation-checklist", "View the hospital discharge checklist"],
+};
 
 export const START_ACTIONS: AssistantAction[] = [
   reply("request", "Request transportation"),
@@ -121,7 +133,61 @@ function serviceReply(slugs: ServiceSlug[], ctx: AssistantContext, recurring: bo
     kind: "service",
     services: [primary],
     paragraphs,
-    actions: [quoteFor(primary), learn(primary), reply("find_service", "Choose another service")],
+    actions: [quoteFor(primary), ...resourceFor(primary), learn(primary), reply("find_service", "Choose another service")],
+  };
+}
+
+function resourceFor(slug: ServiceSlug): AssistantAction[] {
+  const match = SERVICE_RESOURCE[slug];
+  return match ? [resourceLink(match[0], match[1])] : [];
+}
+
+/** "What should I prepare / bring?": the trip checklist, plus the quote handoff (with the service when one was named). */
+function prepareReply(services: ServiceSlug[]): AssistantReply {
+  const service = services[0];
+  // Leaving the hospital has its own checklist; it leads, with the request handoff.
+  if (service === "hospital-discharge-transportation") {
+    return {
+      kind: "resource",
+      services: [service],
+      paragraphs: [
+        "Zenward's hospital discharge checklist covers the details to gather before requesting a ride: the discharge location and exit, the destination, the expected time, a transportation contact and any mobility needs.",
+        NOT_A_BOOKING,
+      ],
+      actions: [
+        resourceLink("hospital-discharge-transportation-checklist", "View the hospital discharge checklist", true),
+        { kind: "link", label: `Request ${SERVICE_CATALOG[service].label}`, href: SERVICE_CATALOG[service].requestHref, quote: true },
+        resourceLink("medical-transportation-trip-checklist", "Open the trip checklist"),
+      ],
+    };
+  }
+  return {
+    kind: "resource",
+    services: service ? [service] : undefined,
+    paragraphs: [
+      "Zenward's medical transportation trip checklist covers what to have ready before a ride: pickup and destination, the date and times, whether a return trip is needed, any mobility needs and a contact person.",
+      "You can tick items off on the page or print it. When you're ready, request a quote and our team will review the details.",
+    ],
+    actions: [
+      resourceLink("medical-transportation-trip-checklist", "Open the trip checklist", true),
+      { kind: "link", label: service ? `Request ${SERVICE_CATALOG[service].label}` : "Request a Quote", href: service ? SERVICE_CATALOG[service].requestHref : PATHS.quote, quote: true },
+      ...(service ? resourceFor(service) : []),
+    ],
+  };
+}
+
+function learnNemtReply(): AssistantReply {
+  return {
+    kind: "resource",
+    paragraphs: [
+      "Non-emergency medical transportation (NEMT) is a scheduled ride to or from medical care for someone who needs a little more than a regular ride, but is not in an emergency.",
+      "Zenward's guides explain what it is and how to arrange a ride.",
+    ],
+    actions: [
+      resourceLink("what-is-non-emergency-medical-transportation", "What is NEMT?", true),
+      resourceLink("how-to-arrange-nemt-in-metro-atlanta", "How to arrange a ride"),
+      quote(),
+    ],
   };
 }
 
@@ -315,7 +381,11 @@ export function respond(input: AssistantInput, ctx: AssistantContext): Assistant
   const sensitive = hasSensitiveDetails(t, raw);
   const services = detectServices(t);
   let result: AssistantReply | undefined;
-  if (topics.includes("provider")) {
+  if (topics.includes("prepare") && !topics.includes("provider")) {
+    result = prepareReply(services);
+  } else if (topics.includes("learn_nemt") && services.length === 0) {
+    result = learnNemtReply();
+  } else if (topics.includes("provider")) {
     // A care coordinator mentioning a clinic or dialysis is still a provider enquiry first.
     result = topicReply(["provider"]);
   } else if (services.length > 0) {

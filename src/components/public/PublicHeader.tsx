@@ -17,6 +17,7 @@ const NAV_LINKS = [
   { label: "Services", href: "/services" },
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Healthcare Providers", href: "/healthcare-providers" },
+  { label: "Resources", href: "/resources" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -92,12 +93,12 @@ function SiteHeader() {
           <ZenwardLogo height={32} alt="" priority />
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-5 lg:flex xl:gap-7">
+        <nav aria-label="Primary" className="hidden items-center gap-4 lg:flex xl:gap-7">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={cn(typography.bodySmall, "font-medium text-text-secondary hover:text-text-primary")}
+              className={cn(typography.bodySmall, "whitespace-nowrap font-medium text-text-secondary hover:text-text-primary")}
             >
               {link.label}
             </Link>
@@ -114,7 +115,7 @@ function SiteHeader() {
             )}
           >
             <Phone className="size-5 text-brand-interactive-teal" weight="fill" aria-hidden />
-            <span>{business.phoneDisplay}</span>
+            <span className="whitespace-nowrap">{business.phoneDisplay}</span>
           </TrackedPhoneLink>
           <TrackedLinkButton
             href="/request-transportation"

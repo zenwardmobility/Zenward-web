@@ -93,7 +93,8 @@ test("autoplay rejection or failure fails silently (no throw)", async () => {
 test("chime is wired once to the teaser's first appearance; never on reopen or replies", () => {
   const launcher = read("components/public/assistant/AssistantLauncher.tsx");
   assert.match(launcher, /const chimed = useRef\(false\)/);
-  assert.match(launcher, /if \(!showTeaser \|\| chimed\.current\) return;\s*chimed\.current = true;\s*void playArrivalChime\(\);/);
+  // ZW-WEB-04K: skipped (without consuming the once-only flag) where the teaser is hidden, i.e. Resource pages on phones.
+  assert.match(launcher, /if \(!showTeaser \|\| chimed\.current\) return;\s*if \(resourcePage && !window\.matchMedia\(TEASER_MIN_WIDTH_ON_RESOURCES\)\.matches\) return;\s*chimed\.current = true;\s*void playArrivalChime\(\);/);
   assert.equal((launcher.match(/playArrivalChime\(/g) ?? []).length, 1);
   assert.doesNotMatch(read("components/public/assistant/AssistantPanel.tsx"), /chime|Audio/i, "no sound in the panel or on replies");
   assert.doesNotMatch(read("lib/assistant/responses.ts"), /chime|Audio/i);

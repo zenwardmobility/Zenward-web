@@ -189,6 +189,19 @@ export default async function MarketHubPage({ params }: Params) {
           </Link>{" "}
           for pre-arranged trips to and from the airport.
         </p>
+        {/* Helpful resources (ZW-WEB-04K); the local guide is Metro Atlanta only. */}
+        {market.slug === "metro-atlanta" && (
+          <p className={cn(typography.bodySmall, "mt-2 text-text-secondary")}>
+            Helpful resources:{" "}
+            <Link href="/resources/what-is-non-emergency-medical-transportation" className="font-medium text-brand-interactive-teal underline">
+              What is non-emergency medical transportation?
+            </Link>{" "}
+            ·{" "}
+            <Link href="/resources/how-to-arrange-nemt-in-metro-atlanta" className="font-medium text-brand-interactive-teal underline">
+              How to arrange NEMT in Metro Atlanta
+            </Link>
+          </p>
+        )}
       </Section>
 
       {/* 3. Who Zenward serves */}

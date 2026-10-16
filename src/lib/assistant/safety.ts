@@ -8,12 +8,13 @@
  *    chat. Detection only triggers a privacy note; nothing is stored or sent.
  * 3. Output validation: every reply, from this deterministic engine or any
  *    future provider, must pass `validateReply`. Links are restricted to
- *    canonical routes, the quote handoff may carry ONLY `?service=`, phone
+ *    canonical routes (including Resource pages), the quote handoff may carry ONLY `?service=`, phone
  *    links only Zenward or 911, and the text must stay within approved
  *    claims.
  */
 import { SERVICE_CATALOG } from "../service-catalog.ts";
 import { PUBLIC_SERVICE_PARAMS } from "../request-intake/service-types.ts";
+import { RESOURCE_SLUGS, resourcePath } from "../resources/slugs.ts";
 import { PATHS, PHONE } from "./knowledge.ts";
 import type { AssistantReply } from "./types.ts";
 
@@ -66,7 +67,8 @@ export const BANNED_OUTPUT: RegExp[] = [
 ];
 
 const SERVICE_PATHS = new Set(Object.values(SERVICE_CATALOG).map((e) => e.path));
-const STATIC_PATHS = new Set<string>([PATHS.quote, PATHS.contact, PATHS.providers, PATHS.services]);
+// Canonical Resource pages (ZW-WEB-04K) are allowed link targets too; never anchors or query strings.
+const STATIC_PATHS = new Set<string>([PATHS.quote, PATHS.contact, PATHS.providers, PATHS.services, ...RESOURCE_SLUGS.map(resourcePath)]);
 const SERVICE_PARAMS = new Set<string>(Object.keys(PUBLIC_SERVICE_PARAMS));
 
 /** True when `href` is a canonical in-site route the assistant may link to. The quote link may carry ONLY `service`. */

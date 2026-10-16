@@ -99,3 +99,15 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Print (ZW-WEB-04K): Resources print as clean pages, without the header,
+   footer, Zenny or CTAs (in-page CTAs use print:hidden). */
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+}

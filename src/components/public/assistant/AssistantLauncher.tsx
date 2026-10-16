@@ -28,6 +28,14 @@ const AssistantPanel = dynamic(loadPanel, { ssr: false, loading: () => null });
 const FORM_PAGES = new Set(["/request-transportation", "/contact"]);
 
 /**
+ * Resources (ZW-WEB-04K): on phones the greeting teaser sat over the opening
+ * lines of the article, so below md it is not shown there (CSS) and the
+ * arrival chime that accompanies it is skipped. The launcher avatar stays.
+ */
+const isResourcePage = (path: string) => path === "/resources" || path.startsWith("/resources/");
+const TEASER_MIN_WIDTH_ON_RESOURCES = "(min-width: 48rem)";
+
+/**
  * Site-wide entry to Zenny, the Zenward Transportation Assistant (ZW-WEB-04H,
  * identity ZW-WEB-04H2): a circular Zenny avatar bottom-right, with a quiet,
  * dismissible teaser ("Hi, I'm Zenny, here to assist you.") on page load. The
@@ -48,7 +56,9 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
   // On the quote form itself the visitor is already in the funnel (the form has its own service guidance
   // and phone panel). There the launcher shows only from lg, where the centred form leaves a side
   // gutter, and collapses to the symbol, so it never sits over form controls.
-  const compact = FORM_PAGES.has(usePathname());
+  const pathname = usePathname();
+  const compact = FORM_PAGES.has(pathname);
+  const resourcePage = isResourcePage(pathname);
   const [teaserDismissed, setTeaserDismissed] = useState(false);
   // Whether the phone step was completed this session. Memory only; the number itself isn't kept.
   const [gateDone, setGateDone] = useState(false);
@@ -84,10 +94,12 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
   // reopen or replies. Supplemental only; silently skipped when autoplay isn't allowed.
   const chimed = useRef(false);
   useEffect(() => {
+    // No chime when the teaser is hidden (Resource pages on phones); the once-only flag stays unset.
     if (!showTeaser || chimed.current) return;
+    if (resourcePage && !window.matchMedia(TEASER_MIN_WIDTH_ON_RESOURCES).matches) return;
     chimed.current = true;
     void playArrivalChime();
-  }, [showTeaser]);
+  }, [showTeaser, resourcePage]);
 
   return (
     <>
@@ -96,6 +108,7 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
           className={cn(
             // Beside the avatar on the same baseline (not stacked above it), so it stays in the bottom
             // corner and clear of first-viewport CTAs (04H2 QA).
+            resourcePage && "max-md:hidden",
             "fixed right-[5rem] z-30 flex max-w-[13.5rem] items-center gap-0.5 rounded-lg rounded-br-sm border border-brand-care-navy/10 bg-surface-elevated pl-3 shadow-md sm:right-[5.5rem]",
             "bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6",
           )}

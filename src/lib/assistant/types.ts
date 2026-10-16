@@ -51,6 +51,7 @@ export type ReplyKind =
   | "contact"
   | "medical"
   | "sensitive"
+  | "resource"
   | "greeting"
   | "thanks"
   | "unknown";

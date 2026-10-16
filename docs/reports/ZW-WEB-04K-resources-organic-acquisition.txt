@@ -1,0 +1,733 @@
+ZENWARD-WEB — ZW-WEB-04K
+RESOURCES + ORGANIC ACQUISITION FOUNDATION — IMPLEMENTATION REPORT
+Date: 2026-10-16
+Mode: LOCAL IMPLEMENTATION ONLY. Not committed, pushed or deployed. 04J and 04L were not started.
+
+==================================================
+1. STARTING STATE
+==================================================
+- Branch main at 5527758 "Refine Zenny assistant experience" (04H2 committed and pushed).
+- Baseline: 160/160 tests passing, tsc clean, lint 0 errors (1 pre-existing warning in
+  src/lib/contact-intake/assistant-callback.test.mjs).
+- No /resources route, no blog or CMS. Content patterns already in place: typed service
+  catalogue (src/lib/service-catalog.ts), pageMetadata (src/lib/seo.ts), breadcrumbJsonLd
+  (src/lib/service-pages.ts), deterministic Zenny engine (src/lib/assistant/*).
+- Not touched: Nemryn, Website Intake, the quote-form contract, the Zenny callback
+  architecture, campaign rules, Google Ads/GA4/GTM.
+
+==================================================
+2. RESOURCE ARCHITECTURE
+==================================================
+Typed, version-controlled data in three layers, with no CMS, MDX or database:
+
+- src/lib/resources/slugs.ts: the six slugs and resourcePath(). This is the only
+  Resource module the Zenny bundle imports.
+- src/lib/resources/catalog.ts: ResourceMeta for each Resource: slug, path, title,
+  description, category, audience, kind (guide/checklist/tool), publishedDate,
+  updatedDate, featured, relatedServices (the first is the CTA service),
+  relatedResources, seoTitle, seoDescription and cardAction. Helpers: getResource,
+  resourcesForService, primaryServiceFor.
+- src/lib/resources/content.ts: the article bodies as typed blocks (p, h2, list,
+  checklist, note), plus intro, bridge and the tool items. It is imported only by
+  server components.
+- src/lib/resources/schema.ts: Article JSON-LD builder.
+
+All four modules use relative imports, so node tests can load them.
+
+Routing: src/app/resources/page.tsx (hub) and src/app/resources/[slug]/page.tsx
+(generateStaticParams; dynamicParams = false, so an unknown slug returns 404). All seven
+pages are statically prerendered.
+
+==================================================
+3. /resources HUB
+==================================================
+- Eyebrow "Resources". H1 "Practical guidance for planning medical transportation". A
+  one-line lede.
+- FEATURED GUIDE card: How to Arrange Non-Emergency Medical Transportation in Metro Atlanta.
+- FOR RIDERS & FAMILIES (4 cards: R1, R3, R4, R5), FOR HEALTHCARE PROVIDERS (1 card, R5,
+  plus a link to /healthcare-providers) and PLANNING TOOLS (1 card). R5 is listed in two
+  sections but is one Resource with one URL (owner refinement).
+- Closing CTA: "Ready to request transportation?" → Request a Quote / Call.
+- Cards show only the category, title, short description and "Read guide" or "View
+  checklist". There are no dates, reading times, engagement counts, author headshots or
+  stock thumbnails.
+- SEO title: "Medical Transportation Resources & Guides | Zenward Mobility" (owner
+  refinement; the H1 is unchanged).
+- Search: SKIPPED. Six Resources across three labelled sections browse well without it.
+  Revisit at about 15 Resources, client-side only (see the backlog).
+
+==================================================
+4. SIX LAUNCH RESOURCES
+==================================================
+Each entry shows: path · H1 · category/kind · CTA. Owner-refined content: see section 30.
+
+R1 /resources/what-is-non-emergency-medical-transportation
+   · "What Is Non-Emergency Medical Transportation?" · Riders & Families / guide
+   · generic /request-transportation (no preselection)
+R2 /resources/how-to-arrange-nemt-in-metro-atlanta (FEATURED)
+   · "How to Arrange Non-Emergency Medical Transportation in Metro Atlanta"
+   · Riders & Families / guide · generic /request-transportation (no preselection)
+R3 /resources/dialysis-transportation-guide
+   · "Recurring Dialysis Transportation: A Guide for Riders and Families"
+   · Riders & Families / guide · ?service=dialysis
+R4 /resources/wheelchair-accessible-transportation-guide
+   · "Wheelchair-Accessible Transportation: What to Know Before Your Ride"
+   · Riders & Families / guide · ?service=wheelchair_transportation
+R5 /resources/hospital-discharge-transportation-checklist
+   · "Hospital Discharge Transportation Checklist" · Healthcare Providers + Riders &
+     Families / checklist · ?service=hospital_discharge
+R6 /resources/medical-transportation-trip-checklist
+   · "Medical Transportation Trip Checklist" · Planning Tools / interactive tool
+   · Final CTA "Ready to request transportation?" → /request-transportation
+
+==================================================
+5. CONTENT QUALITY STRATEGY
+==================================================
+- The content educates first. Each Resource answers the planning question (what to share,
+  timing, return trips, access and what happens after a request) before it mentions Zenward.
+- Short paragraphs and descriptive H2s. Pages with 4 or more H2s get an "On this page"
+  contents list.
+- No cannibalisation of service pages. Service pages describe what Zenward offers;
+  Resources explain how to plan. Titles and H1s differ from the service pages, and the two
+  cross-link.
+- Medical boundary: transportation information only. There is no diagnosis, medication or
+  treatment guidance. The dialysis guide includes a note: "for questions about treatment,
+  speak with your care team". The discharge timing copy had a medication mention, which I
+  removed.
+
+==================================================
+6. CLAIMS / FACTUAL SAFEGUARDS
+==================================================
+- Commercial lines come from canonical modules rather than retyped copy:
+  CONFIRMED.notABooking and CONFIRMED.pricing (operating-facts.ts), and
+  QUOTE_RESPONSE_LINE (trust.ts).
+- Positive claims used are owner-confirmed only:
+  - Metro Atlanta
+  - wheelchair-accessible transportation
+  - a request is reviewed and confirmed (it is not a booking)
+  - pricing is confirmed after review
+  - the 2-hour working-hours response
+  - non-emergency only
+- Not claimed: hours, 24/7, cities or counties, Medicaid/Medicare/insurance, payment
+  methods, same-day availability, fleet, years, reviews, CPR/ADA/drug testing, or
+  equipment specs (lift, ramp, securement).
+- The emergency boundary appears as a note, and the closing CTA carries it as well.
+- Automated scan: see sections 23 and 24.
+
+==================================================
+7. PUBLISHER ATTRIBUTION
+==================================================
+- Each page shows "Published by Zenward Mobility · Published October 16, 2026 · Updated
+  October 16, 2026", using <time dateTime> elements.
+- There are no individual authors, reviewers, "medically reviewed" badges, headshots or
+  bylines. Tests enforce this: no author or reviewer fields in the page, catalogue or
+  content, and no Person or reviewer in the schema. The only structured author is the
+  Organization (section 16).
+- Print adds a small "Zenward Mobility · Non-emergency medical transportation in Metro
+  Atlanta" line.
+
+==================================================
+8. REUSABLE RESOURCE TEMPLATE
+==================================================
+src/components/public/resources/ResourcePage.tsx is a server component used by all six
+Resources. Its parts, in order:
+
+1. Breadcrumb (Resources > current page): an <ol>, the current page marked aria-current.
+2. Category · kind eyebrow.
+3. H1, intro and attribution.
+4. Optional contents list.
+5. Body blocks.
+6. TripChecklist (tool only).
+7. One contextual bridge.
+8. Related Resources.
+9. Final CTA.
+
+Zenny remains available on every Resource page.
+
+New components:
+- ResourceCard.tsx
+- TripChecklist.tsx (the only client component)
+
+==================================================
+9. CONVERSION BRIDGES
+==================================================
+Each guide or checklist has exactly one contextual bridge and one final CTA:
+
+- Bridge: a teal-edged aside with a heading, one sentence, "Request <Service>" (canonical
+  ?service= link, analytics source "resource_page") and "About <Service>".
+  Example (R3): "Need recurring transportation for dialysis?" → Request Dialysis
+  Transportation.
+- Final CTA: ClosingCta "Ready to request transportation?", using the service-specific
+  quote link.
+- R6 (tool): no separate bridge. Its final CTA is "Ready to request transportation?" →
+  Request a Quote.
+
+Analytics: "resource_page" was added to ANALYTICS_SURFACES and REQUEST_CLICK_SOURCES. It
+records the page type only, never which Resource. No new events were added and there is
+still no sink.
+
+==================================================
+10. SERVICE LINKING
+==================================================
+- ServicePage.tsx has a small "Helpful resources" link list, inside the Related services
+  section, driven by resourcesForService (max 3; Resources whose primary service matches
+  come first):
+  - Dialysis → R3
+  - Wheelchair → R4, R1, R5
+  - Hospital Discharge → R5
+  - Medical Appointments → R2, R1, R6
+  - Recurring Care → R2, R3
+  - Rehabilitation, Senior and Airport → none, so the list is omitted.
+- /services: one line, "New to medical transportation? What is NEMT? · How to arrange a
+  ride".
+- /locations/metro-atlanta: one line, "Helpful resources: What is NEMT? · How to arrange
+  NEMT in Metro Atlanta". It renders only for the metro-atlanta market.
+- Campaign pages: untouched.
+
+==================================================
+11. NAV / FOOTER / HOMEPAGE CHANGES
+==================================================
+- Header: "Resources" sits between Healthcare Providers and About. It appears in the
+  desktop nav and the mobile menu, which share NAV_LINKS.
+- The header audit found that at 1024px the extra link squeezed the phone number onto
+  three lines. Fixes:
+  - phone text whitespace-nowrap
+  - nav gap at lg reduced from 1.25rem to 1rem (xl unchanged)
+  - nav links whitespace-nowrap
+  After the fix, the header is one line, 73px tall, with no overflow at 1024, 1100, 1280
+  and 1440.
+- The campaign header is unchanged.
+- Footer: "Resources" added to the Explore column.
+- Homepage: NOT changed. I judged that a homepage Resources block was not needed for
+  launch, since the nav, footer, service pages and Zenny already lead to Resources.
+
+==================================================
+12. ZENNY INTEGRATION
+==================================================
+The integration is deterministic, uses no external AI and leaves the callback
+architecture untouched.
+
+- Service replies add one Resource link after the quote handoff:
+  - dialysis → "Read the dialysis transportation guide"
+  - wheelchair → "Read the wheelchair transportation guide"
+  - hospital discharge → "View the hospital discharge checklist"
+- New topic "prepare" (prepare / checklist / what should I bring). It returns the trip
+  checklist plus a quote link, using the named service when there is one. A discharge
+  question leads with the discharge checklist instead.
+- New topic "learn_nemt" ("what is NEMT / non-emergency medical transportation"). It
+  returns a one-sentence definition plus links to R1 and R2 and Request a Quote.
+- New ReplyKind "resource".
+- safety.ts: Resource paths are now allowed link targets. Anchors and query strings on
+  them are rejected, and validateReply passes for every new reply.
+
+Verified in the browser at all 5 widths:
+
+| Question | Links offered |
+| --- | --- |
+| "How does dialysis transportation work?" | Request Dialysis, dialysis guide, About Dialysis |
+| "What should I prepare for a medical ride?" | trip checklist, Request Medical Appointment |
+| "My mother is being discharged" | Request Hospital Discharge, discharge checklist, About |
+
+Clicking a Resource link navigates and closes the panel.
+
+Bundle: the assistant imports slugs.ts only. Article text, titles and descriptions are
+NOT in any client chunk (verified by searching .next/static).
+
+==================================================
+13. CHECKLIST IMPLEMENTATION
+==================================================
+TripChecklist.tsx is a client component:
+
+- A fieldset and legend with 9 labelled checkboxes. Each label is at least 44px tall
+  (measured 68–96px).
+- An aria-live "N of 9 ready" counter.
+- Buttons: "Print checklist" (window.print()) and "Clear ticks".
+- State is useState only:
+  - nothing is written to localStorage, sessionStorage, IndexedDB or cookies (verified
+    empty)
+  - a reload clears the ticks (verified)
+  - ticking makes no network request
+
+  In the browser, the only requests while scrolling were Next.js prefetches of the
+  related-Resource links, not checklist data.
+- A note on the page says the checklist is not sent to Zenward and is not a request.
+- No PDF library is used.
+
+==================================================
+14. PRINT BEHAVIOR
+==================================================
+- globals.css: @media print { [data-print-hide] { display: none !important } }.
+- PublicLayout wraps the header, footer and Zenny launcher in <div data-print-hide
+  class="contents">. display:contents keeps the layout and sticky header unchanged on
+  screen.
+- In-page print:hidden: breadcrumb, contents list, checklist buttons, bridge, related
+  Resources and the final CTA.
+- Verified with print media emulation at all widths:
+  - hidden: header, footer, Zenny, print/clear buttons, every quote CTA
+  - kept: H1, attribution and all 9 items, including the ticked state
+  - guides: no CTAs and no related Resources; the attribution remains
+
+==================================================
+15. SEO METADATA
+==================================================
+Rendered titles:
+
+| Page | Title |
+| --- | --- |
+| Hub | Medical Transportation Resources & Guides \| Zenward Mobility |
+| R1 | What Is Non-Emergency Medical Transportation? \| Zenward Mobility |
+| R2 | How to Arrange NEMT in Metro Atlanta \| Zenward Mobility |
+| R3 | Recurring Dialysis Transportation Guide \| Zenward Mobility |
+| R4 | Wheelchair-Accessible Transportation Guide \| Zenward Mobility |
+| R5 | Hospital Discharge Transportation Checklist \| Zenward Mobility |
+| R6 | Medical Transportation Trip Checklist \| Zenward Mobility |
+
+- Unique meta descriptions of 135–160 characters, all tested to be 160 or fewer.
+- One H1 per page (verified at all widths).
+- Self-canonical on the production origin.
+- OpenGraph on every page. Resource pages use og:type "article" with publishedTime and
+  modifiedTime.
+
+==================================================
+16. STRUCTURED DATA
+==================================================
+- R1–R5: Article with headline, description, datePublished, dateModified,
+  author (Organization: Zenward Mobility, url; added in the owner refinement), publisher
+  (Organization: name, url, logo) and mainEntityOfPage. Each also has a BreadcrumbList.
+- R6 (interactive tool): BreadcrumbList only. Article doesn't fit an interactive tool, so
+  I didn't force it.
+- Hub: BreadcrumbList.
+- None of them carry an individual author, reviewer, rating or review count (tested).
+
+==================================================
+17. SITEMAP / INDEXING
+==================================================
+- The sitemap adds /resources and the six RESOURCE_PATHS: 24 URLs, previously 17.
+- The hub and all six Resources return 200 with no robots meta, so they are indexable.
+- /resources/<unknown> returns 404 with noindex.
+- Campaign pages are unchanged: still noindex, follow, with zero metro-atlanta/ URLs in
+  the sitemap.
+
+==================================================
+18. RELATED RESOURCES
+==================================================
+Each Resource links to 2–3 related Resources (tested to resolve and never self-link):
+
+- R1 → R2, R6
+- R2 → R6, R1, R4
+- R3 → R6, R2 (plus the dialysis service bridge)
+- R4 → R6, R5
+- R5 → R6, R4 (plus the discharge service bridge)
+- R6 → R2, R5
+
+==================================================
+19. LOCAL SEO SAFEGUARDS
+==================================================
+- No city or county pages. A test guards against city slugs and a nested [city] route.
+- R2 is the single local Resource and says "Metro Atlanta" only, with no city list.
+- The Metro Atlanta hub link to R2 appears only for the metro-atlanta market.
+
+==================================================
+20. ACCESSIBILITY
+==================================================
+- Headings: one H1. H2 sections in order. Cards use H3 under their section H2, and the
+  featured card uses an H2.
+- Breadcrumb: nav aria-label="Breadcrumb", an <ol>, a decorative aria-hidden separator
+  and aria-current="page".
+- Link names: whole-card links read as the title plus description plus action. Arrow
+  icons are aria-hidden.
+- Checklist: real checkboxes inside <label>, fieldset and legend, a polite live counter,
+  and Print and Clear buttons with text labels.
+- Touch targets: the breadcrumb, contents, Helpful resources and bridge links are all at
+  least 44px tall (min-h-11).
+- Contrast: the existing approved tokens (text-accent-on-tint, text-secondary,
+  text-muted-on-tint).
+- Category is shown as text (eyebrow and section headings), never by colour alone.
+- Keyboard: every control is a native link, button or checkbox, and focus-visible is
+  global.
+
+==================================================
+21. RESPONSIVE QA
+==================================================
+Run with Playwright and Chrome on the production build (NEXT_PUBLIC_SITE_URL=production)
+at 390, 430, 768, 1024 and 1440.
+
+Routes:
+- /resources and all six Resources
+- smoke: /, /services, the dialysis, wheelchair, hospital-discharge and
+  medical-appointments service pages, /request-transportation, /contact,
+  /healthcare-providers, /metro-atlanta/dialysis-transportation (campaign)
+
+Results:
+- 0 horizontal overflow
+- exactly 1 H1 on every route
+- every route returns 200
+- the nav doesn't wrap at 1024 or above, and Resources appears in it
+- "Helpful resources" appears on the four relevant service pages
+- 0 console errors, 0 external requests
+- The article measure is a narrow column (Section narrow), and the checklists stack
+  cleanly on phones.
+
+Screenshots were reviewed for the hub (1440), a dialysis guide (390) and the header
+(1024, before and after the fix).
+
+Zenny overlap. This is a known, pre-existing behaviour and an owner decision (section 28):
+- The floating launcher is fixed bottom-right, so while scrolling it inevitably passes
+  over parts of full-width cards, just as on every existing page.
+- Content can always be scrolled clear of it.
+- On first load on phones (390/430), the greeting teaser used to sit over the first lines
+  of the "On this page" list. RESOLVED in the owner refinement (section 30): the teaser
+  is no longer shown on Resource pages below 768px.
+- At 1024 and above, the guide pages are clear.
+
+==================================================
+22. PERFORMANCE
+==================================================
+Bundle impact, measured against a clean build of HEAD (5527758) in a temporary worktree,
+gzip of the JS referenced by each prerendered page:
+
+| Page | Change |
+| --- | --- |
+| /, /services, service pages, /about, /contact | +0.0 KB gz (+0.1 KB raw: the nav link) |
+| /resources | 188.6 KB gz, the same as /services |
+| Resource pages | 190.5 KB gz (about +0.9 KB gz versus a service page: the shared TripChecklist chunk) |
+| Zenny engine chunk (lazy, loaded on open) | 12.2 → 13.0 KB gz (+0.76 KB) |
+
+- I caught and fixed one problem: the first draft imported the full catalogue into the
+  Zenny chunk. Splitting slugs.ts out cut that addition to slugs only.
+- No new dependencies were added (no CMS, search, animation or carousel libraries).
+- All seven pages are static (SSG).
+
+==================================================
+23. CLAIM SCAN
+==================================================
+I scanned the rendered <main> of all seven pages for: 24/7, guarantee, always available,
+Medicaid, Medicare, insurance, private pay, ADA, CPR, drug test, door-through-door,
+door-to-door, stretcher, oxygen, clinical monitoring, same-day, all Georgia, statewide,
+Marietta, Decatur, Alpharetta, Roswell, Sandy Springs, county/counties, free and
+certified.
+
+There were 2 hits, both acceptable:
+- R3: "on the same days, at similar times" describes the schedule; it is not a same-day
+  claim.
+- R5: "If the patient needs ambulance or stretcher transport, arrange that separately."
+  This is a negative boundary statement, which is consistent with the confirmed
+  non-emergency scope.
+
+The source-level test "no invented claims in Resource content" scans every title,
+description, intro, block, bridge and checklist item. It now runs in npm test.
+
+==================================================
+24. TESTS / TYPECHECK / LINT / BUILD
+==================================================
+New file: src/lib/resources/resources.test.mjs with 21 tests covering:
+- exactly six Resources
+- unique slugs, paths, titles, SEO titles and descriptions
+- description length
+- slugs.ts in sync with the catalogue
+- featured guide and section population
+- valid dates
+- related services and Resources resolve (2–3 each)
+- canonical service CTAs
+- content structure
+- the prohibited-claims scan
+- the medical boundary and 911
+- publisher attribution and dates; no authors or reviewers
+- truthful Article schema; R6 breadcrumb only
+- indexable, self-canonical, dynamicParams=false (so an unknown slug 404s)
+- the sitemap includes the Resources and excludes campaigns
+- nav and footer say "Resources", not "Blog"
+- no CMS, MDX, search or AI dependencies; no city pages
+- the checklist persists nothing and makes no network calls
+- the print stylesheet and data-print-hide wiring
+- service-page Helpful resources
+- the three required Zenny phrases plus "what is NEMT"
+- canonical Resource links (anchors and queries rejected)
+- the Zenny bundle never imports the content or the catalogue
+
+Campaign noindex stays covered by the existing tests ("campaign indexing is unchanged").
+I also confirmed it in the build: noindex, follow.
+
+Results:
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 188/188 pass (160 before 04K; 21 added at first implementation, 7 added in the owner refinement; 2 existing Zenny tests updated) |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning (assistant-callback.test.mjs:24), unchanged |
+| npm run build | success, 35 static pages (7 new) |
+
+==================================================
+25. FILES MODIFIED
+==================================================
+New:
+- src/app/resources/page.tsx
+- src/app/resources/[slug]/page.tsx
+- src/components/public/resources/ResourcePage.tsx
+- src/components/public/resources/ResourceCard.tsx
+- src/components/public/resources/TripChecklist.tsx
+- src/lib/resources/slugs.ts
+- src/lib/resources/catalog.ts
+- src/lib/resources/content.ts
+- src/lib/resources/schema.ts
+- src/lib/resources/resources.test.mjs
+- docs/product/resources-backlog.md
+- docs/reports/ZW-WEB-04K-resources-organic-acquisition.txt
+
+Modified:
+- src/app/sitemap.ts: /resources plus the six Resource paths
+- src/app/globals.css: print stylesheet
+- src/app/services/page.tsx: one Resources line
+- src/app/locations/[market]/page.tsx: one Helpful resources line (Metro Atlanta only)
+- src/components/layout/PublicLayout.tsx: data-print-hide wrappers
+- src/components/public/PublicHeader.tsx: the Resources link, plus the 1024px no-wrap fix
+- src/components/public/PublicFooter.tsx: the Resources link
+- src/components/public/ServicePage.tsx: the Helpful resources list
+- src/lib/analytics/events.ts: the "resource_page" surface and source
+- src/lib/assistant/intents.ts: the prepare and learn_nemt topics
+- src/lib/assistant/responses.ts: Resource links and replies
+- src/lib/assistant/safety.ts: Resource paths allowed
+- src/lib/assistant/types.ts: ReplyKind "resource"
+- src/components/public/assistant/AssistantLauncher.tsx: no greeting teaser on Resource
+  pages below 768px (owner refinement)
+- src/lib/assistant/assistant.test.mjs, src/lib/assistant/chime.test.mjs: two assertions
+  updated to the launcher's new lines (owner refinement)
+
+Not modified: Nemryn and request-intake, the quote form, the contact/callback path,
+campaign pages and rules, the homepage.
+
+==================================================
+26. SEARCH CONSOLE CHECKLIST (post-deploy)
+==================================================
+No verification tag was added. That needs owner-supplied verification details.
+
+[ ] 1. Open https://www.zenwardmobility.com/sitemap.xml. Confirm 24 URLs, including
+       /resources and the six /resources/... URLs, and no /metro-atlanta/<campaign> URLs.
+[ ] 2. Search Console → Sitemaps: submit (or resubmit) sitemap.xml. Confirm "Success".
+[ ] 3. URL Inspection on /resources: "URL is available to Google", canonical = itself.
+[ ] 4. URL Inspection on each of the six Resource URLs: indexable, user-declared
+       canonical = Google-selected canonical, and Breadcrumbs (plus Article for R1–R5)
+       detected under Enhancements.
+[ ] 5. Request indexing for /resources and R2 (featured) first, then the rest. Don't
+       repeat requests.
+[ ] 6. Spot-check one campaign URL: "Excluded by noindex" (expected).
+[ ] 7. Weekly for 4–6 weeks, check Pages → Indexed for the seven URLs, and look for
+       "Crawled – currently not indexed" or duplicate-canonical issues.
+[ ] 8. After 4–8 weeks, check Performance → Queries and Pages, filtered to /resources/,
+       for impressions, CTR and the questions people actually search.
+[ ] 9. Choose the next Resources from real demand: Search Console queries, Zenny
+       questions and calls to the team. Use docs/product/resources-backlog.md as the
+       candidate list.
+
+==================================================
+27. BACKLOG
+==================================================
+docs/product/resources-backlog.md (not implemented). It contains:
+- How to add a Resource (5 steps).
+- High commercial intent: NEMT vs rideshare vs ambulance; family guide to appointment
+  transportation; how recurring transportation works; airport transportation for older
+  adults; rehabilitation transportation guide.
+- Provider intent: care coordinator discharge planning guide; facility request checklist;
+  questions care teams should ask an NEMT provider.
+- Educational: questions to ask an NEMT provider; preparing a parent for medical
+  transportation; understanding return-trip transportation.
+- Guardrails: no city pages, no coverage explainers, and no search until about 15
+  Resources.
+
+==================================================
+28. OWNER DECISIONS
+==================================================
+1. Content approval. DONE: owner editorial review completed and refinements applied
+   (section 30).
+2. Publication date. All six show Published/Updated October 16, 2026. Should this change
+   to the actual deploy date?
+3. Homepage. No Resources entry was added (optional per the brief). Should a restrained
+   one-line link be added later?
+4. Zenny teaser on phones. DECIDED: suppressed on /resources and /resources/* below
+   768px; the launcher stays (section 30).
+5. Hub SEO title. DECIDED: "Medical Transportation Resources & Guides".
+6. Search Console verification. Supply the verification method when you're ready
+   (section 26).
+
+==================================================
+29. RECOMMENDATION BEFORE COMMIT
+==================================================
+The owner editorial review is complete. Ready to commit once the publication date
+(decision 2) is confirmed.
+All checks pass and the bundle impact is negligible. Campaign and intake behaviour is
+unchanged.
+
+Stage exact paths only. These are the files in section 25 plus the three files changed by
+the owner refinement (AssistantLauncher.tsx and two existing Zenny test files). The
+intake diagnostic report (docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt)
+is a separate document; include it only if wanted.
+
+  git add src/app/resources src/components/public/resources src/lib/resources \
+    docs/product/resources-backlog.md docs/reports/ZW-WEB-04K-resources-organic-acquisition.txt \
+    src/app/sitemap.ts src/app/globals.css src/app/services/page.tsx "src/app/locations/[market]/page.tsx" \
+    src/components/layout/PublicLayout.tsx src/components/public/PublicHeader.tsx \
+    src/components/public/PublicFooter.tsx src/components/public/ServicePage.tsx \
+    src/lib/analytics/events.ts src/lib/assistant/intents.ts src/lib/assistant/responses.ts \
+    src/lib/assistant/safety.ts src/lib/assistant/types.ts \
+    src/components/public/assistant/AssistantLauncher.tsx \
+    src/lib/assistant/assistant.test.mjs src/lib/assistant/chime.test.mjs
+
+Suggested message: "Add Resources hub and organic acquisition foundation".
+After deploy, run the production QA and work through the Search Console checklist
+(section 26).
+
+==================================================
+30. OWNER CONTENT REFINEMENT (final)
+==================================================
+The owner's editorial review is complete. These refinements were applied to the
+uncommitted 04K work (nothing was discarded, reset or stashed).
+
+R1 / R2 generic quote CTA:
+- R1 and R2 (and the R6 tool, as before) now link to the generic /request-transportation
+  with no service preselected. Previously they preselected Medical Appointment.
+- The bridge reads "Request a Quote" with "View transportation services" (/services) as
+  the secondary link.
+- New catalogue field: genericRequest. New helper: requestCtaFor(), now the single source
+  for the bridge and the final CTA. Service guides still preselect their service: R3
+  dialysis, R4 wheelchair_transportation, R5 hospital_discharge.
+
+R1, What is NEMT:
+- New definition: "Non-emergency medical transportation, often called NEMT, is
+  pre-arranged transportation to or from medical care for people who do not need
+  emergency medical transport."
+- "People who don't drive, or shouldn't drive…" is now "People who cannot drive
+  themselves or need another transportation option for a medical appointment".
+- The ambulance section is simplified to the owner text: "NEMT is not emergency medical
+  transportation. If someone needs emergency medical care, call 911. Zenward does not
+  provide ambulance or stretcher transportation." The general ambulance-use description
+  and the now-duplicate emergency note were removed.
+
+R2, Metro Atlanta guide:
+- The six steps are unchanged.
+- Added "Common questions" as a new block type, "faq", rendered as a definition list.
+  Answers use confirmed facts only:
+  - How far ahead? factAnswer("advanceNotice"): availability depends on the trip details
+    and time; request as early as possible. No notice period is invented.
+  - For a family member? Yes. The form already records the requester and their
+    relationship (family, caregiver, care coordinator), so Zenward knows who to contact.
+  - Return time unknown? CONFIRMED.returnTrip: say "not sure yet", and Zenward confirms
+    return-trip timing.
+- No FAQPage schema was added.
+
+R3, Dialysis:
+- The intro now reads: "For many riders, dialysis transportation follows a repeating
+  weekly schedule. Planning those trips together can make transportation easier to
+  coordinate for the rider and family."
+- "Session lengths can vary…" is now "Return pickup times may vary, so the return
+  arrangement should be confirmed rather than assumed."
+- The rest is unchanged.
+
+R4, Wheelchair (transfer language removed):
+- Removed "Whether they can stand or take a few steps with help".
+- The assistance paragraph no longer says "help beyond getting into the vehicle". It now
+  reads "If the passenger needs any assistance, describe it in the request…".
+- No curb-to-curb, door-to-door or door-through-door content was added (tested).
+- FOLLOW-UP: add the assistance-level content after 04G3 establishes the canonical
+  definitions.
+
+R5, Hospital discharge (dual audience):
+- One Resource, one URL. The catalogue now has `alsoIn: ["riders-families"]`.
+- The hub lists R5 under both For Riders & Families and For Healthcare Providers. Each
+  card is labelled with the section it sits in.
+- The page eyebrow reads "For Healthcare Providers · For Riders & Families · Checklist".
+- The timing paragraph is simplified to "Hospital discharge times can change during the
+  day. Share the best estimate available and update the transportation provider if the
+  expected time changes."
+- The ambulance/stretcher boundary is kept.
+
+R6, Trip checklist:
+- "Appointment or event time" is now "Appointment or required arrival time".
+- No assistance level was added.
+- FOLLOW-UP (planned for 04G3): a "Pickup & assistance level" item, plus a
+  transportation/service type item if useful.
+
+Hub SEO title: "Medical Transportation Resources & Guides | Zenward Mobility". The H1 is
+unchanged: "Practical guidance for planning medical transportation".
+
+Organization author schema:
+- Article JSON-LD for R1–R5 now carries author {"@type":"Organization", name:"Zenward
+  Mobility", url}.
+- There is no individual author. The visible attribution stays "Published by Zenward
+  Mobility".
+- The R6 tool and the hub remain BreadcrumbList only.
+
+Resource-page Zenny teaser:
+- On /resources and /resources/*, the automatic greeting teaser is hidden below 768px
+  (CSS max-md:hidden). The arrival chime that accompanies it is skipped there too.
+- The launcher avatar, the panel, assistant capabilities and the callback flow are
+  unchanged.
+- At 768px and wider, and on all other pages, the teaser behaves as before.
+- Verified in the browser at 390/430 (teaser hidden, launcher present, no chime) and at
+  768/1024/1440 (teaser shown), on /resources, all six Resources, / and /services.
+- File: src/components/public/assistant/AssistantLauncher.tsx. Two existing Zenny tests
+  that pin its exact code were updated to the new lines, with their intent unchanged.
+
+04G3 assistance-level follow-up (not started):
+- R4: assistance-level explanation using the 04G3 canonical definitions.
+- R6: a "Pickup & assistance level" checklist item, and service type if useful.
+- Consider whether R2 step 4 ("Share mobility and assistance needs") should link to the
+  canonical explainer.
+
+Verification after the refinement:
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 188/188 pass |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning |
+| npm run build | success |
+| Browser QA (390–1440) | /resources, all six Resources, / and /services: 0 overflow, 1 H1, 0 console errors |
+
+==================================================
+31. FINAL PRE-COMMIT CONSISTENCY CHECK
+==================================================
+Rendered /resources title: verified in the production build (.next/server/app/resources.html)
+and from the running server. The <title> is exactly "Medical Transportation Resources &
+Guides | Zenward Mobility" (HTML-encoded as &amp;), and og:title matches.
+
+Finding: A, report-only stale text. The implementation was already correct. Section 15's
+hub row still listed the old title; it is now corrected. Sections 3 and 30 were already
+correct.
+
+Publication date (owner decision): keep "Published October 16, 2026 · Updated October 16,
+2026" if deployment happens on October 16, 2026. If deployment is later, the owner will
+update the dates before release. The dates were not changed in this check.
+
+Owner refinements re-verified in the browser on the production build, at 390, 430, 768,
+1024 and 1440:
+
+| Check | Result |
+| --- | --- |
+| R1 CTA | generic /request-transportation, "Request a Quote" |
+| R2 CTA | generic /request-transportation, "Request a Quote" |
+| R3 CTA | /request-transportation?service=dialysis |
+| R4 CTA | /request-transportation?service=wheelchair_transportation |
+| R5 CTA | /request-transportation?service=hospital_discharge |
+| R5 placement | listed under For Riders & Families AND For Healthcare Providers, one URL (/resources/hospital-discharge-transportation-checklist), one catalogue entry |
+| Article JSON-LD (R1–R5) | author {"@type":"Organization","name":"Zenward Mobility","url":…} |
+| Individual author | none: no Person or reviewer anywhere (tested) |
+| Zenny teaser | hidden on /resources and /resources/* below 768px; no chime there |
+| Zenny teaser elsewhere | shown at 768px and wider, and on other pages |
+| Zenny launcher | present on every page at every width |
+| Intake / Nemryn | 0 changed files under request-intake, request-transportation, quote-form, RequestTransportationForm, contact-intake, the assistant actions and docs/architecture |
+| Google tracking | none: no gtag, GTM, GA4, Ads tag or dataLayer in the diff or new files (the only text hit is events.ts's existing "NO VENDOR IS INSTALLED" comment) |
+| Browser QA | 0 issues: overflow, H1 count, console errors, teaser/launcher expectations |
+
+Final validation:
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 188/188 pass, 0 fail |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning (assistant-callback.test.mjs:24) |
+| npm run build | success |
+
+STOPPED. Not committed, pushed or deployed. 04G3, 04J and 04L were not started.

@@ -68,6 +68,8 @@ export type Topic =
   | "provider"
   | "contact"
   | "medical"
+  | "prepare"
+  | "learn_nemt"
   | "greeting"
   | "thanks"
   | "general";
@@ -94,6 +96,9 @@ const TOPIC_PATTERNS: [Topic, RegExp][] = [
   ["process", /\bhow (do|can) i (book|request|get|schedule|order|arrange)\b|\bbook(ing)?\b|\bschedule a (ride|trip)\b|\brequest a (ride|quote|trip)\b|\bget a quote\b|\bhow (does|do) (it|this|you) work\b|\bhow it works\b|\bsign up\b/],
   ["availability", /\bavailab\w*|\bdo you have (a )?(car|van|vehicle|driver)\b|\btoday\b|\btonight\b|\btomorrow\b|\bright now\b|\basap\b|\bsame ?day\b|\burgent\w*|\bin advance\b|\bahead of time\b|\bhow (early|far ahead|far in advance)\b|\bnotice\b|\bbook ahead\b|\bnext day\b/],
   ["area", /\bwhere do you\b|\bdo you (serve|cover|go to|operate|work in|come to)\b|\bservice area\b|\bwhich (areas|cities|counties)\b|\batlanta\b|\bgeorgia\b|\bcounty\b|\bstatewide\b|\bmy (area|city|town|zip)\b|\bzip ?code\b/],
+  // Planning questions answered with a Resource (ZW-WEB-04K).
+  ["prepare", /\bprepar\w*|\bchecklists?\b|\bwhat (should|do) (i|we) (bring|pack|need to bring|have ready)\b|\bwhat to (bring|pack)\b|\bget ready for\b/],
+  ["learn_nemt", /\bwhat (is|are|does) (nemt|non emergency (medical )?transport\w*)\b|\bwhat does nemt mean\b|\bnemt mean\b/],
   ["medical", /\bshould i (take|go|see)\b|\bis it safe to\b|\bsymptoms?\b|\bmedications?\b|\bdos(e|age)\b|\bdiagnos\w*/],
   ["contact", /\btalk to\b|\bspeak (to|with)\b|\bcall (you|zenward)\b|\bphone number\b|\bcontact\b|\bhuman\b|\breal person\b|\bsomeone\b|\brepresentative\b|\bemail you\b|\bmessage (you|your team)\b/],
   ["greeting", /^ (hi|hello|hey|good (morning|afternoon|evening))\b/],

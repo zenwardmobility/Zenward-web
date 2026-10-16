@@ -323,7 +323,7 @@ test("quote page: inline entry below 1024px, compact launcher from 1024px, one s
   assert.doesNotMatch(inline, /respond\(|AssistantPanel|lib\/assistant\/(responses|intents|knowledge|provider)/, "no second engine or panel (identity constants only)");
   const launcher = read("components/public/assistant/AssistantLauncher.tsx");
   assert.match(launcher, /const FORM_PAGES = new Set\(\["\/request-transportation", "\/contact"\]\)/);
-  assert.match(launcher, /const compact = FORM_PAGES\.has\(usePathname\(\)\)/);
+  assert.match(launcher, /const pathname = usePathname\(\);\s*const compact = FORM_PAGES\.has\(pathname\);/);
   assert.match(launcher, /compact \? "hidden size-12 lg:inline-flex" : "inline-flex size-14"/);
   assert.match(launcher, /const showTeaser = !open && !compact && !teaserDismissed/);
   assert.match(launcher, /window\.addEventListener\(OPEN_ASSISTANT_EVENT, onOpen\)/);

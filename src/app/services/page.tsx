@@ -137,6 +137,16 @@ export default function ServicesPage() {
             );
           })}
         </ol>
+        <p className={cn(typography.bodySmall, "mt-xl text-text-secondary")}>
+          New to medical transportation?{" "}
+          <Link href="/resources/what-is-non-emergency-medical-transportation" className="font-semibold text-text-accent-on-tint underline-offset-4 hover:underline">
+            What is non-emergency medical transportation?
+          </Link>{" "}
+          ·{" "}
+          <Link href="/resources/how-to-arrange-nemt-in-metro-atlanta" className="font-semibold text-text-accent-on-tint underline-offset-4 hover:underline">
+            How to arrange a ride
+          </Link>
+        </p>
       </Section>
 
       <ClosingCta

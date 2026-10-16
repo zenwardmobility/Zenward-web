@@ -36,6 +36,8 @@ export const ANALYTICS_SURFACES = [
   "request_form",
   "provider_page",
   "contact_page",
+  // ZW-WEB-04K: page type only (never which Resource).
+  "resource_page",
 ] as const;
 export type AnalyticsSurface = (typeof ANALYTICS_SURFACES)[number];
 
@@ -55,6 +57,7 @@ const REQUEST_CLICK_SOURCES = [
   "provider_page",
   "campaign_page",
   "market_page",
+  "resource_page",
   "other",
 ] as const;
 const PROVIDER_CLICK_SOURCES = ["homepage", "healthcare_providers_page", "footer", "market_page"] as const;

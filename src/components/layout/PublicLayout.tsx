@@ -8,11 +8,16 @@ import { buildAssistantContext } from "@/components/public/assistant/context";
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <PublicHeader />
+      {/* data-print-hide: site chrome is left off printouts (ZW-WEB-04K, e.g. the trip checklist). */}
+      <div data-print-hide className="contents">
+        <PublicHeader />
+      </div>
       <main className="flex-1">{children}</main>
-      <PublicFooter />
-      {/* Site-wide Transportation Assistant (ZW-WEB-04H); the panel loads on first open. */}
-      <AssistantLauncher context={buildAssistantContext()} />
+      <div data-print-hide className="contents">
+        <PublicFooter />
+        {/* Site-wide Transportation Assistant (ZW-WEB-04H); the panel loads on first open. */}
+        <AssistantLauncher context={buildAssistantContext()} />
+      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ const COLUMNS: { heading: string; links: { label: string; href: string }[] }[] =
       { label: "Services", href: "/services" },
       { label: "How It Works", href: "/#how-it-works" },
       { label: "Healthcare Providers", href: "/healthcare-providers" },
+      { label: "Resources", href: "/resources" },
       { label: "About", href: "/about" },
     ],
   },

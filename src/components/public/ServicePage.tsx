@@ -13,6 +13,7 @@ import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { getDefaultMarket } from "@/lib/service-area";
 import { serviceJsonLd } from "@/lib/service-pages";
+import { resourcesForService } from "@/lib/resources/catalog";
 import { SERVICES, type ServiceContent, type ServiceSectionKey } from "@/lib/services";
 
 /**
@@ -241,7 +242,32 @@ function Related({ service, tone }: { service: ServiceContent; tone: SectionTone
           );
         })}
       </ul>
+      <HelpfulResources service={service} />
     </Section>
+  );
+}
+
+/** Small "Helpful resources" link list (ZW-WEB-04K); omitted when no Resource relates to the service. */
+function HelpfulResources({ service }: { service: ServiceContent }) {
+  const resources = resourcesForService(service.slug).slice(0, 3);
+  if (resources.length === 0) return null;
+  return (
+    <div className="mt-2xl border-t border-border-subtle pt-lg">
+      <h3 className={cn(typography.label, "text-text-primary")}>Helpful resources</h3>
+      <ul className="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:gap-x-lg">
+        {resources.map((resource) => (
+          <li key={resource.slug}>
+            <Link
+              href={resource.path}
+              className={cn(typography.bodySmall, "inline-flex min-h-11 items-center gap-1.5 font-semibold text-text-accent-on-tint underline-offset-4 hover:underline")}
+            >
+              {resource.title}
+              <ArrowRight className="size-4 shrink-0" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
