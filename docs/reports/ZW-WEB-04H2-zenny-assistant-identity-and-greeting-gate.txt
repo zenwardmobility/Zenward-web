@@ -1,0 +1,475 @@
+ZW-WEB-04H2 — ZENNY ASSISTANT IDENTITY, PHONE GATE + FOLLOW-UP LEAD
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: LOCAL IMPLEMENTATION ONLY. Not committed, pushed or deployed. No
+Nemryn, Website Intake, quote-form or transportation-request change. No
+external AI, no Google tracking. 04J not started.
+This report reflects the FINAL owner revision. Earlier iterations (a
+faceless illustration, then a first-name + phone gate kept in session memory)
+are superseded; see §20.
+
+
+0. STARTING STATE
+-----------------
+  HEAD = origin/main  07efbf7 "Add operating facts and commercial clarity"
+                      (04I, pushed); clean tree at the start of 04H2
+  Tests               140/140
+
+
+1. OWNER-APPROVED ZENNY PORTRAIT
+--------------------------------
+Asset: public/images/assistant/zenny-avatar.png (owner-supplied, 1254x1254,
+2.3 MB). It is a fictional portrait; the file's download metadata shows it
+was generated via chatgpt.com, i.e. not a real person (owner to retain any
+applicable usage terms). Content check: friendly professional woman
+(~30s–40s), warm natural expression, neutral cream blazer, simple soft
+background, centred head-and-shoulders. No scrubs, stethoscope, cross,
+headset, badge or logo.
+Used as supplied (no substitute, no hotlink) for the launcher (56px; 48px
+compact), panel header (40px), Zenny message avatar (28px) and the
+request-page inline entry (24px). Rendered with next/image, so the 2.3 MB
+PNG is never sent to visitors: the built-in optimiser serves a small
+WebP/AVIF at the displayed size (verified: every avatar loads from
+/_next/image, ~55px at 1x). Circular crop with object-fit: cover (verified
+52x52 and 44x44 rendered circles; face centred and readable at 56/48/40/
+28/24px). Decorative (alt=""); the launcher/heading text names Zenny.
+The earlier faceless SVG and an interim 256px WebP derivative were
+removed. Locked public/brand assets untouched.
+
+
+2. TEASER
+---------
+Exact: "Hi, I'm Zenny, here to assist you." (typographic apostrophe), beside
+the avatar on the same baseline (moved there in QA so it never covers the
+homepage reassurance-card phone link). Text button opens the panel; "Dismiss
+Zenny's greeting" (x, 44px) hides it; opening also hides it. Once per
+layout/session (the launcher persists across in-site navigation; a reload
+resets). Never on form pages (/request-transportation, /contact). No unread
+badge, counter, pulse or "online" dot.
+
+
+3. ARRIVAL SOUND
+----------------
+src/lib/assistant/chime.ts. Native Web Audio API, no audio file, no
+library, no external URL, no network, no voice. Two soft sine notes, E5 659
+Hz then A5 880 Hz, gentle attack and decay, ~0.55 s, peak gain 0.2 (~20%).
+Played AT MOST ONCE per page lifecycle, when the teaser FIRST appears
+(launcher effect guarded by a ref). Never on panel open/reopen, replies,
+validation errors, phone delivery, quote clicks or later in-site
+navigation; never on form pages (no teaser there). Supplemental only: no
+screen-reader announcement and nothing depends on it.
+
+
+4. AUTOPLAY FALLBACK
+--------------------
+Browser policy respected: if the browser reports no prior user activation
+(navigator.userActivation.hasBeenActive === false), nothing is created (no
+AudioContext, so no autoplay console warning). Where that API is missing it
+tries once and quietly closes a context that isn't allowed to run. Never
+throws, logs, retries or bypasses protection; the teaser never waits on
+it. In practice a fresh first page load is silent (Zenny appears visually),
+and the chime is heard when the teaser first appears after the visitor has
+interacted (e.g. arrived on a form page, then navigated).
+QA (instrumented AudioContext): fresh load -> 0 contexts, teaser shown,
+console clean. Interact on /contact, navigate home -> 1 context, 2
+oscillators. Phone step + reply + reopen + navigate -> still 1/2 (no
+repeat). 0 external requests.
+
+
+5. REVISED TIME GREETING
+------------------------
+Visitor's local clock (unchanged buckets): 05:00–11:59 morning,
+12:00–16:59 afternoon, 17:00–04:59 evening.
+"Good {morning|afternoon|evening}. I'm Zenny, here to assist you with your
+transportation enquiries." Then: "Kindly provide a phone number in case we
+need to contact you." No quick actions and no chat input until the phone
+step is complete. Same-session reopen: "Welcome back. How can I assist you
+today?" + quick actions.
+
+
+6. PHONE-ONLY GATE
+------------------
+First-name field removed entirely. One field: label "Phone number",
+placeholder "(404) 555-0123", type=tel, autocomplete=tel, 16px on phones;
+button "Continue" beside it. Validation unchanged (validatePhone): accepts
+4045550123, 404-555-0123, (404) 555-0123, 404.555.0123, +1 404 555 0123,
+14045550123; rejects short, long, letters, extensions, non-US, 0/1 area
+codes. Inline role="alert" error ("Please enter your phone number." /
+"Please enter a 10-digit US phone number, for example 404-555-0123.").
+No name, email, address, medical, insurance or DOB fields (tested).
+
+
+7. CONSENT WORDING
+------------------
+Directly below the field (secondary, readable, linked via
+aria-describedby): "By continuing, you agree that Zenward may use this
+number to follow up about your transportation enquiry." No marketing, SMS or
+advertising opt-in language. The old session-only disclosure was removed
+because it is no longer true.
+
+
+8. CONTACT-DELIVERY IMPLEMENTATION
+----------------------------------
+Smallest safe server-side path, reusing the existing trusted contact
+delivery:
+  src/lib/contact-intake/types.ts    + AssistantCallbackInput { phone },
+                                       AssistantCallbackResult { delivered }
+  src/lib/contact-intake/adapter.ts  + submitCallback() on the existing
+                                       ContactIntakeAdapter:
+      stub (repo default)  -> { delivered: false }, sends nothing
+      email (production)   -> one Resend email to CONTACT_INTAKE_EMAIL,
+                              server-only credentials; delivered:true ONLY on
+                              a 2xx; failures log status/error name only,
+                              never the number
+    + buildAssistantCallbackText() (pure, tested)
+  src/app/assistant/actions.ts       "use server" submitAssistantCallback:
+      accepts EXACTLY { phone } (any other key -> rejected, not trimmed),
+      re-validates the number server-side, applies the existing anti-bot
+      timing guard (src/lib/forms/guard.ts; min 2.5 s since the panel
+      opened), never logs the number, never throws to the client.
+Browser -> Server Action -> contact adapter -> Resend. The number is never
+sent from the browser to a third-party API; no credentials reach the client.
+Client flow: one attempt on Continue (button disabled while sending; no
+automatic retry). The number is then cleared from component state; the
+launcher keeps only an in-memory "phone step done" flag (no number), so a
+same-session reopen doesn't ask again; a reload resets.
+  Delivered      -> "Thank you. How can I assist you today?" + quick
+                    actions + chat input. The number is not echoed.
+  Not delivered  -> "I couldn't save your number for follow-up, but you can
+                    still use Zenny below." + "Call Zenward 678-935-5489" +
+                    quick actions + chat input. Zenny stays fully usable;
+                    no fake success.
+  Never says an operator will call, a callback is scheduled, or anything
+  definite.
+
+
+9. EXACT DATA DELIVERED
+-----------------------
+Browser -> server (verified request body): {"phone":"4045550123"} plus the
+panel-open timestamp for the anti-bot guard. Nothing else.
+Server -> Zenward inbox (email):
+  Subject: Follow-up number — Zenny Transportation Assistant
+  Zenny Transportation Assistant: follow-up number
+  Source:       Zenny Transportation Assistant
+  Phone:        (404) 555-0123
+  Visitor provided a callback number through the Zenny Transportation
+  Assistant.
+  They agreed that Zenward may use this number to follow up about their
+  transportation enquiry.
+  No chat messages, trip details or other information were included.
+NOT sent: transcript, questions, replies, intent, service, page URL/query,
+pickup, destination, dates/times, medical details, analytics data, cookies,
+fingerprint, name.
+
+
+10. CHAT TRANSCRIPTS REMAIN LOCAL
+---------------------------------
+respond() runs in the browser and never receives the number. The only
+server call in the panel is the single submitAssistantCallback({ phone }).
+Questions, replies, quick-reply choices and service routing stay in memory
+only: never sent to a server, emailed, stored or tracked. Analytics are
+unchanged: the two parameter-free events (opened, quote clicked); no phone,
+lead id, service, content or URL. Browser QA: 1 POST total (the phone
+action), 0 storage writes, 0 cookies, 0 external requests; server log
+contains no number.
+
+
+11. EMERGENCY INLINE CALL 911
+-----------------------------
+Button row replaced by one sentence: "If this is a medical emergency, Call
+911". "Call 911" is bold (700), red (#B3261E, critical text) and a link,
+href="tel:911". No card or button around it. One line wherever width
+allows (verified single line at 390–1440).
+
+
+12. OPERATOR LINE
+-----------------
+Below, with modest spacing: "To speak with an operator, Call Zenward
+678-935-5489". The link is semibold, accent-on-tint teal (5.6:1 on white),
+href="tel:+16789355489". Always present at the bottom of the gate; also
+offered in the "couldn't save" reply. No 24/7, live chat or "online now"
+implication. Both inline links are part of a sentence (WCAG 2.5.8 inline
+exception).
+
+
+13. REQUEST-PAGE "ASK ZENNY"
+----------------------------
+Inline entry now reads "Ask Zenny" (Zenny avatar, 24px) under "Need help
+choosing a service?". Unchanged responsive rule, re-verified: below 1024px
+inline entry only (opens the same panel, form values kept); from 1024px
+floating avatar only; never both.
+
+
+14. PRIVACY FACTUAL CORRECTION (for 04L legal review)
+-----------------------------------------------------
+src/app/privacy/page.tsx, smallest factual change only:
+  + "Transportation Assistant follow-up number. If you choose to give a
+    phone number to Zenny, the Transportation Assistant on this site,
+    Zenward receives that number so our team can follow up about your
+    transportation enquiry. Your chat messages are not sent with it."
+    (under "Information you submit")
+  ~ Service providers: "...and — for contact enquiries and Transportation
+    Assistant follow-up numbers — an email delivery service."
+No other wording changed; the pre-launch draft / legal-review notices
+remain; no advertising or tracking language; "Last updated October 16,
+2026" already current. Recorded for 04L: retention of follow-up numbers and
+consent wording should be reviewed with counsel.
+
+
+15. FUTURE: ASSISTANT LEAD → NEMRYN
+-----------------------------------
+Not done in 04H2: no Nemryn call, no Website Intake or contract change, no
+integration ID change, no Passenger/Request/Trip/Opportunity creation. For
+now the monitored Zenward contact inbox (CONTACT_INTAKE_EMAIL) is the
+follow-up destination. A later phase may route assistant leads into Nemryn.
+That needs a Nemryn lead/contact intake contract, matching consent wording,
+a Privacy update and tests.
+OPERATIONAL NOTE: production must run CONTACT_INTAKE_MODE=email (04E Gate
+F) for numbers to arrive; in stub mode every visitor sees the honest
+"couldn't save your number" message. Very fast submissions (<2.5 s after
+opening) are refused by the existing anti-bot guard and get the same
+honest message.
+
+
+16. RESPONSIVE QA
+-----------------
+Local production build, headless Chrome, 390/430/768/1024/1440 (clock fixed
+at 15:10 -> "Good afternoon"):
+  - photo avatar: optimised, circular, not stretched; launcher 52px
+    (regular) / 44px (compact); teaser beside it
+  - gate: greeting + phone request; no name field, no quick actions, no
+    chat input; consent under the field; emergency sentence on one line
+    with bold red Call 911; operator line below; simpler than the former
+    name+phone gate (screenshots reviewed at 390 and 1440)
+  - empty Continue -> inline error; valid number -> one server request
+    (phone only) -> in stub mode the honest failure + operator link + quick
+    actions + chat input; "how much?" answered; Escape closes, focus returns
+    to the launcher; reopen -> "Welcome back", no gate
+  - routes (/, /services, wheelchair, airport, providers, campaign,
+    /request-transportation, /contact): no overlap with any CTA or form
+    control, no overflow; form pages hide the teaser (and the launcher
+    below 1024px)
+  - "Ask Zenny": inline below 1024px, floating from 1024px, never both
+  - no console errors or warnings; 0 storage writes; 0 cookies; 0 external
+    requests
+Delivery success path: verified by unit tests against a mocked provider
+(2xx -> delivered:true; 5xx -> false), since local runs use stub mode.
+
+
+17. TESTS / TYPECHECK / LINT / BUILD
+------------------------------------
+  src/lib/assistant/zenny.test.mjs (8): exact copy (incl. consent,
+    success/failure, inline 911/operator sentences; no SMS/marketing/
+    callback-promise/live/24-7 wording); greeting text at all time
+    boundaries; phone validation; teaser rules; phone-only gate (no name
+    field, no quick actions before, inline red tel:911, operator tel link,
+    success only when delivered, failure keeps Zenny usable, number
+    cleared and not echoed, no retry); phone leaves only via the Server
+    Action and the transcript never does; client keeps only a done flag,
+    no storage/URL, analytics unchanged; Privacy wording.
+  src/lib/assistant/chime.test.mjs (5): tone/volume/duration; no context
+    before activation; autoplay rejection, suspended context, constructor
+    failure and no Web Audio all silent with no console output; wired once,
+    never in the panel/replies, never awaited; no file/URL/network/voice/
+    storage/analytics.
+  src/lib/contact-intake/assistant-callback.test.mjs (4): email text
+    contains only source, description and number; email mode delivered
+    only on 2xx with a minimal body; stub never delivers or sends; the
+    Server Action accepts exactly { phone }, rejects extra keys, invalid
+    numbers and too-fast submissions without sending anything.
+  src/lib/assistant/assistant.test.mjs (updated): owner PNG avatar via
+    next/image, no <img>, no external image URL, old SVG gone; Zenny
+    identity rules (no AI/agent/live/manager wording); FORM_PAGES; "Ask
+    Zenny".
+  git diff --check . clean
+  npm test ......... 157/157 pass (140 + 8 zenny + 5 chime + 4 callback);
+                     158/158 after §21
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+Unchanged (git-verified): request-intake/*, quote-form/*,
+request-transportation/*, forms/guard.ts, operating-facts.ts, analytics,
+terms, .env.example, package.json, package-lock.json, public/brand.
+
+
+18. FILES MODIFIED (uncommitted)
+--------------------------------
+  A public/images/assistant/zenny-avatar.png      (owner portrait; served
+                                                   via next/image)
+  A src/lib/assistant/zenny.ts
+  A src/lib/assistant/zenny.test.mjs
+  A src/lib/assistant/chime.ts
+  A src/lib/assistant/chime.test.mjs
+  A src/app/assistant/actions.ts                  (Server Action, phone only)
+  A src/lib/contact-intake/assistant-callback.test.mjs
+  M src/lib/contact-intake/adapter.ts             (submitCallback,
+                                                   buildAssistantCallbackText)
+  M src/lib/contact-intake/types.ts               (callback types)
+  M src/components/public/assistant/AssistantLauncher.tsx (avatar, teaser,
+                                                   chime, gate-done flag)
+  M src/components/public/assistant/AssistantPanel.tsx    (header, greeting,
+                                                   phone gate, delivery
+                                                   outcome, inline 911 +
+                                                   operator lines)
+  M src/components/public/assistant/AssistantMessage.tsx  (Zenny avatar)
+  M src/components/public/assistant/AssistantInlineEntry.tsx ("Ask Zenny")
+  M src/lib/assistant/responses.ts                (WELCOME wording: Zenny)
+  M src/lib/assistant/assistant.test.mjs          (identity/avatar rules)
+  M src/app/privacy/page.tsx                      (factual follow-up
+                                                   disclosure)
+  A docs/reports/ZW-WEB-04H2-zenny-assistant-identity-and-greeting-gate.txt
+Not for commit: public/images/assistant/.DS_Store (macOS; git-ignored).
+Note: the 2.3 MB PNG is committed as the owner-provided source and
+optimised at request time. Consider trimming it to ~512px before commit to
+keep the repo lighter (no visual change).
+
+
+19. RECOMMENDATION BEFORE COMMIT
+--------------------------------
+Ready for owner review on a local build. To see the delivery-success path
+locally, run with CONTACT_INTAKE_MODE=email and real (test-inbox)
+credentials; otherwise the honest failure path shows.
+Before production: confirm CONTACT_INTAKE_MODE=email and the monitored
+inbox (04E Gate F), then submit one labelled test number and confirm the
+"Follow-up number — Zenny Transportation Assistant" email arrives.
+Owner/legal notes: Privacy wording and follow-up-number retention (04L);
+future Assistant Lead → Nemryn (§15).
+If approved, stage exactly the §18 paths (never `git add .`) and commit,
+e.g. "Add Zenny assistant identity, phone follow-up and arrival chime".
+Push/deploy only under separate authorization.
+
+
+20. REVISION HISTORY (superseded within 04H2)
+---------------------------------------------
+  v1  faceless SVG illustration; first name + phone kept in session memory
+      only ("not submitted" disclosure); button-row emergency/call links.
+  v2  owner photo avatar (interim WebP), "Ask Zenny" label, arrival chime.
+  v3  (this report) owner PNG via next/image; PHONE-ONLY gate; number
+      delivered to the Zenward inbox via the trusted contact path with
+      follow-up consent; inline Call 911 and operator sentences; Privacy
+      factual correction.
+
+21. OWNER UI REFINEMENT — ZENNY HEADER
+--------------------------------------
+  - Panel heading "Ask Zenny the Assistant" -> "Ask Zenny" (ZENNY.heading);
+    subtitle "Zenward Transportation Assistant" kept. The launcher's
+    accessible name stays "Ask Zenny the Assistant".
+  - The permanent information strip under the header ("I share general
+    information and can't see or change bookings. To talk to our team,
+    call 678-935-5489.") was removed with no replacement banner; the
+    PANEL_NOTE constant was deleted. The phone instruction now appears once
+    in the panel: the operator line at the bottom of the gate ("To speak
+    with an operator, Call Zenward 678-935-5489").
+  - Capability limits are kept in behaviour, stated in context: request
+    status ("can't view request status yet ... call Zenward at
+    678-935-5489") and changing/cancelling/rescheduling ("I can't change or
+    cancel a trip here ...") still answer clearly. The reply's phone action
+    is now labelled "Call Zenward 678-935-5489" (tel:+16789355489),
+    matching the operator line (all assistant call actions use this label).
+    New test covers status, accepted?, change, cancel and reschedule.
+  - Mobile QA (390/430/768/1024/1440): opening panel 531 -> 474px (-57px,
+    covers less of the page); with a full conversation on a phone the sheet
+    is still 80% of the viewport and the scrolling conversation area grows
+    476 -> 533px (+57px, ~12%). The dialog is still named by the H2 ("Ask
+    Zenny"), the title is focused on open, Escape closes and returns focus
+    to the launcher, no overflow, no CTA/form overlap on any route, no
+    console errors.
+  Files: src/lib/assistant/zenny.ts, src/lib/assistant/responses.ts,
+  src/components/public/assistant/AssistantPanel.tsx,
+  src/lib/assistant/assistant.test.mjs, src/lib/assistant/zenny.test.mjs
+  (all already in §18).
+  Tests: 158/158 (zenny.test.mjs now 9). tsc, lint, build PASS (28/28).
+
+22. OWNER REFINEMENT — ZENNY NAME + OPTIONAL PHONE
+--------------------------------------------------
+Supersedes the "required phone" parts of §5–§8 and the header in §21.
+  - Header title exactly "Zenny"; subtitle "Zenward Transportation
+    Assistant" kept. ("Ask Zenny" / "Ask Zenny the Assistant" no longer
+    used as the panel title; the launcher's accessible name and the
+    request-page "Ask Zenny" entry are unchanged.)
+  - Opening: time greeting ("Good morning/afternoon/evening. I'm Zenny,
+    here to assist you with your transportation enquiries."), then "If
+    you'd like us to follow up, kindly provide a phone number."
+  - The phone number is OPTIONAL. Field "Phone number" + primary
+    "Continue" + secondary "Skip for now" (44px text button).
+  - Disclosure (replaces the consent sentence): "If you provide a number,
+    Zenward may use it to follow up about your transportation enquiry."
+    Nothing implies a number is required.
+  - Skip for now: immediately "How can I assist you today?" + quick actions
+    + chat input (focused). Sends NOTHING (no server request, no analytics),
+    marks the session done (in-memory flag), so the visitor is not asked
+    again this session; reopen -> "Welcome back. How can I assist you
+    today?"; a reload resets.
+  - Continue with an empty field: gentle "Enter a phone number, or choose
+    Skip for now." (not a "required" error). Invalid number: the existing
+    validation message.
+  - Continue with a valid number: unchanged approved server-side handoff
+    (submitAssistantCallback -> contact adapter -> Zenward inbox, phone
+    only). Delivered -> "Thank you. How can I assist you today?"; not
+    delivered -> the honest "couldn't save your number" message + Call
+    Zenward + the normal assistant. No callback promise.
+  - Emergency + operator lines unchanged: "If this is a medical emergency,
+    Call 911" (only "Call 911" bold red tel:911) and "To speak with an
+    operator, Call Zenward 678-935-5489" (tel:+16789355489).
+  - Privacy wording already describes a voluntarily given number ("If you
+    choose to give a phone number to Zenny...") and needed no change.
+Browser QA (390/430/768/1024/1440): header "Zenny" + subtitle; evening
+greeting with the clock fixed at 19:00; empty Continue -> hint; Skip ->
+"How can I assist you today?", chat input focused, 0 POST requests, answers
+work, reopen -> welcome back with no phone prompt; Continue with "+1 404
+555 0123" -> exactly 1 POST, body {"phone":"4045550123"} (+ the guard
+timestamp) -> honest not-delivered reply in stub mode, Zenny usable; no
+overlap/overflow on any route; no console errors; 0 external requests.
+Tests: zenny.test.mjs now 11 (+ header exact "Zenny" + subtitle; optional
+phone: skip unlocks Zenny, sends nothing, marks done/no re-prompt, empty
+Continue hint, single approved handoff for a provided number, failure
+doesn't block).
+  npm test 160/160 · tsc PASS · lint PASS · build PASS (28/28)
+Files: zenny.ts, AssistantPanel.tsx, zenny.test.mjs (all already in §18).
+
+23. OWNER UX REFINEMENT — REMOVE OPENING REPETITION (current behaviour)
+-----------------------------------------------------------------------
+Supersedes the opening/gate details in §5–§8 and §22.
+  - ONE opening bubble (two short paragraphs):
+      "Good {morning|afternoon|evening}. I'm Zenny, here to help with your
+       transportation enquiry."
+      "If you'd like Zenward to follow up, you can leave a phone number
+       below."
+    (time buckets unchanged; no quick actions in the opening)
+  - Field label "Phone number (optional)"; placeholder "(404) 555-0123".
+  - Disclosure: "If provided, we'll only use your number to follow up about
+    this enquiry."
+  - "Skip for now" removed. ONE button, Continue, which works empty or
+    filled:
+      empty   -> no server call; straight to "How can I assist you today?"
+                 + quick actions + chat input (focused)
+      valid   -> the approved server-side handoff (phone only, once), then
+                 "How can I assist you today?" + quick actions + chat input
+      invalid -> inline validation message; nothing sent
+      valid but not delivered -> honest "I couldn't save your number for
+                 follow-up, but you can still use Zenny below." + "How can I
+                 assist you today?" + Call Zenward + quick actions (never
+                 presented as success; Zenny continues)
+    Every path marks the session done (no re-prompt; reopen -> "Welcome
+    back. How can I assist you today?") and clears the number from state.
+  - Kept: header "Zenny" + subtitle; avatar; inline "If this is a medical
+    emergency, Call 911" (bold red tel:911); "To speak with an operator,
+    Call Zenward 678-935-5489"; no transcript delivery; no Nemryn; no
+    external AI; Privacy wording unchanged (already describes a voluntarily
+    given number used for follow-up).
+Browser QA (390/430/768/1024/1440, clock 14:00 -> "Good afternoon"): 1
+opening bubble; 1 gate button ("Continue"); label/disclosure exact;
+opening panel 442px at 390 (was 474); empty Continue -> 0 POST, assistant
+ready, input focused, no re-prompt on reopen; invalid "12" -> inline error,
+0 POST; "(404) 555-0123" -> exactly 1 POST {"phone":"4045550123"} -> honest
+not-delivered + ready (stub mode); no overlap/overflow on any route; no
+console errors; 0 external requests.
+Tests: zenny.test.mjs rewritten for the single-bubble flow (exact copy incl.
+removed keys; greeting wording; one bubble/one button/no Skip; empty
+Continue skips with no server call before validation; filled Continue uses
+the single approved handoff; delivered/not-delivered both continue; every
+path marks done, clears the number and focuses the input).
+  npm test 160/160 · tsc PASS · lint PASS · build PASS (28/28)
+Files: zenny.ts, AssistantPanel.tsx, zenny.test.mjs (all already in §18).
+
+STOP. Not committed, pushed or deployed. 04J not started.

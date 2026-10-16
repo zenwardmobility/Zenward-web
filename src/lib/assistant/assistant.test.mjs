@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -208,15 +208,30 @@ test("unconfirmed credentials (CPR, ADA, certification, drug testing) are never 
   }
 });
 
-test("no fake human identity and no AI-centric public wording", () => {
-  assert.equal(R.WELCOME, "Hi, I'm Zenward's Transportation Assistant. I can help you choose a transportation service, understand how requests work, or get in touch with our team.");
+test("Zenny is a branded website assistant, never a live person, agent or AI", async () => {
+  // 04H2: owner-approved identity "Zenny"; still no staff/live-agent/AI framing.
+  const { ZENNY } = await import("./zenny.ts");
+  assert.equal(R.WELCOME, "I'm Zenny, Zenward's Transportation Assistant. I can help you choose a transportation service, understand how requests work, or get in touch with our team.");
   assert.equal(K.ASSISTANT_NAME, "Zenward Transportation Assistant");
-  assert.match(R.PANEL_NOTE, /can't see or change bookings/);
-  const publicText = ALL_REPLIES.map(textOf).join("\n") + R.PANEL_NOTE + K.ASSISTANT_NAME;
-  assert.doesNotMatch(publicText, /\bAI\b|artificial intelligence|chat ?bot|\bbot\b|\bagent\b|dispatcher|\bmanager\b|\bAlice\b|\bSarah\b|\bDavid\b|join this chat|typing/i);
+  assert.equal(ZENNY.subtitle, K.ASSISTANT_NAME);
+  // Owner refinement: no permanent info strip; limits are stated in context (see the status/change test).
+  assert.equal(R.PANEL_NOTE, undefined);
+  assert.doesNotMatch(read("components/public/assistant/AssistantPanel.tsx"), /PANEL_NOTE|can't see or change bookings/);
+  const publicText = [...ALL_REPLIES.map(textOf), ...Object.values(ZENNY).map(String)].join("\n");
+  assert.doesNotMatch(publicText, /\bAI\b|artificial intelligence|chat ?bot|\bbot\b|\bagent\b|dispatcher|\bmanager\b|on[- ]duty|\blive\b|online now|\btyping\b|\bAlice\b|\bSarah\b|\bDavid\b|join this chat|instant callback|we'll call you/i);
   for (const rel of ASSISTANT_FILES.filter((f) => f.startsWith("components"))) {
     const code = stripComments(read(rel));
-    assert.doesNotMatch(code, /\bAI\b|chat ?bot|Robot|Sparkle|Magic|headshot|portrait|\.jpe?g|avatar/i, rel);
+    assert.doesNotMatch(code, /\bAI\b|chat ?bot|Robot|Sparkle|Magic|headshot|portrait|\.jpe?g|unread|badge|is typing|animate-(ping|bounce|pulse)/i, rel);
+  }
+  // The avatar is the owner-supplied LOCAL photo-style PNG (fictional, AI-generated), served via next/image.
+  assert.equal(ZENNY.avatarSrc, "/images/assistant/zenny-avatar.png");
+  const avatar = readFileSync(path.join(src, "..", "public", ZENNY.avatarSrc));
+  assert.equal(avatar.subarray(1, 4).toString(), "PNG");
+  assert.equal(existsSync(path.join(src, "..", "public/images/assistant/zenny-avatar.svg")), false, "old faceless illustration removed");
+  for (const rel of ASSISTANT_FILES.filter((f) => f.startsWith("components"))) {
+    const code = stripComments(read(rel));
+    assert.doesNotMatch(code, /src=["'{`]*https?:\/\//, `${rel}: no external image URL`);
+    assert.doesNotMatch(code, /<img\b/, `${rel}: avatars use next/image`);
   }
 });
 
@@ -275,7 +290,7 @@ test("future provider boundary: invalid or failing provider replies fall back to
 
 test("accessibility semantics in launcher and panel", () => {
   const launcher = read("components/public/assistant/AssistantLauncher.tsx");
-  assert.match(launcher, /aria-label="Open the Zenward Transportation Assistant"/);
+  assert.match(launcher, /aria-label=\{ZENNY\.launcherLabel\}/);
   assert.match(launcher, /aria-haspopup="dialog"/);
   assert.match(launcher, /launcherRef\.current\?\.focus\(\)/);
   assert.match(launcher, /safe-area-inset-bottom/);
@@ -302,13 +317,15 @@ test("quote page: inline entry below 1024px, compact launcher from 1024px, one s
   const inline = read("components/public/assistant/AssistantInlineEntry.tsx");
   assert.match(inline, /lg:hidden/);
   assert.match(inline, /Need help choosing a service\?/);
-  assert.match(inline, /Ask the Transportation Assistant/);
+  assert.match(inline, />\s*Ask Zenny\s*</);
+  assert.doesNotMatch(inline, /Ask the Transportation Assistant/);
   assert.match(inline, /onClick=\{openTransportationAssistant\}/);
-  assert.doesNotMatch(inline, /respond\(|AssistantPanel|lib\/assistant/, "no second engine or panel");
+  assert.doesNotMatch(inline, /respond\(|AssistantPanel|lib\/assistant\/(responses|intents|knowledge|provider)/, "no second engine or panel (identity constants only)");
   const launcher = read("components/public/assistant/AssistantLauncher.tsx");
   assert.match(launcher, /const FORM_PAGES = new Set\(\["\/request-transportation", "\/contact"\]\)/);
   assert.match(launcher, /const compact = FORM_PAGES\.has\(usePathname\(\)\)/);
-  assert.match(launcher, /compact \? "hidden w-12 justify-center lg:inline-flex" : "inline-flex pl-2 pr-4"/);
+  assert.match(launcher, /compact \? "hidden size-12 lg:inline-flex" : "inline-flex size-14"/);
+  assert.match(launcher, /const showTeaser = !open && !compact && !teaserDismissed/);
   assert.match(launcher, /window\.addEventListener\(OPEN_ASSISTANT_EVENT, onOpen\)/);
   assert.equal((launcher.match(/<AssistantPanel\b/g) ?? []).length, 1);
   // One mount point site-wide (campaign pages included, via PublicLayout); one panel import in the codebase.

@@ -21,8 +21,7 @@ import type { AssistantAction, AssistantContext, AssistantInput, AssistantReply,
 // ---------------------------------------------------------------- copy
 
 export const WELCOME =
-  "Hi, I'm Zenward's Transportation Assistant. I can help you choose a transportation service, understand how requests work, or get in touch with our team.";
-export const PANEL_NOTE = `I share general information and can't see or change bookings. To talk to our team, call ${PHONE.display}.`;
+  "I'm Zenny, Zenward's Transportation Assistant. I can help you choose a transportation service, understand how requests work, or get in touch with our team.";
 export const EMERGENCY_TEXT =
   "Zenward provides non-emergency transportation. If this is a medical emergency, call 911 or your local emergency service.";
 export const UNKNOWN_TEXT = `I don't want to give you the wrong information. You can call Zenward at ${PHONE.display} or send our team a message.`;
@@ -35,7 +34,8 @@ export const SENSITIVE_TEXT =
 
 // ---------------------------------------------------------------- actions
 
-const call = (primary = false): AssistantAction => ({ kind: "tel", label: `Call ${PHONE.display}`, href: PHONE.href, primary });
+// Same wording as the gate's operator line: "Call Zenward 678-935-5489".
+const call = (primary = false): AssistantAction => ({ kind: "tel", label: `Call Zenward ${PHONE.display}`, href: PHONE.href, primary });
 const call911: AssistantAction = { kind: "tel", label: "Call 911", href: "tel:911", primary: true };
 const contact: AssistantAction = { kind: "link", label: "Send a message", href: PATHS.contact };
 const providers: AssistantAction = { kind: "link", label: "Healthcare providers", href: PATHS.providers };

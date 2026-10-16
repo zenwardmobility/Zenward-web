@@ -1,4 +1,4 @@
-import type { ContactMessageInput, ContactMessageResult } from "./types";
+import type { AssistantCallbackInput, AssistantCallbackResult, ContactMessageInput, ContactMessageResult } from "./types";
 
 /**
  * Contact-intake boundary. Same controlled pattern as request-intake (see
@@ -15,6 +15,33 @@ import type { ContactMessageInput, ContactMessageResult } from "./types";
  */
 export interface ContactIntakeAdapter {
   submit(input: ContactMessageInput): Promise<ContactMessageResult>;
+  /** Zenny follow-up number (ZW-WEB-04H2): phone only, same trusted delivery path. */
+  submitCallback(input: AssistantCallbackInput): Promise<AssistantCallbackResult>;
+}
+
+export const ASSISTANT_CALLBACK_SOURCE = "Zenny Transportation Assistant";
+
+/** "(404) 555-0123" for a validated 10-digit number. */
+function formatPhone(digits: string): string {
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+/**
+ * The internal email for a Zenny follow-up number. ONLY the source, a fixed
+ * description and the number: nothing the visitor typed in the chat.
+ */
+export function buildAssistantCallbackText(input: AssistantCallbackInput): string {
+  return [
+    "Zenny Transportation Assistant: follow-up number",
+    "",
+    `Source:       ${ASSISTANT_CALLBACK_SOURCE}`,
+    `Phone:        ${formatPhone(input.phone)}`,
+    "",
+    "Visitor provided a callback number through the Zenny Transportation Assistant.",
+    "They agreed that Zenward may use this number to follow up about their transportation enquiry.",
+    "No chat messages, trip details or other information were included.",
+    "",
+  ].join("\n");
 }
 
 const TOPIC_LABELS: Record<ContactMessageInput["topic"], string> = {
@@ -57,6 +84,14 @@ class StubContactIntakeAdapter implements ContactIntakeAdapter {
     }
     // Acknowledged, but nothing was sent anywhere — the UI must say so.
     return { ok: true, referenceId, delivered: false };
+  }
+
+  async submitCallback(): Promise<AssistantCallbackResult> {
+    // Nothing is delivered in stub mode; the assistant tells the visitor honestly.
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[contact-intake] running in STUB mode: an assistant follow-up number was NOT delivered.");
+    }
+    return { delivered: false };
   }
 }
 
@@ -121,6 +156,35 @@ class EmailContactIntakeAdapter implements ContactIntakeAdapter {
         delivered: false,
         error: "We couldn't send your message just now. Please try again, or call us.",
       };
+    }
+  }
+
+  async submitCallback(input: AssistantCallbackInput): Promise<AssistantCallbackResult> {
+    if (!this.to || !this.from || !this.apiKey) {
+      console.error("[contact-intake] mode=email but the email settings are not all set (assistant follow-up).");
+      return { delivered: false };
+    }
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" },
+        body: JSON.stringify({
+          from: this.from,
+          to: [this.to],
+          subject: `Follow-up number — ${ASSISTANT_CALLBACK_SOURCE}`,
+          text: buildAssistantCallbackText(input),
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) {
+        // Status only; never the number.
+        console.error(`[contact-intake] email provider responded ${res.status} (assistant follow-up).`);
+        return { delivered: false };
+      }
+      return { delivered: true };
+    } catch (err) {
+      console.error("[contact-intake] assistant follow-up send failed.", err instanceof Error ? err.name : "unknown");
+      return { delivered: false };
     }
   }
 }

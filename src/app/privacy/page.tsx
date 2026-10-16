@@ -61,6 +61,11 @@ export default function PrivacyPage() {
             your message. The contact form is for general questions — please don&rsquo;t include medical details
             there; use the Request Transportation form or call {business.phoneDisplay} instead.
           </p>
+          <p>
+            <strong>Transportation Assistant follow-up number.</strong> If you choose to give a phone number to
+            Zenny, the Transportation Assistant on this site, Zenward receives that number so our team can follow
+            up about your transportation enquiry. Your chat messages are not sent with it.
+          </p>
         </Block>
 
         <Block heading="Why we collect it">
@@ -90,7 +95,7 @@ export default function PrivacyPage() {
           <p>
             We rely on a small number of providers to run the site: a website hosting provider; a scheduling and
             operations service provider, which receives the transportation requests submitted through this
-            website so our team can review them and follow up with you; and — for contact enquiries — an email
+            website so our team can review them and follow up with you; and — for contact enquiries and Transportation Assistant follow-up numbers — an email
             delivery service. Each provider only handles the information needed for its function, and is
             expected to protect it.
           </p>

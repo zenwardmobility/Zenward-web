@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
+import Image from "next/image";
+import { ZENNY } from "@/lib/assistant/zenny";
 import { openTransportationAssistant } from "./open-assistant";
 
 /**
@@ -25,9 +27,8 @@ export function AssistantInlineEntry({ className }: { className?: string }) {
           "inline-flex min-h-11 items-center gap-2 font-semibold text-text-accent-on-tint underline-offset-4 hover:underline",
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- locked brand SVG, decorative */}
-        <img src="/brand/zenward-symbol-primary.svg" alt="" width={20} height={20} className="size-5" />
-        Ask the Transportation Assistant
+        <Image src={ZENNY.avatarSrc} alt="" width={24} height={24} sizes="24px" className="size-6 rounded-full object-cover" />
+        Ask Zenny
       </button>
     </div>
   );

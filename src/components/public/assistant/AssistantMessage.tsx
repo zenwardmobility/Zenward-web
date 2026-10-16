@@ -3,6 +3,8 @@ import { ArrowRight, Phone } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
 import type { AssistantAction, AssistantReply, QuickReplyId } from "@/lib/assistant/types";
+import Image from "next/image";
+import { ZENNY } from "@/lib/assistant/zenny";
 
 /** One assistant reply: short paragraphs, an optional step list, then its actions. */
 export function AssistantMessage({
@@ -18,10 +20,9 @@ export function AssistantMessage({
 }) {
   return (
     <div className="flex items-start gap-2.5">
-      {/* eslint-disable-next-line @next/next/no-img-element -- locked brand SVG, decorative */}
-      <img src="/brand/zenward-symbol-primary.svg" alt="" width={28} height={28} className="mt-1 size-7 shrink-0" />
+      <Image src={ZENNY.avatarSrc} alt="" width={28} height={28} sizes="28px" className="mt-1 size-7 shrink-0 rounded-full object-cover" />
       <div className="min-w-0 flex-1">
-        <p className="sr-only">Transportation Assistant:</p>
+        <p className="sr-only">Zenny:</p>
         <div className={cn("flex flex-col gap-2 rounded-lg rounded-tl-sm bg-surface-secondary px-3.5 py-3", reply.kind === "emergency" && "border border-critical-border bg-critical-bg")}>
           {reply.paragraphs.map((text) => (
             <p key={text} className={cn(typography.bodySmall, "text-text-primary")}>
