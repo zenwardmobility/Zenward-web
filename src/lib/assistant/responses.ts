@@ -13,7 +13,14 @@
  */
 import { SERVICE_CATALOG, type ServiceSlug } from "../service-catalog.ts";
 import { NOT_A_BOOKING, PATHS, PHONE, PROCESS_STEPS, SERVICE_ORDER, SERVICE_TIPS, TRUST, serviceFact } from "./knowledge.ts";
-import { detectServices, detectTopics, isRecurring, normalize, type Topic } from "./intents.ts";
+import { detectAssistance, detectServices, detectTopics, isRecurring, normalize, type AssistanceQuestion, type Topic } from "./intents.ts";
+import {
+  ASSISTANCE_LEVELS,
+  ASSISTANCE_REVIEW_NOTE,
+  ASSISTANCE_UNSURE_GUIDANCE,
+  assistanceLevel,
+  type AssistanceLevel,
+} from "../assistance-level.ts";
 import { hasSensitiveDetails, isEmergency } from "./safety.ts";
 import { CONFIRMED, factAnswer } from "../operating-facts.ts";
 import { resourcePath, type ResourceSlug } from "../resources/slugs.ts";
@@ -314,10 +321,59 @@ function withPrivacyNote(r: AssistantReply): AssistantReply {
   };
 }
 
+// ---------------------------------------------------------------- assistance level (ZW-WEB-04G3)
+
+// Canonical definitions only (src/lib/assistance-level.ts). Zenny explains the
+// options and points to "Not sure"; it never assesses ability, recommends a
+// method of helping someone, or promises that a level is available.
+const define = (level: AssistanceLevel) => `${assistanceLevel(level).label}: ${assistanceLevel(level).description}`;
+const wheelchairGuide = () =>
+  resourceLink("wheelchair-accessible-transportation-guide", "Read the wheelchair transportation guide");
+const compareLevels = () => reply("assistance", "Compare assistance levels");
+
+function assistanceOverview(): AssistantReply {
+  return {
+    kind: "assistance",
+    paragraphs: [
+      `I can explain the options: ${ASSISTANCE_LEVELS.filter((l) => l.value !== "unsure").map((l) => l.label.toLowerCase()).join(", ")}, or Not sure.`,
+      ASSISTANCE_UNSURE_GUIDANCE,
+    ],
+    actions: [
+      ...ASSISTANCE_LEVELS.filter((l) => l.value !== "unsure").map((l) => reply(`assistance:${l.value}`, l.label)),
+      quote(),
+    ],
+  };
+}
+
+/** The quote handoff: with the named service preselected when there is one (assistance level is never a service). */
+const quoteForAssistance = (services: ServiceSlug[] = []) => (services[0] ? quoteFor(services[0]) : quote());
+
+function assistanceDefinitions(levels: AssistanceLevel[], services: ServiceSlug[] = []): AssistantReply {
+  const paragraphs = levels.slice(0, 3).map(define);
+  if (paragraphs.length < 3) paragraphs.push(`You choose the pickup & assistance level on the request form. ${ASSISTANCE_REVIEW_NOTE}`);
+  return { kind: "assistance", paragraphs, actions: [quoteForAssistance(services), wheelchairGuide(), compareLevels()] };
+}
+
+function assistanceReply(q: AssistanceQuestion, services: ServiceSlug[]): AssistantReply {
+  if (q.levels.length > 0) return assistanceDefinitions(q.levels, services);
+  if (q.comeToDoor) {
+    return {
+      kind: "assistance",
+      paragraphs: [
+        `You can request door-to-door on the request form. ${define("door_to_door")}`,
+        `If escort beyond the building entrance would help, choose Door-through-door or Not sure and describe it. ${ASSISTANCE_REVIEW_NOTE}`,
+      ],
+      actions: [quoteForAssistance(services), compareLevels()],
+    };
+  }
+  return assistanceOverview();
+}
+
 // ---------------------------------------------------------------- entry
 
 function quick(id: QuickReplyId, ctx: AssistantContext): AssistantReply {
   if (id.startsWith("service:")) return serviceReply([id.slice("service:".length) as ServiceSlug], ctx, false);
+  if (id.startsWith("assistance:")) return assistanceDefinitions([id.slice("assistance:".length) as AssistanceLevel]);
   switch (id) {
     case "start":
       return welcome();
@@ -343,6 +399,8 @@ function quick(id: QuickReplyId, ctx: AssistantContext): AssistantReply {
       return process();
     case "trust":
       return trustReply(["trust_general"]);
+    case "assistance":
+      return assistanceOverview();
     case "not_emergency":
       return {
         kind: "find_service",
@@ -380,8 +438,13 @@ export function respond(input: AssistantInput, ctx: AssistantContext): Assistant
 
   const sensitive = hasSensitiveDetails(t, raw);
   const services = detectServices(t);
+  const assistance = detectAssistance(t);
   let result: AssistantReply | undefined;
-  if (topics.includes("prepare") && !topics.includes("provider")) {
+  if (assistance) {
+    // Pickup & assistance level questions (04G3) come before services: "door-to-door
+    // for a wheelchair" is about the escort level, and the wheelchair guide is offered.
+    result = assistanceReply(assistance, services);
+  } else if (topics.includes("prepare") && !topics.includes("provider")) {
     result = prepareReply(services);
   } else if (topics.includes("learn_nemt") && services.length === 0) {
     result = learnNemtReply();

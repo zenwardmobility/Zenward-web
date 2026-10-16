@@ -5,8 +5,9 @@
  * and never sends what a visitor types anywhere.
  */
 import type { ServiceSlug } from "../service-catalog.ts";
+import type { AssistanceLevel } from "../assistance-level.ts";
 
-export type { ServiceSlug };
+export type { ServiceSlug, AssistanceLevel };
 
 /** Buttons offered under a reply. Their ids are handled by `respond`. */
 export type QuickReplyId =
@@ -21,7 +22,9 @@ export type QuickReplyId =
   | "process"
   | "trust"
   | "not_emergency"
-  | `service:${ServiceSlug}`;
+  | "assistance"
+  | `service:${ServiceSlug}`
+  | `assistance:${AssistanceLevel}`;
 
 export type AssistantAction =
   /** An in-site link: a service page, the quote form (`?service=` only), contact, providers. */
@@ -52,6 +55,7 @@ export type ReplyKind =
   | "medical"
   | "sensitive"
   | "resource"
+  | "assistance"
   | "greeting"
   | "thanks"
   | "unknown";

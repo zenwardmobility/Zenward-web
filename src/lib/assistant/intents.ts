@@ -6,6 +6,7 @@
  * It never infers a medical condition and never diagnoses.
  */
 import type { ServiceSlug } from "../service-catalog.ts";
+import type { AssistanceLevel } from "../assistance-level.ts";
 
 /** Lowercase, straight quotes, hyphens/punctuation to spaces, single spaces. */
 export function normalize(text: string): string {
@@ -108,6 +109,36 @@ const TOPIC_PATTERNS: [Topic, RegExp][] = [
 
 export function detectTopics(t: string): Topic[] {
   return TOPIC_PATTERNS.filter(([, re]) => has(t, re)).map(([topic]) => topic);
+}
+
+// ---------------------------------------------------------------- assistance level (ZW-WEB-04G3)
+
+/** Mentions of a specific Pickup & assistance level (normalised text: hyphens are spaces). */
+const ASSISTANCE_LEVEL_PATTERNS: [AssistanceLevel, RegExp][] = [
+  ["curb_to_curb", /\bcurb ?to ?curb\b|\bkerb ?to ?kerb\b|\bcurbside\b/],
+  ["door_to_door", /\bdoor ?to ?door\b/],
+  ["door_through_door", /\bdoor ?(through|thru) ?(the )?door\b/],
+];
+/** "Can the driver come to the door?" and similar. */
+const COME_TO_DOOR = /\b(come|comes|coming|walk\w*|meet\w*|help\w*|get|getting|bring|escort\w*)\b[^.?!]{0,30}\b(to|at) (the |my |our |his |her |their )?(front )?door\b/;
+/** "What assistance level do I need?", "I don't know which assistance option to choose." */
+const ASSISTANCE_CHOICE =
+  /\b(assistance|escort) (level|option|type|choice)s?\b|\blevel of (assistance|help|escort)\b|\b(which|what) (kind of |type of |level of )?(assistance|help)\b[^.?!]*\b(need|choose|pick|select)\b/;
+
+export interface AssistanceQuestion {
+  /** Specific levels named, in canonical order. */
+  levels: AssistanceLevel[];
+  comeToDoor: boolean;
+  /** A general "which level / not sure" question. */
+  choice: boolean;
+}
+
+/** Detects a question about the Pickup & assistance level, or undefined. Never infers ability or a medical need. */
+export function detectAssistance(t: string): AssistanceQuestion | undefined {
+  const levels = ASSISTANCE_LEVEL_PATTERNS.filter(([, re]) => re.test(t)).map(([level]) => level);
+  const comeToDoor = COME_TO_DOOR.test(t);
+  const choice = ASSISTANCE_CHOICE.test(t);
+  return levels.length || comeToDoor || choice ? { levels, comeToDoor, choice } : undefined;
 }
 
 export function isRecurring(t: string): boolean {

@@ -1,0 +1,543 @@
+ZENWARD-WEB — ZW-WEB-04G3
+PICKUP & ASSISTANCE LEVEL + REQUEST SUCCESS EXPERIENCE — IMPLEMENTATION REPORT
+Date: 2026-10-16
+Mode: LOCAL IMPLEMENTATION ONLY. Not committed, pushed or deployed. 04J and 04L were not started.
+Nemryn was not modified. The Website Intake wire contract (key set) is unchanged. No Google tracking.
+
+==================================================
+1. STARTING GIT STATE
+==================================================
+- HEAD 5f677bd "Add Resources hub and organic acquisition foundation". The 04K commit is
+  present.
+- main aligned with origin/main (0 ahead, 0 behind). git diff --check clean.
+- Working tree: clean except one untracked file,
+  docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt. That is the intake
+  diagnostic report from earlier in this session, which this brief lists as required
+  reading. I treated it as related documentation, not unrelated work, and proceeded. It
+  is still untracked and is NOT part of the 04G3 file list. Nothing was reset,
+  restored, stashed or cleaned.
+- Baseline: 188/188 tests.
+
+==================================================
+2. CANONICAL ASSISTANCE-LEVEL MODEL
+==================================================
+One source, src/lib/assistance-level.ts. It is pure and has no imports, so node tests
+can load it.
+
+- ASSISTANCE_LEVEL_VALUES: curb_to_curb, door_to_door, door_through_door, unsure.
+- ASSISTANCE_LEVELS: for each value, a label, the public description, a short
+  description and a wireLabel (the stable text used in the intake-compatibility line).
+- Shared copy:
+  - ASSISTANCE_LEVEL_LABEL: "Pickup & assistance level"
+  - ASSISTANCE_LEVEL_REQUIRED: the validation copy
+  - ASSISTANCE_REVIEW_NOTE: "Specific assistance is reviewed and confirmed before the
+    trip."
+  - ASSISTANCE_UNSURE_GUIDANCE: the "Not sure" guidance
+- Helpers: isAssistanceLevel and assistanceLevel(value).
+- Encoding helpers: encodeAssistanceNotes, stripAssistanceEncoding,
+  ASSISTANCE_NOTES_MAX_LENGTH (section 6).
+
+Every consumer reads from this module: the form, Review, the explainer, Resources and
+Zenny. No component retypes a label or definition, and a test enforces this for the
+explainer.
+
+==================================================
+3. PUBLIC DEFINITIONS (owner-approved, verbatim)
+==================================================
+- Curb-to-curb: "Pickup and drop-off at the curb. Best when the passenger can get
+  between the building and vehicle without driver escort."
+- Door-to-door: "The driver meets the passenger at the building entrance and assists
+  between the entrance and vehicle."
+- Door-through-door: "Additional escort beyond the building entrance when arranged with
+  Zenward."
+- Not sure: "Tell us what help is needed and Zenward will review the request with you."
+- Clarification used alongside them: "Specific assistance is reviewed and confirmed
+  before the trip."
+- Tested: no lifting, carrying, transfers, stairs, clinical, monitoring, oxygen,
+  stretcher, "special needs", "patient handling", "full assistance" or
+  inside-residence wording in any assistance copy, the Resources, the rendered pages or
+  Zenny replies.
+
+==================================================
+4. FORM PLACEMENT
+==================================================
+Step 3 (Passenger), in this order:
+
+1. Passenger's name
+2. Pickup & assistance level *
+3. Mobility or assistance needs (optional)
+4. Anything else about the trip? (optional)
+
+The control is the new component src/components/public/quote-form/AssistanceLevelField.tsx:
+- Four radio cards: stacked below 640px (each about 104px tall), 2 × 2 from 640px. No
+  dropdown.
+- The selected card shows the native filled radio, a navy border and a mist tint.
+- A short line under the legend: "How much driver escort would help at pickup and
+  drop-off? Specific assistance is reviewed and confirmed before the trip."
+
+To keep the step calm, both note fields now default to 3 rows (previously 4).
+The assistance-notes help text no longer says "help getting to the door", because that
+now has its own control. It reads: "For example, a wheelchair, a walker, or extra time
+at pickup. …".
+
+==================================================
+5. VALIDATION
+==================================================
+- Client: validateStep("passenger") requires one of the four values. The error is
+  "Choose the assistance level that best fits the trip, or select Not sure." Choosing
+  any card clears it. "Not sure" is fully valid.
+- Server: the Server Action accepts the level only if isAssistanceLevel() is true. A
+  missing or invalid level is treated as a missing required field ("Please fill in all
+  required fields."). It is never coerced.
+- Focus: after a failed Continue, the form focuses the first invalid control. For an
+  invalid radio fieldset, that is now its checked radio, or else its first radio.
+- This also fixes an existing gap: the 04G return-trip SegmentedChoice previously
+  received no focus.
+
+==================================================
+6. TEMPORARY assistanceNotes COMPATIBILITY MAPPING
+==================================================
+- The wire key set is unchanged. There is no assistanceLevel key on the wire (tested
+  in unit tests and in a live end-to-end run against a local mock).
+- Flow: the form keeps assistanceLevel as structured state → buildRequestInput sends
+  it as a structured input field → the Server Action validates it → buildNemrynIntakeBody
+  (the server-side Nemryn mapping) encodes it immediately before building the wire
+  body:
+
+    Assistance level: Door-to-door
+
+    Additional assistance:
+    Passenger uses a walker and may need extra time at pickup.
+
+- With no typed text, the field is just "Assistance level: Not sure", etc.
+- Rules:
+  - Typed text is kept verbatim.
+  - Encoding is deterministic, so a retry sends the identical body.
+  - Any leading encoded block is stripped first, so the prefix is never duplicated.
+  - Encoding happens only in the server mapping. The form, model and Server Action
+    never call it (tested).
+- Length: free text is capped at ASSISTANCE_NOTES_MAX_LENGTH (2,000 minus the longest
+  encoding overhead) in both the textarea maxLength and the Server Action. The encoded
+  field therefore stays within 2,000 characters and nothing the visitor typed is cut
+  off (tested for all four levels).
+- Pre-04G3 inputs with no level map exactly as before.
+- Verified end to end: the production build ran against a LOCAL HTTPS mock of the
+  intake endpoint. It used a self-signed certificate, and TLS verification was relaxed
+  only for that QA server process. No Nemryn or external call was made. The mock
+  received:
+  - assistanceNotes "Assistance level: Door-to-door\n\nAdditional assistance:\nUses a
+    walker and may need extra time at pickup."
+  - serviceType wheelchair_transportation (unchanged)
+  - Origin header https://www.zenwardmobility.com
+  - wire keys exactly from the frozen allow-list
+
+==================================================
+7. REVIEW EXPERIENCE
+==================================================
+The Passenger section shows:
+- Passenger: QA Passenger
+- Pickup & assistance level: Door-to-door
+- Mobility or assistance needs: (the visitor's text, or "None added")
+- Notes
+
+The encoded string never appears on the website (tested, and checked in the browser at
+all widths). Editing the Passenger section from Review keeps the selection, and
+Back/Next keeps it too (tested and browser-verified).
+
+==================================================
+8. FUTURE NEMRYN assistanceLevel MIGRATION
+==================================================
+Recommended generic field: `assistanceLevel`, enum curb_to_curb | door_to_door |
+door_through_door | unsure. When Nemryn supports it:
+
+1. buildNemrynIntakeBody sends assistanceLevel as its own key.
+2. assistanceNotes carries only the visitor's free text.
+3. Remove encodeAssistanceNotes and the length overhead (restore the 2,000 cap).
+4. The public form, Review, explainer, Resources and Zenny stay unchanged.
+
+Only the server mapping changes. This is documented in
+docs/architecture/nemryn-trusted-request-intake-contract.md §3a.
+
+==================================================
+9. SITE-WIDE EXPLAINER PLACEMENT
+==================================================
+New component: src/components/public/AssistanceLevelExplainer.tsx, heading "Choose the
+level of assistance that fits the trip", from the canonical source. Read-only, with a
+"Request a Quote" link (service-preselected on service pages).
+
+Placement audit:
+
+| Page | Treatment | Why |
+| --- | --- | --- |
+| /services/wheelchair-transportation | FULL: 2 × 2 definition cards | the strongest need |
+| /services/senior-medical-transportation | compact definition list | escort is a common question |
+| /services/medical-appointments | compact | as above |
+| /services | compact, in its own band after the service list | explicitly separate from the service choice |
+| /request-transportation | no extra block | the interactive radio cards ARE the explainer there |
+| /healthcare-providers | not added | it covers how organisations work with Zenward; coordinators see the full explanation on the form; avoids repetition |
+| Other service pages | not added | dialysis, rehabilitation, discharge, recurring and airport don't repeat the block |
+
+- No assistance-level URLs or service pages were created.
+- On service pages the explainer sits after the service sections and before Common
+  questions. The white/mist band alternation is preserved: the FAQ and Related tones
+  shift when the explainer is present.
+
+==================================================
+10. 04K RESOURCE UPDATES
+==================================================
+A. Wheelchair guide:
+- The "Assistance information" section is replaced by "Choose the assistance level that
+  fits the trip" (anchor #assistance-level).
+- It contains:
+  - a one-line intro with the review note
+  - the four canonical definitions (new "definitions" block, cards 2 × 2 from 640px)
+  - the existing line "If the passenger needs any other assistance, describe it…"
+- There is no transfer or lifting wording. The only "lift" in the guide is the existing
+  "Steps, ramps or a lift at the pickup building", which means a building lift; the
+  test's pattern targets passenger lifting.
+
+B. Trip checklist (11 items, previously 9):
+- Added "Transportation type": "For example, a medical appointment, dialysis or a
+  hospital discharge".
+- Added "Pickup & assistance level": "Curb-to-curb, door-to-door, door-through-door, or
+  not sure".
+- The checklist stays in memory only, and the counter reads "N of 11".
+
+C. Metro Atlanta guide, step 4:
+- New paragraph: "The request form also asks for the pickup & assistance level:
+  curb-to-curb, door-to-door, door-through-door, or not sure, if you'd like Zenward to
+  review it with you."
+- It links to "What each assistance level means"
+  (/resources/wheelchair-accessible-transportation-guide#assistance-level).
+
+Unchanged: still six Resources, no new Resource or URL, and the 04K metadata, Article
+schema (Organization author), sitemap and indexing (tested). The 04K tests that pinned
+"no assistance level yet" for R4 and R6 were flipped to require the new content.
+
+==================================================
+11. ZENNY ASSISTANCE KNOWLEDGE
+==================================================
+Deterministic, using canonical definitions only. A new intent detectAssistance()
+handles hyphenated and spaced forms ("curb-to-curb", "curb to curb", "door through
+door"), "come to the door", and "which level / assistance option". It runs after the
+emergency, status and changes checks and before services.
+
+| Question | Reply |
+| --- | --- |
+| "What is curb-to-curb?" / "What does curb to curb mean?" / "What is door-to-door?" / "What is door through door?" | "<Label>: <definition>" plus "You choose the pickup & assistance level on the request form. Specific assistance is reviewed and confirmed before the trip." Actions: Request a Quote · Read the wheelchair transportation guide · Compare assistance levels |
+| "What's the difference between door-to-door and curb-to-curb?" | both definitions plus the note |
+| "Can the driver come to the door?" | "You can request door-to-door on the request form. Door-to-door: …" plus "If escort beyond the building entrance would help, choose Door-through-door or Not sure and describe it. Specific assistance is reviewed and confirmed before the trip." |
+| "What assistance level do I need?" / "I don't know which assistance option to choose." | "I can explain the options: curb-to-curb, door-to-door, door-through-door, or Not sure." plus "You can select Not sure on the request form and describe what help is needed. Zenward will review the request with you." Buttons for each level, plus Request a Quote |
+
+- If a service is also named (e.g. "door to door for my mom in a wheelchair"), the
+  quote button preselects that service. An assistance level is never a service
+  parameter.
+- Zenny never assesses ability, recommends a level, or promises lifting, transfers or
+  availability. "Can you lift my father into the car?" gets the existing "I don't want
+  to give you the wrong information… call" reply.
+- All replies pass validateReply.
+- The assistant bundle gains only the small canonical module (no article text).
+
+==================================================
+12. PREVIOUS SUCCESS-STATE AUDIT
+==================================================
+Before 04G3:
+- The reducer set status "success" for ANY `ok: true` result. An `ok: true, delivered:
+  false` result (no request adapter produces one today) would have shown a "Request
+  received… please also call" variant.
+- The screen could also render a "Reference: …" line from result.referenceId. Request
+  intake never sets it, and Nemryn returns none.
+- The copy was minimal: a heading, one paragraph and the 2-hour line, with no "what
+  happens next".
+
+Changed:
+- success now requires isDeliveredConversion(result), i.e. ok && delivered === true.
+- Every other result is an error that stays on the form with values kept.
+- The referenceId field was removed from the form state and UI. The shared
+  TransportationRequestResult type was not changed, because the contact form still
+  uses its own reference.
+
+==================================================
+13. NEW SUCCESS EXPERIENCE
+==================================================
+New component: src/components/public/quote-form/RequestSuccess.tsx. Copy lives in
+src/lib/quote-form/success.ts (testable).
+
+- Success band: check icon, H2 "Request received", "Zenward has received your
+  transportation request.", then bold "This is not a confirmed ride yet."
+- "What happens next", an ordered list:
+  1. Request received: Your transportation request has reached Zenward.
+  2. Review: Our team reviews availability, trip details and pricing.
+  3. Follow-up: Requests received during working hours are reviewed and answered within
+     2 hours. (canonical QUOTE_RESPONSE_LINE; exact)
+  4. Confirmation: Transportation is arranged only after Zenward confirms the details
+     with you.
+- "Questions about your request?" with "Call Zenward 678-935-5489" (TrackedPhoneLink,
+  canonical business data, real tel: link, 44px target).
+- Secondary links: "View transportation services" (/services) and "Return to home"
+  (/).
+- No "Request another trip", and no blank form is re-rendered. That lifecycle wasn't
+  audited, so it was deliberately skipped.
+- Max width 40rem. Measured card height: 735px at 768px and wider, 815–883px on phones.
+- On success the card scrolls to just below the sticky header and focus moves to
+  "Request received". All three answers (received / within 2 hours / not confirmed) are
+  in the first viewport at 390, 430, 768, 1024 and 1440 (browser-verified).
+
+==================================================
+14. WHAT HAPPENS NEXT SEMANTICS
+==================================================
+- The steps are explanatory, not a live status.
+- All four steps use one identical style: a neutral numbered circle, a title and a line
+  of text.
+- There is no current, completed or pending state, no aria-current, progress element,
+  animation, aria-live or role="status", and no "reviewing now", "in progress", "driver
+  assigned", "vehicle assigned" or "your request status" (tested).
+- No reference number, idempotencyKey, integrationExternalId, tenant or Nemryn
+  identifier is shown (tested, and browser-checked for UUID patterns and the mock
+  integration value).
+- Nothing is stored: no localStorage, sessionStorage, IndexedDB or cookies, and no URL
+  change (tested and browser-verified).
+- No 30-minute target, invented hours or 24/7 wording.
+
+==================================================
+15. PHONE / HELP BEHAVIOR
+==================================================
+- Success: a single canonical tel link, tel:+16789355489, built from src/lib/business.ts.
+  No phone number is hard-coded in the component (tested).
+- It uses the existing analytics surface "request_form" (parameter-free, no sink).
+- The failure-state phone link is unchanged.
+
+==================================================
+16. FAILURE-STATE REGRESSION
+==================================================
+Browser-verified at all five widths against the local mock: 400 → 503 → 200 on the SAME
+form.
+
+| Mock response | Visitor sees | Success shown? |
+| --- | --- | --- |
+| 400 | "We couldn't submit your request. Please check the form and try again, or call us to arrange transportation." | no |
+| 503 | "Online requests are temporarily unavailable right now. Please call us to arrange transportation." | no |
+| 200 {ok:true} | the success experience | yes |
+
+- The idempotencyKey was identical across all three attempts of each session, and
+  unique per session. The mock received 30 bodies across 10 sessions.
+- The adapter is unchanged and makes one attempt per submit.
+- Values are kept after failures.
+- Unit tests cover ok-but-not-delivered, 400, unavailable, an error with no message,
+  and a thrown call: none shows success.
+
+==================================================
+17. NEMRYN SERVICES & INTAKE OPERATIONAL DEPENDENCY
+==================================================
+This is now documented (internal only, never public copy) in the contract doc's §3
+bullet "Every public service must be enabled in Nemryn":
+
+- Nemryn → Settings → Services & Intake must enable every service Zenward publicly
+  accepts. A disabled service is intentionally declined with a generic 400, and the
+  visitor sees the calm "couldn't submit" copy.
+- The October 2026 failure happened because only Airport was enabled at first. It was a
+  Nemryn configuration issue, not a website defect.
+- Check Services & Intake whenever a public service is added.
+
+Also corrected in the same doc, §6: the stale line saying "stub acknowledges… success
+screen" now correctly says stub fails closed. This was found in the intake diagnostic.
+
+==================================================
+18. SERVICE VS ASSISTANCE DISTINCTION
+==================================================
+- Service = WHAT the trip is. Assistance level = HOW MUCH driver escort is requested.
+- Tested:
+  - no assistance value is in SERVICE_TYPES, PUBLIC_SERVICE_TYPES, any catalogue path or
+    any requestHref
+  - any service combines with any level, and serviceType is unchanged (dialysis +
+    door-to-door, wheelchair + curb-to-curb, airport + not sure)
+  - Zenny never puts a level in ?service=
+- Documented in the canonical module header and in contract doc §3a. Assistance levels
+  have nothing to do with Nemryn Services & Intake.
+
+==================================================
+19. ACCESSIBILITY
+==================================================
+Assistance selector:
+- A fieldset with a legend "Pickup & assistance level *".
+- Native radios: arrow keys move the selection (browser-verified).
+- Each card's description is connected with aria-describedby.
+- The group's note and error are connected on the fieldset, which also gets
+  aria-invalid.
+- The focus outline is drawn on the card via has-[:focus-visible].
+- The selected state uses the native filled radio plus a border change, so it isn't
+  colour-only.
+- Cards are at least 104px tall.
+
+Success:
+- Focus moves to the H2 "Request received". The structure is H2 then H3 ("What happens
+  next"), under the page H1.
+- The phone is a real tel link with an aria-label.
+- The steps are an ordered list that reads in order without icons. The step numbers are
+  aria-hidden, because the <ol> provides them.
+- No live-status semantics.
+
+Explainer: a region labelled by its H2, using dl/dt/dd.
+
+==================================================
+20. MOBILE QA (390, 430)
+==================================================
+- Assistance cards: one column at the full form width (358/398px), 104px tall, never
+  cramped.
+- The Passenger step is about 1,430px tall including the stepper and buttons. It is the
+  longest step, but it scrolls calmly, and the notes fields are 3 rows.
+- Review: the level appears as its own row.
+- Success: the three answers sit in the first viewport and the steps stack naturally.
+  The phone link is 44px tall.
+- No horizontal overflow and no console errors.
+- Zenny: the request page keeps its 04H rule (no floating launcher below 1024px; inline
+  "Ask Zenny" entry instead), so nothing overlaps the controls.
+- The Resource assistance sections stack readably.
+
+==================================================
+21. DESKTOP QA (768, 1024, 1440)
+==================================================
+- Assistance cards: a balanced 2 × 2 grid, each card 348px wide.
+- The site navigation is unchanged.
+- Review stays concise.
+- The success card is capped at 640px and is 735px tall.
+- The explainer is full width on the wheelchair page and a compact two-column list
+  elsewhere.
+- Resources keep their editorial measure.
+
+Site sweep at all 5 widths: /, /services, /services/wheelchair-transportation,
+/services/senior-medical-transportation, /services/medical-appointments,
+/services/dialysis-transportation, /services/airport-transportation,
+/request-transportation, /resources, /resources/wheelchair-accessible-transportation-guide,
+/resources/medical-transportation-trip-checklist,
+/resources/how-to-arrange-nemt-in-metro-atlanta, /healthcare-providers. Results:
+- 0 overflow
+- 1 H1 on every route
+- 0 console errors
+- the explainer appears exactly where planned, with all four labels, and nowhere else
+- no banned wording
+
+==================================================
+22. INTAKE-CONTRACT REGRESSION
+==================================================
+- Wire keys: unchanged, from the frozen allow-list only. No assistanceLevel key.
+- serviceType: unchanged and still a structured field.
+- Airport intake: works and is sent as airport_transportation (unit-tested; the
+  browser run used wheelchair_transportation).
+- Recurring intake: works, with recurringSchedule present and assistanceNotes encoded
+  (unit-tested).
+- Idempotency: unchanged. The same key is sent across retries and the adapter makes one
+  attempt per submit (unit and browser).
+- Fail-closed adapter: unchanged. No changes to adapter.ts, tenancy.ts, service-types.ts,
+  recurring.ts or service-catalog.ts.
+- Existing tests updated, intent unchanged:
+  - quote-form "contract parity": the pre-04G fields are still identical, plus the
+    structured level
+  - the passenger-step validation list now includes assistanceLevel
+  - the shared fixture now picks a level
+
+==================================================
+23. RESOURCE / SEO REGRESSION
+==================================================
+- Still six Resources with the same URLs. The sitemap is unchanged (24 URLs).
+- The 04K titles, descriptions, Article schema with Organization author, and breadcrumbs
+  are intact (tests pass).
+- No new indexable URLs were created for assistance levels.
+
+==================================================
+24. TESTS / TYPECHECK / LINT / BUILD
+==================================================
+New file: src/lib/assistance-level.test.mjs (22 tests). Updated:
+src/lib/quote-form/quote-form.test.mjs and src/lib/resources/resources.test.mjs (R4 and
+R6 tests flipped to require the new content, plus one new R2 test).
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 211/211 pass, 0 fail (188 before 04G3; 23 added) |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning (src/lib/contact-intake/assistant-callback.test.mjs:24) |
+| npm run build | success |
+
+==================================================
+25. FILES CHANGED
+==================================================
+New:
+- src/lib/assistance-level.ts (canonical model + compatibility encoding)
+- src/lib/assistance-level.test.mjs
+- src/lib/quote-form/success.ts
+- src/components/public/quote-form/AssistanceLevelField.tsx
+- src/components/public/quote-form/RequestSuccess.tsx
+- src/components/public/AssistanceLevelExplainer.tsx
+- docs/reports/ZW-WEB-04G3-assistance-level-and-success-experience.txt
+
+Modified:
+- src/components/public/RequestTransportationForm.tsx: the field, success component,
+  focus handling, notes caps and rows
+- src/lib/quote-form/model.ts: the value, validation, payload, Review row and success
+  gate; referenceId removed
+- src/app/request-transportation/actions.ts: server validation, required check, notes
+  cap
+- src/lib/request-intake/types.ts: internal assistanceLevel input field (not a wire
+  field)
+- src/lib/request-intake/nemryn-mapping.ts: the temporary encoding into assistanceNotes
+- src/components/public/ServicePage.tsx: the explainer on wheelchair (full) and on
+  senior and medical appointments (compact)
+- src/app/services/page.tsx: the compact explainer band
+- src/components/public/resources/ResourcePage.tsx: definitions block, and paragraph
+  links
+- src/lib/resources/content.ts: R4 section, R6 items, R2 step-4 link
+- src/lib/resources/resources.test.mjs
+- src/lib/quote-form/quote-form.test.mjs
+- src/lib/assistant/intents.ts: detectAssistance
+- src/lib/assistant/responses.ts: assistance replies
+- src/lib/assistant/types.ts: ReplyKind "assistance", quick replies
+- docs/architecture/nemryn-trusted-request-intake-contract.md: §3a encoding and future
+  migration, the Services & Intake dependency, the assistanceNotes row, the §6 stub
+  correction
+
+Not changed: Nemryn, the adapter, tenancy, service types/catalogue, recurring, the
+contact intake and Zenny callback, analytics events, campaign pages and the homepage.
+
+==================================================
+26. REMAINING BACKEND DEPENDENCIES
+==================================================
+1. Nemryn structured `assistanceLevel` field (enum curb_to_curb | door_to_door |
+   door_through_door | unsure). Until then, operators read the first line of
+   assistanceNotes ("Assistance level: …"). Recommend telling the Zenward operations
+   team about this line before release.
+2. Nemryn assistanceNotes length. Zenward keeps the encoded field within 2,000
+   characters. If Nemryn enforces a lower limit, a very long note would be rejected
+   (calm 400 copy). This hasn't been seen, but confirm Nemryn's limit.
+3. Nemryn Services & Intake must keep every public service enabled (section 17).
+4. Production re-check after deploy: send one clearly synthetic request and confirm in
+   Nemryn → Website Requests that the assistance line appears as documented.
+
+==================================================
+27. RECOMMENDATION BEFORE COMMIT
+==================================================
+Ready for owner review. All checks pass, the wire contract is unchanged, and the
+end-to-end encoding is verified locally against a mock. Please review:
+- the radio-card copy and the explainer placement (section 9), especially the decision
+  not to add it to /healthcare-providers
+- the success screen (section 13)
+- that operations know about the "Assistance level:" first line in Nemryn requests
+
+Stage exact paths only (do NOT include the untracked intake diagnostic report unless
+wanted):
+
+  git add src/lib/assistance-level.ts src/lib/assistance-level.test.mjs \
+    src/lib/quote-form/success.ts src/lib/quote-form/model.ts src/lib/quote-form/quote-form.test.mjs \
+    src/components/public/quote-form/AssistanceLevelField.tsx src/components/public/quote-form/RequestSuccess.tsx \
+    src/components/public/AssistanceLevelExplainer.tsx src/components/public/RequestTransportationForm.tsx \
+    src/components/public/ServicePage.tsx src/app/services/page.tsx src/app/request-transportation/actions.ts \
+    src/lib/request-intake/types.ts src/lib/request-intake/nemryn-mapping.ts \
+    src/components/public/resources/ResourcePage.tsx src/lib/resources/content.ts src/lib/resources/resources.test.mjs \
+    src/lib/assistant/intents.ts src/lib/assistant/responses.ts src/lib/assistant/types.ts \
+    docs/architecture/nemryn-trusted-request-intake-contract.md \
+    docs/reports/ZW-WEB-04G3-assistance-level-and-success-experience.txt
+
+Suggested message: "Add pickup & assistance level and request-received experience".
+After deploy: production smoke-test with ONE synthetic request (section 26.4).
+
+STOPPED. Not committed, pushed or deployed. 04J and 04L were not started.

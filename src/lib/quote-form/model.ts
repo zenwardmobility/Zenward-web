@@ -29,6 +29,7 @@ import type {
   TransportationRequestResult,
 } from "../request-intake/types.ts";
 import { formatLongDate, formatTime12h, isBefore, isIsoDate } from "./dates.ts";
+import { ASSISTANCE_LEVEL_LABEL, ASSISTANCE_LEVEL_REQUIRED, assistanceLevel, isAssistanceLevel, type AssistanceLevel } from "../assistance-level.ts";
 
 // ---------------------------------------------------------------- copy
 
@@ -73,6 +74,9 @@ export interface QuoteFormValues {
   recurringAppointmentTime: string;
   recurringReturnExpected: "yes" | "no" | "";
   passengerName: string;
+  /** Pickup & assistance level (ZW-WEB-04G3). Structured; required ("unsure" is a valid answer). */
+  assistanceLevel: AssistanceLevel | "";
+  /** The visitor's own free text only. Never contains the compatibility encoding. */
   assistanceNotes: string;
   additionalNotes: string;
   requesterRelationship: RequesterRelationship | "";
@@ -100,6 +104,7 @@ export function initialValues(initialServiceType?: string): QuoteFormValues {
     recurringAppointmentTime: "",
     recurringReturnExpected: "",
     passengerName: "",
+    assistanceLevel: "",
     assistanceNotes: "",
     additionalNotes: "",
     requesterRelationship: "",
@@ -183,6 +188,7 @@ export function validateStep(step: StepId, v: QuoteFormValues, today: string): F
   }
   if (step === "passenger") {
     if (blank(v.passengerName)) e.passengerName = "Enter the passenger's name.";
+    if (!isAssistanceLevel(v.assistanceLevel)) e.assistanceLevel = ASSISTANCE_LEVEL_REQUIRED;
   }
   if (step === "contact") {
     if (!v.requesterRelationship) e.requesterRelationship = "Tell us your relationship to the passenger.";
@@ -202,6 +208,10 @@ export function validateStep(step: StepId, v: QuoteFormValues, today: string): F
  * `recurringSchedule`, and derive `returnTripNeeded` from
  * `returnTripExpected`. Optional blanks become `undefined`. Built field by
  * field, so no UI state can leak into it.
+ *
+ * `assistanceLevel` (04G3) travels as a STRUCTURED value to the Server Action
+ * and `assistanceNotes` stays exactly what the visitor typed. The temporary
+ * wire encoding happens server-side, in the Nemryn mapping only.
  */
 export function buildRequestInput(v: QuoteFormValues): TransportationRequestInput {
   const isRecurring = v.frequency === "recurring";
@@ -221,6 +231,7 @@ export function buildRequestInput(v: QuoteFormValues): TransportationRequestInpu
     assistanceNotes: v.assistanceNotes || undefined,
     additionalNotes: v.additionalNotes || undefined,
   };
+  if (isAssistanceLevel(v.assistanceLevel)) input.assistanceLevel = v.assistanceLevel;
   if (isRecurring) {
     input.recurringSchedule = {
       daysOfWeek: WEEKDAYS.filter((day) => v.recurringDays.includes(day)),
@@ -246,7 +257,6 @@ export interface QuoteFormState {
   status: SubmitStatus;
   submitError?: string;
   delivered: boolean;
-  referenceId?: string;
 }
 
 export type QuoteFormAction =
@@ -304,10 +314,14 @@ export function quoteFormReducer(state: QuoteFormState, action: QuoteFormAction)
     case "submitStart":
       return { ...state, status: "submitting", submitError: undefined };
     case "submitResult":
-      if (action.result.ok) {
-        return { ...state, status: "success", delivered: action.result.delivered === true, referenceId: action.result.referenceId };
-      }
-      return { ...state, status: "error", submitError: action.result.error ?? "Something went wrong. Please try again or call us." };
+      // The success experience is ONLY for a genuine delivery. Any other result,
+      // including an "ok" that wasn't delivered, stays on the form with values kept.
+      if (isDeliveredConversion(action.result)) return { ...state, status: "success", delivered: true };
+      return {
+        ...state,
+        status: "error",
+        submitError: action.result.error ?? "We couldn't submit your request just now. Please try again shortly, or call us.",
+      };
     case "submitFailed":
       return { ...state, status: "error", submitError: action.message };
   }
@@ -383,6 +397,7 @@ export function reviewSections(v: QuoteFormValues): ReviewSection[] {
       title: "Passenger",
       rows: [
         { label: "Passenger", value: v.passengerName.trim() },
+        { label: ASSISTANCE_LEVEL_LABEL, value: isAssistanceLevel(v.assistanceLevel) ? assistanceLevel(v.assistanceLevel).label : "" },
         { label: "Mobility or assistance needs", value: or(v.assistanceNotes, "None added") },
         { label: "Notes", value: or(v.additionalNotes, "None added") },
       ],

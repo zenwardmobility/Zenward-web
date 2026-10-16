@@ -18,10 +18,14 @@
 import { QUOTE_RESPONSE_LINE } from "../trust.ts";
 import { CONFIRMED, factAnswer } from "../operating-facts.ts";
 import { business } from "../business.ts";
+import { ASSISTANCE_LEVELS, ASSISTANCE_REVIEW_NOTE } from "../assistance-level.ts";
 import type { ResourceSlug } from "./catalog.ts";
 
 export type ResourceBlock =
-  | { type: "p"; text: string }
+  /** A paragraph, optionally followed by one in-site link. */
+  | { type: "p"; text: string; link?: { href: string; label: string } }
+  /** Term + description pairs (the canonical assistance levels). */
+  | { type: "definitions"; items: { term: string; description: string }[] }
   | { type: "h2"; id: string; text: string }
   | { type: "list"; items: string[]; ordered?: boolean }
   /** A static checklist (printable, not interactive). */
@@ -43,6 +47,12 @@ export interface ResourceBody {
 const EMERGENCY_NOTE =
   "Zenward provides non-emergency transportation only. For a medical emergency, call 911 or your local emergency services.";
 const REQUEST_NOTE = `${CONFIRMED.notABooking} ${CONFIRMED.pricing}`;
+
+/** The four Pickup & assistance levels, from the canonical source (ZW-WEB-04G3). */
+const ASSISTANCE_DEFINITIONS: ResourceBlock = {
+  type: "definitions",
+  items: ASSISTANCE_LEVELS.map((level) => ({ term: level.label, description: level.description })),
+};
 
 export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
   "what-is-non-emergency-medical-transportation": {
@@ -146,6 +156,11 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
       {
         type: "p",
         text: "Say whether the passenger uses a wheelchair, a walker or a cane, or needs extra time. Mention steps, narrow entrances or a specific door at either end. This information is about planning the ride, so there is no need to share medical details.",
+      },
+      {
+        type: "p",
+        text: "The request form also asks for the pickup & assistance level: curb-to-curb, door-to-door, door-through-door, or not sure, if you'd like Zenward to review it with you.",
+        link: { href: "/resources/wheelchair-accessible-transportation-guide#assistance-level", label: "What each assistance level means" },
       },
       { type: "h2", id: "return", text: "5. Decide about the return trip" },
       {
@@ -284,10 +299,15 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
           "Say whether someone will travel with the passenger or meet them on arrival.",
         ],
       },
-      { type: "h2", id: "assistance", text: "Assistance information" },
+      { type: "h2", id: "assistance-level", text: "Choose the assistance level that fits the trip" },
       {
         type: "p",
-        text: "If the passenger needs any assistance, describe it in the request. Zenward reviews it and confirms what can be accommodated before the trip.",
+        text: `The request form asks for the pickup & assistance level: how much driver escort would help at pickup and drop-off. ${ASSISTANCE_REVIEW_NOTE}`,
+      },
+      ASSISTANCE_DEFINITIONS,
+      {
+        type: "p",
+        text: "If the passenger needs any other assistance, describe it in the request. Zenward reviews it and confirms what can be accommodated before the trip.",
       },
       { type: "h2", id: "review", text: "Reviewed and confirmed with you" },
       { type: "p", text: "Zenward reviews every wheelchair-accessible request and confirms the arrangement with you before the trip." },
@@ -353,12 +373,14 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
       },
     ],
     tool: [
+      { label: "Transportation type", hint: "For example, a medical appointment, dialysis or a hospital discharge" },
       { label: "Pickup location", hint: "Address or facility name, and the entrance to use" },
       { label: "Destination", hint: "Address or facility name" },
       { label: "Trip date", hint: "The day you need transportation" },
       { label: "Appointment or required arrival time", hint: "If known" },
       { label: "Preferred pickup time", hint: "Allow for check-in at the destination" },
       { label: "Return trip needed?", hint: "Yes, no, or not sure yet" },
+      { label: "Pickup & assistance level", hint: "Curb-to-curb, door-to-door, door-through-door, or not sure" },
       { label: "Mobility or assistance needs", hint: "Wheelchair, walker, extra time" },
       { label: "Requester / contact person", hint: "Name and phone number" },
       { label: "Special entrance or pickup instructions", hint: "Gate codes, a specific door, where to wait" },

@@ -4,6 +4,7 @@ import { getRequestIntakeAdapter } from "@/lib/request-intake/adapter";
 import { isPublicServiceType } from "@/lib/request-intake/service-types";
 import { parseRecurringSchedule } from "@/lib/request-intake/recurring";
 import { findTenancyKeys } from "@/lib/request-intake/tenancy";
+import { ASSISTANCE_NOTES_MAX_LENGTH, isAssistanceLevel } from "@/lib/assistance-level";
 import type {
   RequesterRelationship,
   ReturnTripPreference,
@@ -106,10 +107,14 @@ export async function submitTransportationRequest(
     returnTripNeeded: (isAllowed(src.returnTripNeeded, RETURN_TRIP)
       ? src.returnTripNeeded
       : "") as ReturnTripPreference,
-    assistanceNotes: cleanString(src.assistanceNotes, FIELD_LIMITS.longText),
+    // Capped so the level's compatibility encoding (added in the Nemryn
+    // mapping) keeps the wire field within FIELD_LIMITS.longText.
+    assistanceNotes: cleanString(src.assistanceNotes, ASSISTANCE_NOTES_MAX_LENGTH),
     additionalNotes: cleanString(src.additionalNotes, FIELD_LIMITS.longText),
   };
   if (schedule.value) clean.recurringSchedule = schedule.value;
+  // Pickup & assistance level: required, and only one of the four canonical values ("unsure" is valid).
+  if (isAssistanceLevel(src.assistanceLevel)) clean.assistanceLevel = src.assistanceLevel;
 
   const missingRequired =
     !clean.requesterName ||
@@ -118,6 +123,7 @@ export async function submitTransportationRequest(
     !clean.passengerName ||
     !clean.pickupDescription ||
     !clean.destinationDescription ||
+    !clean.assistanceLevel ||
     !RETURN_TRIP.includes(clean.returnTripNeeded);
 
   if (missingRequired) {

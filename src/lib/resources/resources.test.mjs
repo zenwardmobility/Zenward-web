@@ -42,6 +42,8 @@ function resourceText(resource) {
     if (block.type === "list") parts.push(...block.items);
     if (block.type === "checklist") for (const item of block.items) parts.push(item.label, item.hint ?? "");
     if (block.type === "faq") for (const item of block.items) parts.push(item.question, item.answer);
+    if (block.type === "definitions") for (const item of block.items) parts.push(item.term, item.description);
+    if (block.type === "p" && block.link) parts.push(block.link.label);
   }
   for (const item of body.tool ?? []) parts.push(item.label, item.hint ?? "");
   return parts.join("\n");
@@ -379,11 +381,17 @@ test("R3: dialysis wording is transportation-focused, not a universal treatment 
   assert.equal(r3.bridge.heading, "Need recurring transportation for dialysis?");
 });
 
-test("R4: no wording implying physical transfer assistance; no assistance-level definitions yet", () => {
+test("R4: no wording implying physical transfer assistance; all four canonical assistance levels (04G3)", async () => {
+  const { ASSISTANCE_LEVELS, ASSISTANCE_REVIEW_NOTE } = await import("../assistance-level.ts");
   const text = body("wheelchair-accessible-transportation-guide");
-  assert.ok(!/stand or take a few steps|\btransfers?\b|\blift(ing)? (the|a) passenger|\bcarry/i.test(text));
+  assert.ok(!/stand or take a few steps|\btransfers?\b|\blifting\b|\blift(s)? (the |a )?(passenger|rider|person)\b|\bcarry|\bcarrying\b|\bstairs? carr|\boxygen\b|\bstretcher\b/i.test(text));
   assert.ok(!/help beyond getting into the vehicle/.test(text));
-  assert.ok(!/curb[- ]to[- ]curb|door[- ]to[- ]door|door[- ]through[- ]door/i.test(text), "assistance levels arrive with 04G3");
+  const r4 = RESOURCE_BODIES["wheelchair-accessible-transportation-guide"];
+  assert.ok(r4.blocks.some((b) => b.type === "h2" && b.id === "assistance-level" && b.text === "Choose the assistance level that fits the trip"));
+  const defs = r4.blocks.find((b) => b.type === "definitions");
+  // Exactly the canonical labels and descriptions, in order: never a second copy of the wording.
+  assert.deepEqual(defs.items, ASSISTANCE_LEVELS.map((l) => ({ term: l.label, description: l.description })));
+  assert.ok(text.includes(ASSISTANCE_REVIEW_NOTE));
 });
 
 test("R5: one URL listed under both Riders & Families and Healthcare Providers; simplified timing; boundary kept", () => {
@@ -400,11 +408,26 @@ test("R5: one URL listed under both Riders & Families and Healthcare Providers; 
   assert.match(hub, /<ResourceCard resource=\{resource\} category=\{category\} \/>/);
 });
 
-test("R6: arrival-time wording; no assistance level yet", () => {
+test("R6: arrival-time wording; Pickup & assistance level and Transportation type items (04G3)", () => {
   const tool = RESOURCE_BODIES["medical-transportation-trip-checklist"].tool;
   assert.ok(tool.some((i) => i.label === "Appointment or required arrival time"));
   assert.ok(!tool.some((i) => /event time/i.test(i.label)));
-  assert.ok(!tool.some((i) => /assistance level|curb|door[- ]to[- ]door/i.test(`${i.label} ${i.hint}`)));
+  const level = tool.find((i) => i.label === "Pickup & assistance level");
+  assert.equal(level.hint, "Curb-to-curb, door-to-door, door-through-door, or not sure");
+  const type = tool.find((i) => i.label === "Transportation type");
+  assert.ok(type && type.hint.length <= 80, "a concise hint, not all eight service labels");
+  assert.equal(new Set(tool.map((i) => i.label)).size, tool.length);
+});
+
+test("R2 step 4 links to the assistance-level definitions; no assistance-level Resource or URL", () => {
+  const r2 = RESOURCE_BODIES["how-to-arrange-nemt-in-metro-atlanta"];
+  const i = r2.blocks.findIndex((b) => b.type === "h2" && b.id === "mobility");
+  const step4 = r2.blocks.slice(i + 1, r2.blocks.findIndex((b, j) => j > i && b.type === "h2"));
+  const linked = step4.find((b) => b.type === "p" && b.link);
+  assert.equal(linked.link.href, "/resources/wheelchair-accessible-transportation-guide#assistance-level");
+  assert.match(linked.text, /pickup & assistance level/);
+  assert.equal(RESOURCES.length, 6, "no new Resource for assistance level");
+  for (const path of RESOURCE_PATHS) assert.ok(!/curb|door|assistance/.test(path));
 });
 
 test("Zenny teaser is suppressed on Resource pages below md; the launcher stays", () => {

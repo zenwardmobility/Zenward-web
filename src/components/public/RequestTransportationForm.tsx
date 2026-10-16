@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useRef } from "react";
-import { CheckCircle, Phone } from "@phosphor-icons/react/dist/ssr";
+import { Phone } from "@phosphor-icons/react/dist/ssr";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
@@ -14,6 +14,9 @@ import { TrustStrip } from "@/components/public/TrustStrip";
 import { QuoteCalendar } from "@/components/public/quote-form/QuoteCalendar";
 import { PreferredTimeSelect } from "@/components/public/quote-form/PreferredTimeSelect";
 import { QuoteStepper } from "@/components/public/quote-form/QuoteStepper";
+import { AssistanceLevelField } from "@/components/public/quote-form/AssistanceLevelField";
+import { RequestSuccess } from "@/components/public/quote-form/RequestSuccess";
+import { ASSISTANCE_NOTES_MAX_LENGTH } from "@/lib/assistance-level";
 import { cn } from "@/lib/cn";
 import { typography } from "@/design/typography";
 import { track } from "@/lib/analytics/events";
@@ -69,9 +72,12 @@ function makeSubmissionId(): string {
  * - `initialServiceType` comes from the server-resolved, allow-listed
  *   `?service=` value, never from anything typed.
  * - Dates and times are PREFERENCES. Zenward confirms availability later.
- * - The payload is built by `buildRequestInput` and is identical to the
- *   pre-04G form's. The Server Action, idempotency (one submissionId per
- *   mount, kept across retries) and fail-closed delivery are unchanged.
+ * - The payload is built by `buildRequestInput`: the pre-04G fields plus the
+ *   structured Pickup & assistance level (04G3), which the server-side
+ *   Nemryn mapping encodes into the existing assistanceNotes wire field. The
+ *   idempotency (one submissionId per mount, kept across retries) and
+ *   fail-closed delivery are unchanged.
+ * - The request-received experience (04G3) renders only for delivered:true.
  */
 export function RequestTransportationForm({ initialServiceType }: { initialServiceType?: ServiceType }) {
   const [state, dispatch] = useReducer(quoteFormReducer, initialServiceType, initialState);
@@ -86,7 +92,7 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
   const markStarted = useRef(once(() => track({ name: "transportation_quote_started" })));
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const successRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLHeadingElement>(null);
   const previousStep = useRef(step);
   const validationAttempt = useRef(0);
 
@@ -103,14 +109,24 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
     }
   }, [step]);
 
-  // After a failed Continue, focus the first invalid control.
+  // After a failed Continue, focus the first invalid control. For a radio group
+  // (an invalid <fieldset>), that is its checked radio or else its first radio.
   useEffect(() => {
     if (validationAttempt.current === 0 || Object.keys(errors).length === 0) return;
-    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"] input, [aria-invalid="true"]')?.focus();
+    const invalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    const target =
+      invalid?.tagName === "FIELDSET"
+        ? (invalid.querySelector<HTMLElement>("input:checked") ?? invalid.querySelector<HTMLElement>("input"))
+        : invalid;
+    target?.focus();
   }, [errors]);
 
+  // Request received: bring the whole card to the top (below the sticky header) so the
+  // three answers are visible at once, and move focus to its heading.
   useEffect(() => {
-    if (status === "success") successRef.current?.focus();
+    if (status !== "success") return;
+    successRef.current?.closest("[data-request-success]")?.scrollIntoView({ block: "start" });
+    successRef.current?.focus({ preventScroll: true });
   }, [status]);
 
   function set<K extends QuoteField>(field: K, value: QuoteFormValues[K]) {
@@ -147,51 +163,8 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
     if (isDeliveredConversion(result)) track({ name: "transportation_quote_submitted" });
   }
 
-  if (status === "success") {
-    return (
-      <div
-        ref={successRef}
-        tabIndex={-1}
-        role="status"
-        aria-live="polite"
-        className="rounded-lg border border-success-border bg-success-bg p-xl text-center"
-      >
-        <CheckCircle className="mx-auto size-10 text-success-strong" weight="fill" aria-hidden />
-        <p className={cn(typography.subsectionTitle, "mt-4 text-text-primary")}>Request received</p>
-        {state.delivered ? (
-          <>
-            <p className={cn(typography.body, "mx-auto mt-2 max-w-[30rem] text-text-secondary")}>
-              Zenward will review the request and follow up with you to confirm availability and next steps. Your trip
-              isn&rsquo;t confirmed until we confirm it with you.
-            </p>
-            <p className={cn(typography.bodySmall, "mx-auto mt-3 max-w-[30rem] font-semibold text-text-primary")}>
-              {QUOTE_RESPONSE_LINE}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className={cn(typography.body, "mx-auto mt-2 max-w-[30rem] text-text-secondary")}>
-              We have your details. So we can confirm this trip with you directly, please also call our team —
-              it&rsquo;s the fastest way to lock in availability.
-            </p>
-            <a
-              href={business.phoneHref}
-              className={cn(
-                typography.button,
-                "mt-4 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-brand-care-navy px-6 text-white",
-              )}
-            >
-              <Phone className="size-4" weight="fill" aria-hidden />
-              Call {business.phoneDisplay}
-            </a>
-          </>
-        )}
-        {state.referenceId && (
-          <p className={cn(typography.metadata, "mt-4 text-text-muted")}>Reference: {state.referenceId}</p>
-        )}
-      </div>
-    );
-  }
+  // The reducer only reaches "success" for a genuine delivered:true result.
+  if (status === "success") return <RequestSuccess ref={successRef} />;
 
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -286,11 +259,17 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
               onChange={(event) => set("passengerName", event.target.value)}
               error={errors.passengerName}
             />
+            <AssistanceLevelField
+              value={values.assistanceLevel}
+              onChange={(value) => set("assistanceLevel", value)}
+              error={errors.assistanceLevel}
+            />
             <Textarea
               name="assistanceNotes"
               label="Mobility or assistance needs (optional)"
-              helpText="For example, a wheelchair, a walker, or help getting to the door. Only what helps us arrange the trip; please don't include medical details. Zenward will review the request and confirm what we can accommodate."
-              maxLength={2000}
+              helpText="For example, a wheelchair, a walker, or extra time at pickup. Only what helps us arrange the trip; please don't include medical details. Zenward will review the request and confirm what we can accommodate."
+              rows={3}
+              maxLength={ASSISTANCE_NOTES_MAX_LENGTH}
               value={values.assistanceNotes}
               onChange={(event) => set("assistanceNotes", event.target.value)}
             />
@@ -298,6 +277,7 @@ export function RequestTransportationForm({ initialServiceType }: { initialServi
               name="additionalNotes"
               label="Anything else about the trip? (optional)"
               helpText="Such as an appointment time, a building entrance, or airport and flight details."
+              rows={3}
               maxLength={2000}
               value={values.additionalNotes}
               onChange={(event) => set("additionalNotes", event.target.value)}

@@ -16,6 +16,7 @@
  * these two functions decide.
  */
 import type { RecurringSchedule, TransportationRequestInput } from "./types";
+import { encodeAssistanceNotes } from "../assistance-level.ts";
 
 /**
  * The exact flat JSON body Nemryn's public intake route accepts. Nemryn's
@@ -79,7 +80,15 @@ export function buildNemrynIntakeBody(
   if (input.requesterEmail) body.requesterEmail = input.requesterEmail;
   if (input.preferredDate) body.preferredDate = input.preferredDate;
   if (input.preferredTime) body.preferredTime = input.preferredTime;
-  if (input.assistanceNotes) body.assistanceNotes = input.assistanceNotes;
+  // TEMPORARY COMPATIBILITY (ZW-WEB-04G3): the frozen contract has no
+  // assistanceLevel field, so the level travels in assistanceNotes as
+  // "Assistance level: <label>" (+ "Additional assistance:" and the visitor's
+  // text). No new wire key. When Nemryn adds a structured field, send it
+  // separately here and pass only the free text in assistanceNotes.
+  const assistanceNotes = input.assistanceLevel
+    ? encodeAssistanceNotes(input.assistanceLevel, input.assistanceNotes)
+    : input.assistanceNotes;
+  if (assistanceNotes) body.assistanceNotes = assistanceNotes;
   if (input.additionalNotes) body.additionalNotes = input.additionalNotes;
   if (input.recurringSchedule) {
     const schedule = input.recurringSchedule;

@@ -91,7 +91,7 @@ A recurring request replaces `preferredDate` / `preferredTime` with a structured
 | `pickupDescription`, `destinationDescription` | yes | Free text. |
 | `preferredDate`, `preferredTime` | no | One-time requests only; omitted when blank and always absent on recurring requests. |
 | `returnTripNeeded` | yes | `yes` / `no` / `not_sure`. On recurring requests the form derives `yes`/`no` from `recurringSchedule.returnTripExpected`. |
-| `assistanceNotes`, `additionalNotes` | no | The requester's own text, unchanged. `additionalNotes` is **never** used to carry passenger, service or schedule data. |
+| `assistanceNotes`, `additionalNotes` | no | The requester's own text, unchanged, **except** that `assistanceNotes` carries the Pickup & assistance level in a fixed temporary format (§3a). `additionalNotes` is **never** used to carry passenger, service, schedule or assistance-level data. |
 | `serviceType` | yes (from the form) | **Structured**, sent directly. Closed enum, identical value-for-value on both sides: `medical_appointment`, `dialysis`, `rehabilitation`, `hospital_discharge`, `recurring_care`, `senior_medical`, `wheelchair_transportation`, `airport_transportation`, `other`. `airport_transportation` was added by Nemryn Core migration `20261015135000` (app release `a0a65aa`, PR #9) and activated on Zenward-Web in ZW-WEB-04C2. It is sent as itself and never remapped to `other`. Nemryn also requires the receiving organization to offer the service: if its Settings → Services are configured, Airport must be enabled there, or the request is rejected with the generic `400`. |
 | `recurringSchedule` | no | **Structured object**, sent directly, only for a recurring request; the key is absent (never `null`) for a one-time request. Members: `daysOfWeek` (1–7 distinct lowercase weekday names, Mon→Sun), `startDate` (`YYYY-MM-DD`), optional `endDate` (`YYYY-MM-DD`, ≥ `startDate`), optional `appointmentTime` (`HH:MM`, 24 h), optional `returnTripExpected` (strict boolean). |
 
@@ -108,9 +108,50 @@ A recurring request replaces `preferredDate` / `preferredTime` with a structured
   offered on the form, preselectable with `?service=airport_transportation`, and has its own service page. A type Nemryn
   accepts but Zenward does not offer stays out of `PUBLIC_SERVICE_TYPES`; a service Zenward offers that Nemryn does not yet
   accept is held in `CONTRACT_PENDING_SERVICE_LABELS` (empty today).
+- **Every public service must be enabled in Nemryn.** Nemryn → Settings → Services & Intake must enable every
+  service Zenward publicly accepts. A request for a service that is not enabled there is intentionally declined
+  (generic `400`), and the visitor sees the calm "couldn't submit" copy. In October 2026 only Airport
+  Transportation was enabled at first, so every other service was declined until the remaining services were
+  enabled. That was a Nemryn configuration issue, not a website defect. Check Services & Intake whenever a
+  public service is added. This is an internal operational dependency, never public copy.
 - **A request expresses intent only.** `recurringSchedule` creates no recurring arrangement, and a website submission
   creates no Passenger, Trip, Driver assignment or Vehicle assignment. It stops at a pending Request that an operator
   reviews, reconciles to a Passenger and (optionally) turns into a Trip manually.
+
+## 3a. Pickup & assistance level — temporary encoding (ZW-WEB-04G3)
+
+The public form asks for a required **Pickup & assistance level**: `curb_to_curb`, `door_to_door`,
+`door_through_door` or `unsure`. It says HOW MUCH driver escort is requested. It is **not** a service type, is never
+sent as `serviceType`, and has nothing to do with Nemryn's Services & Intake settings. Canonical labels and
+definitions: `src/lib/assistance-level.ts`.
+
+The frozen contract has no structured field for it, so the closed key set above is **unchanged** and the level
+travels inside `assistanceNotes`. The Server Action validates it as a structured value. `buildNemrynIntakeBody`
+encodes it immediately before the wire body is built:
+
+```
+Assistance level: Door-to-door
+
+Additional assistance:
+Passenger uses a walker and may need extra time at pickup.
+```
+
+- First line always `Assistance level: <Curb-to-curb | Door-to-door | Door-through-door | Not sure>`.
+- The `Additional assistance:` block appears only when the requester typed assistance text, which is kept verbatim.
+- Deterministic: a retry produces the same string. The prefix is never duplicated (any leading encoded block is
+  stripped before encoding).
+- Free text is capped at `2000 − overhead` characters, so the encoded field stays within 2,000 characters and nothing
+  typed is cut off.
+- The website never shows this combined string. The Review step shows the level as its own field.
+
+**Future migration.** When Nemryn adds a structured field, the recommended shape is
+`assistanceLevel: "curb_to_curb" | "door_to_door" | "door_through_door" | "unsure"`. Then:
+1. Send `assistanceLevel` as its own key from `buildNemrynIntakeBody`.
+2. Send only the requester's free text in `assistanceNotes`.
+3. Remove the prefix generation (`encodeAssistanceNotes`).
+4. Leave the public form, Review and copy unchanged.
+
+Only the server mapping (and this document) changes.
 
 ## 4. Response
 
@@ -146,7 +187,7 @@ returns `{"ok": true}` again.
 
 | Variable | Value | Notes |
 |---|---|---|
-| `REQUEST_INTAKE_MODE` | `stub` (default) or `platform` | `stub` validates and acknowledges but delivers nothing; the success screen tells the visitor to also call. |
+| `REQUEST_INTAKE_MODE` | `stub` (default) or `platform` | `stub` (the unlinked adapter) delivers nothing and fails closed: the visitor is told online requests are temporarily unavailable and to call. It never shows success. |
 | `PLATFORM_INTAKE_URL` | `https://app.nemryn.com/api/public-intake/website` | https only. |
 | `PLATFORM_INTAKE_INTEGRATION_ID` | opaque id issued by Nemryn | Not printed in logs, docs or reports. |
 

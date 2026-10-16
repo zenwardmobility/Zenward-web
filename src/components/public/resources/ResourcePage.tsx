@@ -29,7 +29,30 @@ function Block({ block }: { block: ResourceBlock }) {
         </h2>
       );
     case "p":
-      return <p className={cn(typography.body, "text-text-secondary")}>{block.text}</p>;
+      return (
+        <p className={cn(typography.body, "text-text-secondary")}>
+          {block.text}
+          {block.link && (
+            <>
+              {" "}
+              <Link href={block.link.href} className="font-semibold text-text-accent-on-tint underline underline-offset-4">
+                {block.link.label}
+              </Link>
+            </>
+          )}
+        </p>
+      );
+    case "definitions":
+      return (
+        <dl className="grid grid-cols-1 gap-md sm:grid-cols-2">
+          {block.items.map((item) => (
+            <div key={item.term} className="rounded-lg border border-border-subtle bg-surface-elevated p-md">
+              <dt className={cn(typography.body, "font-semibold text-text-primary")}>{item.term}</dt>
+              <dd className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{item.description}</dd>
+            </div>
+          ))}
+        </dl>
+      );
     case "list": {
       const List = block.ordered ? "ol" : "ul";
       return (

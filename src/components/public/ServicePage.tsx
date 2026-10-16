@@ -9,12 +9,14 @@ import { FaqAccordion } from "@/components/public/FaqAccordion";
 import { PracticalFacts } from "@/components/public/PracticalFacts";
 import { ClosingCta } from "@/components/public/ClosingCta";
 import { TrustStrip } from "@/components/public/TrustStrip";
+import { AssistanceLevelExplainer } from "@/components/public/AssistanceLevelExplainer";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
 import { getDefaultMarket } from "@/lib/service-area";
 import { serviceJsonLd } from "@/lib/service-pages";
 import { resourcesForService } from "@/lib/resources/catalog";
 import { SERVICES, type ServiceContent, type ServiceSectionKey } from "@/lib/services";
+import type { ServiceSlug } from "@/lib/service-catalog";
 
 /**
  * Shared renderer for the seven service pages (ZW-WEB-03A; rebuilt in
@@ -271,11 +273,26 @@ function HelpfulResources({ service }: { service: ServiceContent }) {
   );
 }
 
+/**
+ * Pickup & assistance level explainer (ZW-WEB-04G3), only where it genuinely
+ * helps: the strongest treatment on the wheelchair page, a compact one on
+ * senior and medical-appointment pages. Other service pages don't repeat it.
+ */
+const ASSISTANCE_EXPLAINER: Partial<Record<ServiceSlug, "full" | "compact">> = {
+  "wheelchair-transportation": "full",
+  "senior-medical-transportation": "compact",
+  "medical-appointments": "compact",
+};
+
+const flip = (tone: SectionTone): SectionTone => (tone === "mist" ? "white" : "mist");
+
 export function ServicePage({ service }: { service: ServiceContent }) {
-  // Sections alternate white/mist; the FAQ and related services continue the
-  // alternation so two bands of the same tone never sit together.
-  const faqTone: SectionTone = service.order.length % 2 === 0 ? "white" : "mist";
-  const relatedTone: SectionTone = faqTone === "mist" ? "white" : "mist";
+  // Sections alternate white/mist; the explainer (where shown), FAQ and related
+  // services continue the alternation so two bands of the same tone never sit together.
+  const explainer = ASSISTANCE_EXPLAINER[service.slug];
+  const afterSections: SectionTone = service.order.length % 2 === 0 ? "white" : "mist";
+  const faqTone: SectionTone = explainer ? flip(afterSections) : afterSections;
+  const relatedTone: SectionTone = flip(faqTone);
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd(service)) }} />
@@ -286,6 +303,12 @@ export function ServicePage({ service }: { service: ServiceContent }) {
         const Renderer = SECTION_RENDERERS[key];
         return <Renderer key={key} service={service} tone={index % 2 === 0 ? "white" : "mist"} />;
       })}
+
+      {explainer && (
+        <Section tone={afterSections}>
+          <AssistanceLevelExplainer variant={explainer} requestHref={service.requestHref} />
+        </Section>
+      )}
 
       <Section tone={faqTone} narrow>
         <h2 className={cn(typography.sectionTitle, "text-center text-text-primary")}>Common questions</h2>

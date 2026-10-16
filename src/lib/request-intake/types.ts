@@ -8,6 +8,7 @@
  */
 import type { ServiceType } from "./service-types";
 import type { RecurringSchedule } from "./recurring";
+import type { AssistanceLevel } from "../assistance-level";
 
 export type { ServiceType, RecurringSchedule };
 
@@ -27,8 +28,16 @@ export interface TransportationRequestInput {
   preferredDate?: string;
   preferredTime?: string;
   returnTripNeeded: ReturnTripPreference;
+  /** The visitor's own free text about mobility or assistance needs, as typed. */
   assistanceNotes?: string;
   additionalNotes?: string;
+  /**
+   * Pickup & assistance level (ZW-WEB-04G3). Required by the public form and
+   * the Server Action. NOT a wire field: Nemryn's frozen Website Intake
+   * contract has no `assistanceLevel` yet, so `buildNemrynIntakeBody` encodes
+   * it into the wire `assistanceNotes` (see src/lib/assistance-level.ts).
+   */
+  assistanceLevel?: AssistanceLevel;
   /**
    * The REQUESTED recurring schedule, present only for a recurring request.
    * It describes what the requester wants — it does not create trips or a

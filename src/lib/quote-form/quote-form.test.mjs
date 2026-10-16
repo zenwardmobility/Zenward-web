@@ -51,6 +51,7 @@ const ONE_TIME = [
   set("returnTripNeeded", "yes"),
   next,
   set("passengerName", "QA Passenger"),
+  set("assistanceLevel", "door_to_door"),
   set("assistanceNotes", "Uses a walker."),
   next,
   set("requesterRelationship", "family"),
@@ -218,7 +219,7 @@ test("per-step validation: required fields block only their own step, errors cle
   assert.equal(s.errors.serviceType, undefined);
   // Nothing is validated before the visitor presses Continue.
   assert.deepEqual(initialState().errors, {});
-  assert.deepEqual(Object.keys(validateStep("passenger", initialState().values, TODAY)), ["passengerName"]);
+  assert.deepEqual(Object.keys(validateStep("passenger", initialState().values, TODAY)).sort(), ["assistanceLevel", "passengerName"]);
   assert.deepEqual(Object.keys(validateStep("contact", initialState().values, TODAY)).sort(), ["requesterName", "requesterPhone", "requesterRelationship"]);
   assert.match(validateStep("contact", { ...initialState().values, requesterEmail: "nope" }, TODAY).requesterEmail, /valid email/);
   assert.deepEqual(validateStep("review", initialState().values, TODAY), {});
@@ -297,10 +298,17 @@ test("edit from review returns to the step, keeps data, and can't skip ahead", (
 
 // ------------------------------------------------------------- contract parity
 
-test("contract parity: one-time, recurring and airport payloads equal the pre-04G form", () => {
+/** 04G3: the pre-04G fields are unchanged; the only addition is the structured assistanceLevel (never a wire key). */
+function withoutLevel(input) {
+  const { assistanceLevel, ...rest } = input;
+  assert.equal(assistanceLevel, "door_to_door");
+  return rest;
+}
+
+test("contract parity: one-time, recurring and airport payloads equal the pre-04G form (+ structured assistanceLevel)", () => {
   const oneTime = run(initialState("dialysis"), ONE_TIME);
   assert.deepEqual(
-    buildRequestInput(oneTime.values),
+    withoutLevel(buildRequestInput(oneTime.values)),
     legacyPayload({
       tripFrequency: "one_time", serviceType: "dialysis", requesterName: "QA Requester", requesterRelationship: "family",
       requesterPhone: "404-555-0142", requesterEmail: "", passengerName: "QA Passenger", pickupDescription: "QA Pickup, 1 Main St",
@@ -319,7 +327,7 @@ test("contract parity: one-time, recurring and airport payloads equal the pre-04
     ...ONE_TIME.slice(7),
   ]);
   assert.deepEqual(
-    buildRequestInput(recurring.values),
+    withoutLevel(buildRequestInput(recurring.values)),
     legacyPayload({
       tripFrequency: "recurring", serviceType: "recurring_care", requesterName: "QA Requester", requesterRelationship: "family",
       requesterPhone: "404-555-0142", requesterEmail: "", passengerName: "QA Passenger", pickupDescription: "QA Pickup, 1 Main St",

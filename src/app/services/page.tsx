@@ -7,6 +7,7 @@ import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { CallButton } from "@/components/public/CallButton";
 import { PracticalFacts } from "@/components/public/PracticalFacts";
 import { ClosingCta } from "@/components/public/ClosingCta";
+import { AssistanceLevelExplainer } from "@/components/public/AssistanceLevelExplainer";
 import { buttonClassNames } from "@/components/ui/buttonStyles";
 import { typography } from "@/design/typography";
 import { brandImages } from "@/lib/images";
@@ -147,6 +148,11 @@ export default function ServicesPage() {
             How to arrange a ride
           </Link>
         </p>
+      </Section>
+
+      {/* Pickup & assistance level (ZW-WEB-04G3): separate from the service choice above. */}
+      <Section tone="mist">
+        <AssistanceLevelExplainer variant="compact" />
       </Section>
 
       <ClosingCta
