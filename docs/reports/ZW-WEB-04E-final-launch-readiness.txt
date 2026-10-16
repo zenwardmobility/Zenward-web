@@ -1,0 +1,787 @@
+ZW-WEB-04E — FINAL PRODUCTION LAUNCH READINESS
+             + TRUST / LEGAL / TRACKING GATE
+Date: 2026-10-16
+Repository: /Users/datamatics/Zenward-Web (branch main)
+Mode: AUDIT + TARGETED LAUNCH FIXES ONLY. Owner-approved and committed at
+close-out (§31); not pushed or deployed.
+No Google Ads, GA4, GTM, gtag.js, dataLayer, advertising cookie or external
+analytics call added. No redesign, no new pages, no new services, no Nemryn
+architecture change, no env change. Terms unchanged.
+
+Method: production build served locally (next start, NEXT_PUBLIC_SITE_URL=
+https://www.zenwardmobility.com, intake + contact env UNSET), crawled with
+curl, and driven in headless Chrome (playwright-core) at 390/430/768/1024/1440.
+Read-only GETs of the live site for production state. No production form
+submission was made.
+
+
+1. STARTING STATE
+-----------------
+  git status ......... clean ("ahead of origin/main by 1 commit")
+  git diff --check ... clean
+  HEAD ............... eb95c1e05ad54c0e9de49ba3b9c08ed3a90a66af
+                       "Add Metro Atlanta acquisition pages and conversion
+                       event foundation" (04D)
+  origin/main ........ af41e3bf67ebaabac3febcbc11b0e83990c72e77
+                       "feat(web): activate airport transportation intake"
+                       (04C2)
+  ahead/behind ....... 1 / 0
+  Tests before 04E ... 84/84
+
+Production (read-only GETs, 2026-10-16): www.zenwardmobility.com is served
+by Vercel and matches af41e3b. The live form offers Airport Transportation,
+?service=airport_transportation preselects it, and the airport page has no
+"Choose Other" note. 04D routes (/locations/metro-atlanta,
+/metro-atlanta/*) return 404 live: 04D is committed locally only.
+
+
+2. CURRENT COMMIT HISTORY (git log --oneline -15)
+-------------------------------------------------
+  eb95c1e Add Metro Atlanta acquisition pages and conversion event foundation
+  af41e3b feat(web): activate airport transportation intake
+  b7b9cee Add Airport Transportation behind intake contract gate
+  f668474 Enhance service pages and wire locked Zenward brand identity
+  481a1a6 Strengthen homepage hero for commercial clarity
+  174159a Add Metro Atlanta market positioning
+  e602d92 Restructure homepage around conversion hierarchy
+  d76ca6f Add locked Zenward brand asset set
+  bdbd701 Add ZW-WEB-04A readiness audit and exit report
+  209d4c9 Fail closed when no Nemryn integration is configured
+  680f255 Connect Zenward structured request intake to Nemryn
+  d7782a3 Send site Origin on the server-to-server Nemryn intake call
+  8f1526f Connect Zenward transportation requests to Nemryn
+  541181c Document ZW-WEB-03B production deployment
+  ac4a47f Strengthen Zenward medical transportation positioning
+
+Reports read: 04A audit, 04A-exit, 04B, 04B2, 04C, 04C1, 04C2 (R1,
+activation, completion), 04D, NEMRYN-NEW-CUSTOMER-INTEGRATION-RESET.
+
+
+3. SERVICE TAXONOMY
+-------------------
+Public service set (SERVICE_ORDER, /services, form options, sitemap):
+  1. Medical Appointment Transportation     medical_appointment
+  2. Dialysis Transportation                dialysis
+  3. Rehabilitation Transportation          rehabilitation
+  4. Hospital Discharge Transportation      hospital_discharge
+  5. Recurring Care Transportation          recurring_care
+  6. Senior Medical Transportation          senior_medical
+  7. Wheelchair-Accessible Transportation   wheelchair_transportation
+  8. Airport Transportation                 airport_transportation
+  (+ "Other" on the form only; not preselectable)
+
+airport_transportation is present in SERVICE_TYPES, PUBLIC_SERVICE_TYPES,
+SERVICE_TYPE_LABELS ("Airport Transportation") and PUBLIC_SERVICE_PARAMS
+(src/lib/request-intake/service-types.ts). CONTRACT_PENDING_SERVICE_LABELS
+is {} (mechanism kept, nothing gated). The airport "Choose Other" intake
+note is gone. The only remaining "choose Other" copy is the generic
+/services closing CTA ("Not sure which service you need? ... choose
+Other"), which is the intended fallback, not the airport workaround.
+
+?service=airport_transportation preselects "Airport Transportation"
+(verified in rendered HTML and in the browser).
+
+
+4. AIRPORT ACTIVATION STATUS
+----------------------------
+  Code ........... ACTIVE since af41e3b (04C2). Sent on the wire as
+                   serviceType "airport_transportation", never remapped.
+  Production ..... DEPLOYED (af41e3b live, see §1).
+  Nemryn side .... Enum accepts it (Core migration 20261015135000, app
+                   a0a65aa per contract doc). Zenward's org must have
+                   Airport enabled in Nemryn Settings -> Services if
+                   Services are configured, or Nemryn returns its generic
+                   400 and the site shows "couldn't submit ... call us".
+                   NOT CONFIRMED.
+  End-to-end ..... NOT VERIFIED (Gate D, §25).
+  Paid campaign .. none exists (/metro-atlanta/airport-transportation ->
+                   404). Stays blocked until Gate D passes and the owner
+                   signs off.
+Positioning: Airport is presented as adjacent everywhere ("Also available"
+on hub and broad campaign; "plus pre-arranged airport ..." on home and
+/services). It is not in the hero service list.
+
+Nemryn contract alignment (task §4): Zenward's SERVICE_TYPES equals the
+enum in docs/architecture/nemryn-trusted-request-intake-contract.md (9
+values incl. airport_transportation and other); the parity test in
+nemryn-mapping.test.mjs enforces it. This is LOCAL alignment with Zenward's
+copy of the contract. It does not prove production readiness: Gates A-E
+remain external verification items. No tenant or integration ID is
+hard-coded (integrationExternalId comes only from server env).
+
+
+5. BRAND / BROWSER IDENTITY
+---------------------------
+  /icon.svg ........................ 200 image/svg+xml (Zenward favicon)
+  /brand/zenward-favicon.svg ....... 200
+  /brand/zenward-favicon-32.png .... 200 (also served at /favicon.ico via
+                                     rewrite)
+  /brand/zenward-favicon-16.png .... 200
+  /manifest.webmanifest ............ 200; name "Zenward Mobility"; icons
+                                     192, 512, 512 maskable
+  apple-touch-icon ................. <link> -> zenward-app-icon-192.png
+  header logo ...................... zenward-logo-primary.svg
+  footer logo ...................... zenward-logo-inverse.svg
+  OG image ......................... /opengraph-image.jpg 200
+No create-next-app/Vercel assets remain (no vercel.svg, next.svg,
+default favicon.ico or file/globe/window.svg in git). Locked artwork not
+modified.
+Note: /apple-touch-icon.png (legacy probe path) returns 404. Harmless:
+the <link rel="apple-touch-icon"> is present. P3.
+
+
+6. HOMEPAGE LAUNCH REVIEW (customer view, 390 and 1440 first viewport)
+---------------------------------------------------------------------
+  What Zenward does ...... unmistakable: H1 "Non-Emergency Medical
+                           Transportation Across Metro Atlanta"
+  Metro Atlanta .......... eyebrow, H1, banner ("Serving Metro Atlanta")
+  Request a Quote ........ primary amber button in hero; also header
+                           (desktop)
+  678-935-5489 ........... hero secondary button, header, banner; mobile
+                           header "Call" button
+  Broad NEMT ............. maintained; support line lists appointments,
+                           dialysis, rehabilitation, discharge, recurring,
+                           wheelchair-accessible
+  Wheelchair ............. visible as one item in the list, not dominant
+  Airport ................ not in the hero; appears lower as an adjacent
+                           service card. Does not dilute NEMT.
+Hero imagery not reopened. No launch defect found.
+
+
+7. SERVICES REVIEW (/services + 8 service pages)
+------------------------------------------------
+  Labels ............... canonical labels everywhere (from
+                         SERVICE_TYPE_LABELS)
+  Dead links ........... none (every internal href on 21 routes -> 200)
+  Quote preselection ... each page's quote CTA ->
+                         /request-transportation?service=<own value>
+                         (2 per page) plus the generic header CTA
+  Phone ................ tel:+16789355489 only
+  FAQs ................. service-specific, rendered in the DOM
+  Metro Atlanta ........ title "<Label> in Metro Atlanta"; market context
+                         on page
+  Related services ..... valid (service-catalog test enforces)
+  Claims ............... none unsupported (§18)
+  Airport .............. "08 ... Pre-arranged rides to and from the
+                         airport"; intro "Seven non-emergency medical
+                         transportation services, plus pre-arranged airport
+                         transportation". Adjacent, not redefining.
+FINDING SEO-04E-1 (P2) — RESOLVED AT CLOSE-OUT (§31): /services and the hub
+/locations/metro-atlanta now share the title "Non-Emergency Medical
+Transportation Services in Metro Atlanta | Zenward Mobility". The hub title
+was set at the 04D close-out on owner instruction; /services already used
+that string, and the 04D close-out missed the collision. Not changed here
+because the hub title is owner-mandated and a new /services title is
+marketing copy. Recommendation: retitle /services (e.g. "Transportation
+Services | Zenward Mobility" or "Our Medical Transportation Services in
+Metro Atlanta"), owner to choose.
+
+
+8. QUOTE FUNNEL (/request-transportation)
+-----------------------------------------
+  H1 ................... "Request a Transportation Quote"
+  Pricing language ..... "Zenward will review the details and contact you
+                         to confirm availability, next steps and pricing."
+                         No price shown, no instant pricing implied.
+  Not a booking ........ above the form ("a request, not a confirmed
+                         booking, and availability isn't guaranteed until
+                         Zenward confirms it") and below the submit button
+  Options .............. all 8 services + Other, canonical labels, in
+                         catalogue order
+  Preselection ......... airport_transportation, wheelchair_transportation,
+                         dialysis, medical_appointment -> correct option
+                         selected; recurring_care -> selected + frequency
+                         Recurring; junk / other / empty -> nothing
+Backend not modified.
+
+
+9. PHONE AUDIT
+--------------
+All 21 public routes (+404): every tel: href is exactly tel:+16789355489
+and the display text is 678-935-5489. Obsolete 470-206-8005 / 4702068005:
+ZERO hits in rendered HTML of all routes and in src/. Historical reports
+keep their text (not rewritten).
+
+
+10. METRO ATLANTA HUB (/locations/metro-atlanta)
+------------------------------------------------
+  Status ........ 200, indexable (no robots meta), in sitemap.xml
+  Title ......... "Non-Emergency Medical Transportation Services in Metro
+                  Atlanta | Zenward Mobility" (see SEO-04E-1)
+  Canonical ..... https://www.zenwardmobility.com/locations/metro-atlanta
+  Geography ..... no counties, cities, radius, address or hours
+                  (service-area.ts explicitly withholds them)
+  Links ......... all 8 /services/* pages
+  Airport ....... "Also available: Airport Transportation for pre-arranged
+                  trips to and from the airport."
+  JSON-LD ....... Service + BreadcrumbList; no LocalBusiness, address,
+                  hours, ratings
+Unknown market slugs (/locations/atlanta, /locations/georgia) -> 404.
+
+
+11. PAID LANDING PAGES (4)
+--------------------------
+                                 robots          canonical  preselect   in sitemap
+  non-emergency-medical-transp.  noindex, follow self       none (broad) no
+  wheelchair-transportation      noindex, follow self       wheelchair   no
+  dialysis-transportation        noindex, follow self       dialysis     no
+  medical-appointment-transp.    noindex, follow self       medical_appt no
+All: phone and quote CTA above the fold at every width; focused header
+(logo, Services, Call/phone, Request a Quote; no "How It Works", per owner);
+no dead links; no misleading claims (§18).
+/metro-atlanta/airport-transportation and /metro-atlanta/foo -> 404. No
+new campaign pages created.
+
+
+12. CONTACT / PROVIDER DELIVERY AUDIT
+-------------------------------------
+  /contact .............. form (name, email, phone, organization, topic,
+                          message) + phone
+  /healthcare-providers . links to /contact, /request-transportation,
+                          3 tel: links
+  Modes (src/lib/contact-intake/adapter.ts):
+    stub (default/unset) -> ok:true, delivered:false. UI truthfully says
+      "We couldn't deliver your message online, so no one at Zenward has
+      received it. Please call our team" + Call 678-935-5489. Verified in
+      browser. No provider_enquiry_submitted event.
+    email -> Resend REST; delivered:true ONLY on 2xx; misconfig/failure ->
+      "We couldn't send your message just now ... call us".
+  PRODUCTION MODE: CANNOT BE PROVEN FROM THE REPOSITORY. .env.example
+  defaults to stub; the intended production value is email. Vercel env was
+  not accessed. -> Deployment verification item (Gate F). No contact
+  success state was fabricated.
+
+
+13. PRIVACY FINDINGS (/privacy)
+-------------------------------
+Compared against the actual architecture: browser -> Server Action ->
+Nemryn (server-to-server, scheduling/operations processor); contact ->
+Resend (email mode); hosting -> Vercel; no analytics vendor, no cookies set
+(no Set-Cookie on any sampled route), no browser storage in src/.
+
+A. FACTUAL TECHNICAL CORRECTIONS — FIXED in this phase
+  P-A1 "We do not use a third party to process the detailed contents of
+       transportation requests through this website." FALSE since requests
+       go to Nemryn. Replaced: providers now listed as "a website hosting
+       provider; a scheduling and operations service provider, which
+       receives the transportation requests submitted through this website
+       so our team can review them and follow up with you; and — for
+       contact enquiries — an email delivery service." No vendor or
+       software name on the public site.
+  P-A2 "This site aims to use privacy-conscious, aggregate analytics and no
+       advertising or cross-site tracking cookies. Where analytics are
+       used ..." Did not describe current behaviour. Replaced with the
+       fact: "This site does not currently set analytics, advertising, or
+       cross-site tracking cookies, and does not load third-party analytics
+       or advertising tags." The sentence that form contents are never sent
+       to analytics is kept.
+  P-A3 "Last updated" August 31, 2026 -> October 16, 2026 (content
+       changed).
+
+B. LEGAL WORDING REQUIRING OWNER / LEGAL REVIEW — NOT CHANGED
+  P-B1 "This is a pre-launch draft pending final legal review ..." (top)
+       and the closing "This draft has not yet completed formal legal
+       review ..." paragraph. Accurate today (no legal review has
+       happened); removing it would misstate review status. Remove only
+       after counsel review.
+  P-B2 "What this policy covers" excludes "any separate Zenward operations
+       system". Ambiguous now that submissions flow into one. Counsel to
+       decide scope language.
+  P-B3 Retention: "Specific retention periods are being finalized."
+       Unresolved; needs an owner/legal decision (and alignment with
+       Nemryn's retention as processor).
+  P-B4 Processor terms: whether a DPA/BAA-type agreement with the
+       operations processor is needed; HIPAA / state consumer-health
+       privacy applicability (04A A-04). Specialist.
+  P-B5 Legal entity name absent (04A LT-02).
+  P-B6 Before ANY Google tracking: the new P-A2 sentence becomes false the
+       moment a tag ships, and consent/cookie notice must be decided
+       (04A A-01, A-05, LP-02, LP-03). This is why tracking stays blocked.
+  P-B7 "We may update this policy as the service launches and develops."
+       Pre-launch phrasing; low risk.
+
+
+14. TERMS FINDINGS (/terms) — NO CHANGES MADE
+---------------------------------------------
+Factual check: nothing technically false. Phone and location references
+use business.ts (678-935-5489; no old number, no location claim). Quote
+workflow is consistent: "a request — not a confirmed ride", reviewed,
+arranged only after follow-up, no guaranteed availability or response
+time.
+  T-1 (factual, minor, left for the legal pass) "What Zenward provides"
+      lists only NEMT trip types; it does not mention Airport
+      Transportation, which is now an offered adjacent service. Adding a
+      service to a legal scope statement is left to the owner/counsel.
+  T-2 (factual, minor) Refers to "the Request Transportation form"; the
+      page is now titled "Request a Transportation Quote". Not misleading.
+  T-3 (legal) "pre-launch draft pending final legal review" (top + closing
+      paragraph). Remove only after counsel review.
+  T-4 (legal) "Content on this site may change as the service launches and
+      develops" and "provided 'as is' while the service is launching, and
+      details are still being finalized". Pre-launch wording.
+  T-5 (legal) No entity name; no cancellation/no-show, payment, pricing or
+      liability terms (correctly omitted until counsel decides). Quotes now
+      discuss pricing, so payment terms become relevant once pricing is
+      quoted.
+  T-6 (legal) "Last updated August 31, 2026"; update when revised.
+No unsupported service claims in Terms.
+
+
+15. TRACKING GATE
+-----------------
+  Google Ads / GA4 / GTM / gtag.js / dataLayer ... NOT PRESENT (src/ and the
+                                                   built .next/static
+                                                   bundle scanned)
+  External analytics sink ........................ none; registerAnalyticsSink
+                                                   has zero callers
+  Advertising cookies ............................ none; no Set-Cookie
+  Other third-party hosts in client bundle ....... only framework error-
+                                                   message URLs (nextjs.org,
+                                                   react.dev, github.com)
+  Browser network during form flows .............. zero external requests
+  package.json ................................... unchanged since 8f1526f
+docs/product/conversion-measurement.md: activation checklist intact;
+tracking BLOCKED pending privacy/legal (P-B6). Google Ads conversion
+tracking is NOT required to launch the website.
+
+
+16. CONVERSION-EVENT VERIFICATION
+---------------------------------
+  phone_cta_clicked ............... { surface } (closed allowlist)
+  transportation_quote_started .... {} (once per form mount)
+  transportation_quote_submitted .. {}; fires ONLY when
+                                    result.delivered === true
+                                    (RequestTransportationForm.tsx:152-154);
+                                    delivered:true only on Nemryn
+                                    200 {"ok":true}
+  provider_enquiry_submitted ...... {}; ONLY when delivered && topic ===
+                                    "provider" (ContactForm.tsx:69-70)
+No serviceType, passenger data, pickup/destination, query string or URL in
+any event: sanitizeEvent rebuilds from a per-event allowlist and drops
+everything else (10 tests in events.test.mjs). Browser check: unlinked
+submit -> no delivered result -> no submitted event path reached.
+
+
+17. SEO / INDEXING
+------------------
+  robots.txt ....... Allow: /; Sitemap: https://www.zenwardmobility.com/
+                     sitemap.xml
+  sitemap.xml ...... 17 URLs: home, request, providers, services, 8 service
+                     pages, hub, about, contact, privacy, terms. No
+                     campaign URL.
+  Canonicals ....... absolute and self-referencing on all 21 routes;
+                     og:url matches
+  Indexing ......... organic routes have no robots meta (indexable);
+                     4 campaign routes "noindex, follow"; 404 "noindex"
+  OpenGraph ........ og:title/description/url/image on all routes
+  Structured data .. valid JSON on every page: home Organization;
+                     services/hub Service + BreadcrumbList; campaigns and
+                     /services BreadcrumbList. No ratings/address/hours.
+  404 .............. /nope, /services/foo, /locations/atlanta,
+                     /locations/georgia, /metro-atlanta/foo,
+                     /metro-atlanta/airport-transportation -> 404
+  Duplicate routes . none (one route per service; ?service=junk renders the
+                     plain form, 200, nothing preselected)
+  Titles ........... all 17 indexable titles unique after close-out (§31;
+                     /services retitled). The broad campaign shares the
+                     homepage title (noindex, accepted at 04D).
+
+
+18. CLAIM SCAN (visible text + meta descriptions + alt text, 21 routes)
+-----------------------------------------------------------------------
+Terms searched: 24/7, always on time, guarantee(d), licensed, insured, ADA,
+CPR, door-through-door, door-to-door, stretcher, oxygen, hydraulic, lift,
+Medicaid, Medicare, insurance (accepted), best, #1, instant (quote), free
+(quote), certified, HIPAA, on time/on-time, fastest, cheapest, affordable.
+
+  Hit                                  Where                 Class
+  -----------------------------------  --------------------  -------------
+  "stretcher" (x13)                    home, hub-adjacent,   NEGATION —
+                                       wheelchair, discharge acceptable
+                                       pages, NEMT/wheelchair ("does not
+                                       campaigns, terms      provide ...")
+  "guarantee" (x2)                     terms                 DISCLAIMER —
+                                                             acceptable
+  "insurance"                          terms closing note    DISCLAIMER —
+                                                             acceptable
+  "HIPAA"                              privacy closing note  DISCLAIMER
+                                                             ("no claim of
+                                                             HIPAA ...")
+  "Getting there on time for           /services/dialysis-   ASPIRATIONAL
+  treatment" (section heading; body:   transportation        HEADING, not a
+  "planned around your treatment                             guarantee.
+  time")                                                     Acceptable;
+                                                             watch item for
+                                                             ad copy (do
+                                                             not turn into
+                                                             "on-time
+                                                             guaranteed").
+Zero hits: 24/7, always on time, licensed, insured, ADA, CPR,
+door-through-door, door-to-door, oxygen, hydraulic, lift, Medicaid,
+Medicare, insurance accepted, best, #1, instant, free, certified, fastest,
+cheapest, affordable.
+UNSUPPORTED POSITIVE CLAIMS: NONE. No launch blocker.
+
+
+19. PUBLIC SOFTWARE-LANGUAGE SCAN
+---------------------------------
+Nemryn, CRM, software, platform, AI-powered, AI, operating system: ZERO
+hits in visible text, meta, alt text and JSON-LD of all 21 routes. The new
+privacy wording uses "scheduling and operations service provider" (no
+vendor/software name). Internal docs excluded.
+
+
+20. RESPONSIVE QA
+-----------------
+22 routes (21 + 404) x 5 widths (390, 430, 768, 1024, 1440) = 110 page
+loads in headless Chrome:
+  horizontal overflow ......... none
+  H1 count .................... exactly 1 on every route
+  heading-level skips ......... none
+  header ...................... visible everywhere; mobile menu opens,
+                                aria-expanded toggles, label "Open/Close
+                                menu", shows all nav links + Request a Quote
+                                + Talk to Our Team
+  footer ...................... renders; inverse logo
+  favicon/logo ................ correct (§5)
+  tap targets ................. no header/CTA tel:/quote link or button
+                                < 44px
+  phone above the fold ........ every route, every width
+  quote above the fold ........ every funnel/service/campaign/hub route at
+                                every width. On /contact, /about,
+                                /healthcare-providers, /privacy, /terms at
+                                <1024 the header shows Call + menu (approved
+                                04B mobile header); not a defect.
+  images ...................... no broken images; crops acceptable on
+                                screenshots (home, airport, wheelchair
+                                campaign, request, 404 at 390/1440)
+  FAQs ........................ accordion buttons with aria-expanded /
+                                aria-controls / labelled region
+  console errors .............. none except the expected 404 status on /nope
+
+
+21. PERFORMANCE
+---------------
+  Client components: ContactForm, FaqAccordion, PublicHeader,
+    RequestTransportationForm, TrackedLinkButton, TrackedPhoneLink. All
+    needed; no accidental client page.
+  Dependencies: next, react, react-dom, @phosphor-icons/react, clsx.
+    package.json unchanged since 8f1526f. No new library.
+  Client JS: .next/static/chunks 720 KB total on disk (largest chunks are
+    the framework/runtime). No vendor script.
+  Images: all through next/image (AVIF/WebP, q 75/90). Hero art direction
+    uses two preloaded images whose `sizes` collapse to 1px at the other
+    breakpoint, so each device downloads only one real hero. Header logo
+    preloaded (SVG). Service pages preload one image. No duplicate priority
+    LCP image.
+  Not fixed (not meaningful for launch): public/images/zenward-mobility-
+    logo(.png 824 KB, -trimmed.png 568 KB) are imported by src/lib/images.ts
+    and the homepage Organization JSON-LD "logo" URL. They are not rendered
+    in the page shell, so visitors don't download them. P3.
+
+
+22. ACCESSIBILITY
+-----------------
+  One H1 / heading hierarchy .. PASS (§20)
+  Keyboard ..................... Tab order: home link -> Call -> menu ->
+                                 Request a Quote -> hero phone; all reachable
+  Visible focus ................ 2px solid teal outline (global
+                                 :focus-visible)
+  Alt text ..................... every <img> has alt; decorative logo
+                                 alt="" inside a link with aria-label
+                                 "Zenward Mobility — home"
+  Form labels .................. every visible input/select/textarea
+                                 labelled; errors role="alert"
+  FAQ .......................... accessible accordion
+  Link/button names ............ no nameless link/button on any route
+  Touch targets ................ PASS (§20)
+  Contrast (computed, AA 4.5:1 for small text):
+    PASS: body/header nav 8.1:1, navy on white 13.1:1, hero/dark-band copy
+          on navy 7.2–10.9:1, teal on white 4.51:1, muted on white 4.69:1.
+    A11Y-04E-1 (P2) — RESOLVED AT CLOSE-OUT (§31). Original audit values,
+    small text slightly below 4.5:1:
+      teal #178577 on mint #DDF4F0 ......... 3.92 (12px eyebrows; 14px
+                                              campaign "About ..."/"All
+                                              services" links)
+      teal #178577 on #F6F9FA ............... 4.26 (14px "Request
+                                              Transportation" link, /contact)
+      muted #64777E on mint #DDF4F0 ......... 4.08 (14px disclaimers on
+                                              mint panels)
+      white/50% on navy #123447 ............. 4.46 (12–13px footer column
+                                              labels, copyright, 911 line)
+    Fixed at close-out with scoped text-only tokens and footer opacity;
+    resulting ratios in §31.
+  A11Y-04E-2 (P3) Escape does not close the mobile menu. It is a disclosure
+    (not a modal) with correct aria-expanded/aria-controls, so not a WCAG
+    failure. Optional enhancement.
+
+
+23. ERROR / FAILURE STATES
+--------------------------
+  Request, unlinked (intake env unset), browser submit of a fictional
+  airport request: role="alert" "Online requests are temporarily
+  unavailable right now. Please call us to arrange transportation." No
+  "Request received", no reference number, typed values kept, Airport still
+  selected, 4 tel:+16789355489 links on the page, no env/vendor/stack text,
+  zero external requests. Server log: one content-free line.
+  Request, platform failure paths (unit-tested): non-200 / unexpected body
+  / missing env -> "couldn't submit ... call us"; never delivered:true.
+  Contact, stub: truthful "no one at Zenward has received it" + Call
+  (§12). Contact email failure: "couldn't send ... call us" (unit-tested).
+  404: Next.js default "404 | This page could not be found." inside the site
+  header/footer; Call button and menu visible, robots noindex. No custom
+  404 page (04A T-04). Clarity acceptable; a branded 404 with Request a
+  Quote + services is a P2 follow-up (a new page, out of 04E scope).
+  Invalid ?service=: renders the plain form, nothing preselected, value not
+  echoed.
+  Inactive/unlinked intake: same as the first item. No fake success
+  anywhere.
+
+
+24. PRODUCTION ENVIRONMENT CHECKLIST (Vercel -> Production)
+-----------------------------------------------------------
+Complete list of env vars read by src/ (grep process.env). Values are NOT
+recorded here; nothing was read from or written to Vercel.
+
+  Variable                        Scope   Required value / rule
+  ------------------------------  ------  ---------------------------------
+  NEXT_PUBLIC_SITE_URL            public  https://www.zenwardmobility.com
+                                          (canonicals, OG, sitemap, robots).
+                                          Build-time: redeploy after change.
+  REQUEST_INTAKE_MODE             server  platform
+  PLATFORM_INTAKE_URL             server  https URL shown by Nemryn ->
+                                          Website Requests -> Connect my
+                                          existing form
+  PLATFORM_INTAKE_INTEGRATION_ID  server  the NEW customer-created
+                                          integration id (NOT the retired
+                                          engineering integration)
+  PLATFORM_INTAKE_ORIGIN          server  leave UNSET when the approved
+                                          website URL in Nemryn is
+                                          https://www.zenwardmobility.com;
+                                          otherwise that exact origin
+  CONTACT_INTAKE_MODE             server  email
+  CONTACT_INTAKE_EMAIL            server  monitored, access-controlled inbox
+  CONTACT_EMAIL_FROM              server  verified Resend sender on a
+                                          domain with SPF + DKIM
+  CONTACT_EMAIL_API_KEY           server  Resend API key (secret)
+  NEXT_PUBLIC_APP_URL             public  leave UNSET (unused; reserved)
+  NODE_ENV                        auto    set by Vercel; do not override
+Rules: no NEXT_PUBLIC_ prefix on any server var; no Supabase/DB
+credentials; no Google/analytics IDs (tracking blocked).
+
+
+25. EXTERNAL PRODUCTION GATES
+-----------------------------
+  GATE A  Zenward's new customer-created Nemryn Website Integration exists
+          and is active.
+          STATUS: owner-reported MET (04C2 completion §1: "Nemryn website
+          connection enabled"). Not independently verifiable from this repo.
+  GATE B  Zenward-Web Production env points to that integration, not the
+          retired engineering integration.
+          STATUS: owner-reported MET (04C2 §1: "Vercel Production env
+          configured" with the corrected integration). Owner to re-confirm
+          PLATFORM_INTAKE_INTEGRATION_ID in Vercel, and that the old
+          integration is deactivated in Nemryn (04A-exit §11 item 6).
+  GATE C  One labelled general transportation request succeeds end-to-end.
+          STATUS: owner-reported MET (04C2 §1: fictional request from the
+          live site appeared in Zenward's Request Hub and was declined).
+          Re-run once after the 04D deploy (the form changed only by event
+          names).
+  GATE D  One labelled Airport Transportation request succeeds end-to-end
+          with serviceType = airport_transportation and appears in
+          Zenward's Nemryn Request Hub.
+          STATUS: OPEN. Precondition: Airport enabled in Zenward's Nemryn
+          Settings -> Services (if Services are configured).
+  GATE E  No automatic Passenger/Trip/RecurringArrangement is incorrectly
+          created by a website request.
+          STATUS: OPEN (verify in Nemryn during the C/D QA requests; this
+          repo sends only a request, never passenger/trip ids, and the
+          adapter rejects tenancy keys).
+  GATE F  Contact form production delivery confirmed.
+          STATUS: OPEN (§12). Set CONTACT_INTAKE_MODE=email + 3 vars, send
+          one labelled message, confirm receipt in the inbox and the
+          "Message received" screen.
+  GATE G  Privacy/Terms owner/legal disposition completed.
+          STATUS: OPEN. Factual corrections done (§13 A); legal items P-B1..7
+          and T-1..6 await owner/counsel.
+Google Ads tracking is NOT required to launch the website.
+
+
+26. FIXES MADE
+--------------
+  F1 src/app/privacy/page.tsx: P-A1 (operations processor disclosed;
+     false "no third party" sentence removed), P-A2 (cookies/analytics
+     sentence states current behaviour), P-A3 (Last updated October 16,
+     2026). Draft/legal-review notices deliberately kept.
+  F2 src/lib/request-intake/service-types.ts: stale doc comment
+     ("six approved service routes plus wheelchair" -> eight public
+     services). Comment only.
+  F3 docs/product/launch-readiness.md: stale "Connected
+     (P1-PILOT-S4B-R3)" intake status and the obsolete statement that stub
+     mode shows honest success copy (it fails closed since 209d4c9).
+  F4 /services metadata title (close-out, §31).
+  F5 Scoped small-text contrast fixes (close-out, §31).
+Not changed: custom 404, Terms, mobile-menu Escape.
+
+
+27. TESTS / TYPECHECK / LINT / BUILD (after fixes)
+--------------------------------------------------
+  git diff --check . clean
+  npm test ......... 84/84 pass (no tests added or removed in 04E;
+                     re-run at close-out: 84/84)
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+                     (NEXT_PUBLIC_SITE_URL=https://www.zenwardmobility.com)
+Rendered /privacy verified: new sentences present; "do not use a third
+party" and "aims to use" absent.
+
+
+28. FILES MODIFIED (uncommitted)
+--------------------------------
+  M src/app/privacy/page.tsx                   (F1, owner-approved)
+  M src/lib/request-intake/service-types.ts    (F2, comment only)
+  M docs/product/launch-readiness.md           (F3)
+  M src/app/services/page.tsx                  (F4 title; F5 eyebrow)
+  M src/app/globals.css                        (F5: 2 text-only tokens)
+  M src/app/page.tsx                           (F5: 2 mist eyebrows)
+  M src/app/request-transportation/page.tsx    (F5: eyebrow, muted note)
+  M src/app/contact/page.tsx                   (F5: eyebrow, muted note,
+                                                aside link)
+  M src/app/about/page.tsx                     (F5: eyebrow)
+  M src/app/healthcare-providers/page.tsx      (F5: muted note)
+  M src/components/public/CampaignPage.tsx     (F5: 2 link classes)
+  M src/components/public/PublicFooter.tsx     (F5: white/50 -> white/60)
+  A docs/reports/ZW-WEB-04E-final-launch-readiness.txt (this report)
+Untouched (git-verified vs HEAD): terms, public/brand, adapter.ts,
+nemryn-mapping.ts, actions.ts, contact-intake, analytics, .env.example,
+package.json.
+
+
+29. REMAINING LAUNCH BLOCKERS
+-----------------------------
+For deploying 04D + 04E to production (the website launch):
+  B1 (CLEARED for the factual part) Owner approved the §13 A privacy
+     corrections on 2026-10-16. They fix a live inaccuracy, so deploying
+     them is time-sensitive. Gate G legal items remain open.
+  B2 Gate F: contact delivery mode unverified in production.
+  B3 Gate D (+E): Airport end-to-end unverified. Airport intake is already
+     live in production (af41e3b). Until D passes, airport submissions may
+     fail closed with "call us" if Airport is not enabled in Nemryn.
+     Blocks promoting Airport; not the rest of the site.
+For paid traffic (Google Ads) additionally:
+  B4 Gate C re-run after the 04D deploy; Gate E confirmed.
+  B5 Google Ads conversion tracking stays BLOCKED until the legal items
+     P-B4/P-B6 are resolved (privacy update, consent decision, HIPAA/state
+     review). Ads can run without conversion tracking, but measurement
+     will be limited.
+Non-blocking follow-ups (SEO-04E-1 and A11Y-04E-1 resolved): custom 404, Terms T-1/T-2, A11Y-04E-2, apple-touch-icon
+probe path, 04A owner facts (entity name, hours, response time).
+
+
+30. RECOMMENDATION (final, after close-out)
+-------------------------------------------
+WEBSITE CODE READINESS ........ GO
+  Correct taxonomy (8 services, Airport adjacent and live), correct phone
+  everywhere, no unsupported claims, no software language, honest failure
+  states, unique indexable titles, campaign pages noindex/follow and out of
+  the sitemap, no responsive defects, flagged small text now >= 4.5:1,
+  factual privacy corrections approved. 84/84 tests, tsc, lint and build
+  pass. Ready to push and deploy once the owner authorizes it.
+
+EXTERNAL PRODUCTION GATES ..... CONDITIONAL (owner/ops, outside the repo)
+  A, B, C ... owner-reported MET in 04C2; re-run C once after deploying
+              04D + 04E.
+  D ......... OPEN: one labelled Airport request end-to-end (enable Airport
+              in Zenward's Nemryn Services first if Services are
+              configured). Blocks promoting Airport, not the site launch.
+  E ......... OPEN: confirm in Nemryn during the C/D QA requests.
+  F ......... OPEN: contact email mode in production (one labelled
+              message).
+  G ......... PARTIAL: factual privacy corrections approved. Legal items
+              (draft notices, scope, retention, entity name, processor
+              terms, Terms T-1..T-6) await owner/counsel.
+
+GOOGLE ADS / TRACKING READINESS NO-GO for conversion tracking
+  No Google Ads, GA4, GTM, gtag.js, dataLayer, sink or advertising cookie
+  exists, and none should be added until legal clears P-B4/P-B6 (privacy
+  update for tracking, consent decision, HIPAA/state review). Campaigns
+  could technically run without conversion tracking after Gates C-F, in
+  the approved order (Broad NEMT -> Wheelchair -> Dialysis -> Medical
+  Appointment), but measurement would be limited. No Airport campaign
+  before Gate D.
+
+
+31. CLOSE-OUT (2026-10-16, owner-approved)
+------------------------------------------
+Owner approved ZW-WEB-04E and the factual Privacy corrections (§13 A:
+operations-processor disclosure; no analytics/advertising tags or
+advertising/cross-site cookies currently; Last updated October 16, 2026).
+The legal-review / pre-launch draft notices in Privacy and Terms stay
+until a separate owner/legal disposition. Terms not modified. Terms
+issues T-1..T-6 (§14) are recorded as legal/owner follow-ups only.
+
+/services metadata title (F4):
+  before  "Non-Emergency Medical Transportation Services in Metro Atlanta |
+          Zenward Mobility" (same as the hub)
+  after   "Our Transportation Services | Zenward Mobility"
+  H1 ("Non-Emergency Medical Transportation Services") and content
+  unchanged. Hub title unchanged. All 17 indexable organic titles are
+  unique (checked on the built site).
+
+Small-text contrast fixes (F5). Scoped, text-only. No change to Route Teal
+#21A89A, Interactive Teal #178577 (fills, borders, icons, buttons, focus
+ring and all other text), Care Navy, Arrival Gold, the logo, button colors
+or section backgrounds.
+  New tokens in globals.css @theme (comment: small text on tinted surfaces
+  only):
+    --color-text-accent-on-tint  #137468  (darker derivation of #178577)
+    --color-text-muted-on-tint   #566970  (darker derivation of #64777E)
+  Footer small text: text-white/50 -> text-white/60 (3 elements).
+
+  Element (route)                                Before         After
+  ---------------------------------------------  -------------  -------------
+  Eyebrows on Calm Mist #DDF4F0, 12px: "How It   #178577 3.92   #137468 4.90
+  Works", "Patients, Families & Caregivers" (/),
+  "Services" (/services), "Request a Quote"
+  (/request-transportation), "Contact"
+  (/contact), "About Zenward" (/about)
+  Campaign links on Calm Mist, 14px: "About ..." #178577 3.92   #137468 4.90
+  "All services", "Zenward in Metro Atlanta",
+  "Also available: Airport Transportation"
+  Muted notes on Calm Mist, 14px: request-form   #64777E 4.08   #566970 5.01
+  disclaimer, /contact 911 line,
+  /healthcare-providers coordination line
+  "Request Transportation" link on #F6F9FA,      #178577 4.26   #137468 5.33
+  14px (/contact aside)
+  Footer labels "Explore", "Get transportation", white/50      white/60
+  "Legal" (13px), copyright + 911 line (12px)    #889AA3 4.48   #A0AEB5 5.73
+  on Care Navy #123447
+Measured in headless Chrome on the built site (computed colors composited
+on the actual background) and recalculated arithmetically. A full re-scan
+of 22 routes at 1440 finds no remaining small-text failure on solid
+backgrounds. The only remaining scanner hits are false positives: white or
+Arrival Gold text on navy image/gradient heroes, which the scanner reads
+against the page background. Actual values there: white on navy 13.1,
+Arrival Gold on navy 7.38.
+Not fixed (not flagged; still >= 4.5): teal on white 4.51, muted on white
+4.69.
+
+Final validation (close-out):
+  git diff --check . clean
+  npm test ......... 84/84 pass
+  npx tsc --noEmit . PASS
+  npm run lint ..... PASS
+  npm run build .... PASS, 28/28 pages
+  Built-site checks: /services title unique; hub title unchanged; 4
+  campaign pages "noindex, follow"; 0 campaign URLs in sitemap.xml (hub
+  present); ?service=airport_transportation preselects Airport; no Google/
+  GA4/GTM/gtag/dataLayer in src or the client bundle and none added in the
+  diff; adapter.ts, nemryn-mapping.ts, actions.ts, contact-intake,
+  analytics, .env.example, public/brand, package.json and terms unchanged
+  vs HEAD; privacy corrections present.
+
+Committed as "Complete Zenward production launch readiness", staging
+exactly the §28 paths. Not pushed or deployed. Google tracking not enabled.
+
+STOP. Not pushed or deployed. Google tracking not enabled.

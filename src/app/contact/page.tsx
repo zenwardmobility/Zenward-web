@@ -16,13 +16,13 @@ export default function ContactPage() {
   return (
     <>
       <Section tone="mist" narrow>
-        <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Contact</p>
+        <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>Contact</p>
         <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Talk to our team</h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
           Whether you have a question, need support, or want to talk about transportation coordination for your
           organization, we&rsquo;d like to hear from you.
         </p>
-        <p className={cn(typography.bodySmall, "mt-3 text-text-muted")}>
+        <p className={cn(typography.bodySmall, "mt-3 text-text-muted-on-tint")}>
           For medical emergencies, call 911. Zenward does not provide emergency transportation.
         </p>
       </Section>
@@ -35,7 +35,7 @@ export default function ContactPage() {
             <PhoneCtaButton surface="contact_page" tone="navy" className="w-full sm:w-auto" />
             <p className={cn(typography.bodySmall, "text-text-secondary")}>
               To arrange a specific trip, use the{" "}
-              <a href="/request-transportation" className="font-medium text-brand-interactive-teal underline">
+              <a href="/request-transportation" className="font-medium text-text-accent-on-tint underline">
                 Request Transportation
               </a>{" "}
               form instead — it captures the trip details our team needs.

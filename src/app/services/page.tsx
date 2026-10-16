@@ -19,7 +19,7 @@ import { SERVICES, SERVICE_ORDER } from "@/lib/services";
 const market = getDefaultMarket();
 
 export const metadata: Metadata = pageMetadata({
-  title: `Non-Emergency Medical Transportation Services in ${market.name}`,
+  title: "Our Transportation Services",
   description: `Medical appointment, dialysis, rehabilitation, hospital discharge, recurring care, senior medical and wheelchair-accessible transportation in ${market.name}, plus airport transportation. Request a quote or call Zenward Mobility.`,
   path: "/services",
 });
@@ -44,7 +44,7 @@ export default function ServicesPage() {
       <Section tone="mist">
         <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-[1.15fr_1fr]">
           <div>
-            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Services</p>
+            <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>Services</p>
             <h1 className={cn(typography.sectionTitle, "mt-3 text-balance text-text-primary sm:text-[2.75rem] sm:leading-[52px]")}>
               Non-Emergency Medical Transportation Services
             </h1>

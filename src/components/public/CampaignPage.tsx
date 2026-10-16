@@ -132,7 +132,7 @@ export function CampaignPage({ campaign }: { campaign: CampaignContent }) {
           </ul>
           <p className={cn(typography.bodySmall, "mt-lg text-text-secondary")}>
             Also available:{" "}
-            <Link href={SERVICE_CATALOG["airport-transportation"].path} className="font-medium text-brand-interactive-teal underline">
+            <Link href={SERVICE_CATALOG["airport-transportation"].path} className="font-medium text-text-accent-on-tint underline">
               {SERVICE_CATALOG["airport-transportation"].label}
             </Link>
             .
@@ -195,7 +195,7 @@ export function CampaignPage({ campaign }: { campaign: CampaignContent }) {
               href={link.href}
               className={cn(
                 typography.bodySmall,
-                "inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline",
+                "inline-flex min-h-11 items-center gap-1.5 font-medium text-text-accent-on-tint hover:underline",
               )}
             >
               {link.label}

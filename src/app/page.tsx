@@ -285,7 +285,7 @@ export default function HomePage() {
       <Section tone="mist" id="how-it-works">
         <div className="grid grid-cols-1 gap-xl lg:grid-cols-[1fr_1.3fr] lg:gap-3xl">
           <div>
-            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>How It Works</p>
+            <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>How It Works</p>
             <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>From request to arrival</h2>
             <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
               A request starts a conversation with our team. Nothing is booked until Zenward confirms the details
@@ -363,7 +363,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
           <BrandImage asset={brandImages.staffWalkingAssist} aspect="video" objectPosition="center 38%" />
           <div>
-            <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Patients, Families &amp; Caregivers</p>
+            <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>Patients, Families &amp; Caregivers</p>
             <h2 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>
               Arrange a ride for yourself or someone you care for
             </h2>

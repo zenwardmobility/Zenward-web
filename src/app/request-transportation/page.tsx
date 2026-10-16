@@ -33,13 +33,13 @@ export default async function RequestTransportationPage({
   return (
     <>
       <Section tone="mist" narrow>
-        <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>Request a Quote</p>
+        <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>Request a Quote</p>
         <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Request a Transportation Quote</h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
           Tell us about the trip you need. Zenward will review the details and contact you to confirm
           availability, next steps and pricing.
         </p>
-        <p className={cn(typography.bodySmall, "mt-3 text-text-muted")}>
+        <p className={cn(typography.bodySmall, "mt-3 text-text-muted-on-tint")}>
           Submitting this form is a request, not a confirmed booking, and availability isn&rsquo;t guaranteed
           until Zenward confirms it with you.
         </p>

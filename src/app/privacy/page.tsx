@@ -11,7 +11,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const LAST_UPDATED = "August 31, 2026";
+const LAST_UPDATED = "October 16, 2026";
 
 /**
  * Launch-quality honest draft. Describes actual data flows on this website
@@ -80,19 +80,19 @@ export default function PrivacyPage() {
 
         <Block heading="Cookies and analytics">
           <p>
-            This site aims to use privacy-conscious, aggregate analytics and no advertising or cross-site
-            tracking cookies. Where analytics are used, they measure things like which pages and calls-to-action
-            are used — never the contents of a form. Passenger names, contact details, addresses, appointment
-            information, and assistance notes are never sent to analytics.
+            This site does not currently set analytics, advertising, or cross-site tracking cookies, and does not
+            load third-party analytics or advertising tags. Passenger names, contact details, addresses,
+            appointment information, and assistance notes are never sent to analytics.
           </p>
         </Block>
 
         <Block heading="Service providers">
           <p>
-            We rely on a small number of providers to run the site: a website hosting provider, and — for
-            contact enquiries — an email delivery service. Each provider only handles the information needed for
-            its function, and is expected to protect it. We do not use a third party to process the detailed
-            contents of transportation requests through this website.
+            We rely on a small number of providers to run the site: a website hosting provider; a scheduling and
+            operations service provider, which receives the transportation requests submitted through this
+            website so our team can review them and follow up with you; and — for contact enquiries — an email
+            delivery service. Each provider only handles the information needed for its function, and is
+            expected to protect it.
           </p>
         </Block>
 

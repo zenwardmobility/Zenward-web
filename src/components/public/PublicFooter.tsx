@@ -57,7 +57,7 @@ export function PublicFooter() {
           </div>
           {COLUMNS.map((column) => (
             <div key={column.heading}>
-              <p className={cn(typography.label, "text-white/50")}>{column.heading}</p>
+              <p className={cn(typography.label, "text-white/60")}>{column.heading}</p>
               <ul className="mt-3 flex flex-col gap-2">
                 {column.links.map((link) => (
                   <li key={link.href}>
@@ -72,10 +72,10 @@ export function PublicFooter() {
         </div>
 
         <div className="mt-2xl flex flex-col gap-2 border-t border-white/15 pt-lg sm:flex-row sm:items-center sm:justify-between">
-          <p className={cn(typography.metadata, "text-white/50")}>
+          <p className={cn(typography.metadata, "text-white/60")}>
             © {new Date().getFullYear()} Zenward Mobility. Non-emergency medical transportation.
           </p>
-          <p className={cn(typography.metadata, "text-white/50")}>
+          <p className={cn(typography.metadata, "text-white/60")}>
             For medical emergencies, call 911. Zenward does not provide emergency transportation.
           </p>
         </div>

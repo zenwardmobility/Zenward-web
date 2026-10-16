@@ -87,9 +87,9 @@ export function isPublicServiceType(value: unknown): value is PublicServiceType 
  *
  * A deliberate, explicit map (not "any enum value is accepted"): the URL is
  * public, user-editable and shareable, so the set of values it can express is
- * decided here. Only the six approved service routes plus wheelchair
- * transportation can be preselected; `other` and any type not publicly offered
- * cannot. The URL carries a
+ * decided here. Only the eight public services (the seven non-emergency
+ * medical services plus Airport Transportation) can be preselected; `other`
+ * and any type not publicly offered cannot. The URL carries a
  * service label and NOTHING else — never a name, phone, email, address,
  * appointment detail, mobility note, schedule, or tenant identifier.
  */

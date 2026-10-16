@@ -20,6 +20,11 @@
   --color-text-primary: #101f27;
   --color-text-secondary: #3e535c;
   --color-text-muted: #64777e;
+  /* Small text on tinted surfaces (Calm Mist / surface-app) only. Darker
+     derivations of interactive teal and muted so small text meets WCAG AA
+     4.5:1 there (ZW-WEB-04E). Not for fills, borders, icons or buttons. */
+  --color-text-accent-on-tint: #137468;
+  --color-text-muted-on-tint: #566970;
   --color-text-disabled: #9aacb2;
   --color-text-on-dark: #f4f9f9;
   --color-text-on-dark-muted: #b9ccd0;

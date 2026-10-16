@@ -37,7 +37,7 @@ export default function AboutPage() {
   return (
     <>
       <Section tone="mist" narrow>
-        <p className={cn(typography.eyebrow, "text-brand-interactive-teal")}>About Zenward</p>
+        <p className={cn(typography.eyebrow, "text-text-accent-on-tint")}>About Zenward</p>
         <h1 className={cn(typography.sectionTitle, "mt-3 text-text-primary")}>Care that gets you there.</h1>
         <p className={cn(typography.lede, "mt-4 text-text-secondary")}>
           Zenward Mobility provides non-emergency medical transportation for patients, families, caregivers, and

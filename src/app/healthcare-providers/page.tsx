@@ -110,7 +110,7 @@ export default function HealthcareProvidersPage() {
             </div>
           ))}
         </div>
-        <p className={cn(typography.bodySmall, "mx-auto mt-lg max-w-[42rem] text-center text-text-muted")}>
+        <p className={cn(typography.bodySmall, "mx-auto mt-lg max-w-[42rem] text-center text-text-muted-on-tint")}>
           Your team coordinates care; Zenward coordinates the transportation. Talk to our team about how your
           organization arranges transportation today, and how Zenward can help.
         </p>
