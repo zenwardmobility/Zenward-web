@@ -23,7 +23,6 @@
  *
  * Do not list counties or cities here until the owner confirms them.
  */
-import { business } from "./business.ts";
 
 export interface Market {
   /** URL-safe id, e.g. for a future /locations/<slug> route. */
@@ -83,7 +82,8 @@ export function servingLine(market: Market = getDefaultMarket()): string {
 export function homeMetadataCopy(market: Market = getDefaultMarket()): { title: string; description: string } {
   return {
     title: `Non-Emergency Medical Transportation in ${market.name}`,
-    description: `Zenward Mobility provides non-emergency medical transportation in ${market.name} for appointments, dialysis, rehabilitation, hospital discharge and recurring care, including wheelchair-accessible trips. Request a quote or call ${business.phoneDisplay}.`,
+    // ZW-SEO-01: under ~160 characters so it isn't truncated in search results.
+    description: `Zenward Mobility provides scheduled non-emergency medical transportation in ${market.name}, including wheelchair-accessible trips. Request a quote or call.`,
   };
 }
 

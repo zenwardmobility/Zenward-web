@@ -17,7 +17,8 @@ export function serviceMetadata(service: ServiceContent): Metadata {
   const market = getDefaultMarket();
   return pageMetadata({
     title: `${service.label} in ${market.name}`,
-    description: `${service.metaDescription} Serving ${market.name}.`,
+    // ZW-SEO-01: service + market first, so the local qualifier isn't truncated away.
+    description: `${service.label} in ${market.name}. ${service.metaDescription}`,
     path: service.path,
   });
 }

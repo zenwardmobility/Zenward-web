@@ -96,6 +96,7 @@ export default function HealthcareProvidersPage() {
             asset={brandImages.vanWalkerAssist}
             aspectClass="aspect-[4/3] lg:aspect-square"
             sizes="(min-width: 1024px) 30rem, 100vw"
+            priority
             className="ring-1 ring-white/10"
             objectPosition="center 45%"
           />

@@ -452,7 +452,11 @@ export default function HomePage() {
             <div className="relative flex flex-col items-center gap-6">
               <h2 className={cn(typography.sectionTitle, "text-white")}>Need medical transportation?</h2>
               <p className={cn(typography.lede, "max-w-[36rem] text-white/85")}>
-                <span className="font-medium text-white">{serving}.</span> Zenward reviews every request and follows up to confirm availability and details.
+                {/* ZW-SEO-01: the homepage's contextual link to the Metro Atlanta hub (kept out of the first viewport, clear of Zenny). */}
+                <Link href="/locations/metro-atlanta" className="font-medium text-white underline underline-offset-4">
+                  {serving}
+                </Link>
+                . Zenward reviews every request and follows up to confirm availability and details.
               </p>
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <TrackedLinkButton

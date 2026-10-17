@@ -71,6 +71,8 @@ function Hero({ service }: { service: ServiceContent }) {
           asset={service.image.asset}
           aspectClass="aspect-[16/10] lg:aspect-[4/3]"
           sizes="(min-width: 1024px) 34rem, 100vw"
+          // ZW-SEO-01: first-viewport hero (likely LCP on desktop), loaded eagerly like the hub/campaign heroes.
+          priority
           objectPosition={service.image.objectPosition}
           className="ring-1 ring-white/15"
         />

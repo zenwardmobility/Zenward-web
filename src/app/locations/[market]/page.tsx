@@ -43,8 +43,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const market = getMarket((await params).market);
   if (!market) return {};
   return pageMetadata({
-    title: `Non-Emergency Medical Transportation Services in ${market.name}`,
-    description: `Zenward Mobility provides scheduled, non-emergency medical transportation in ${market.name}: appointments, dialysis, rehabilitation, hospital discharge, recurring care and wheelchair-accessible trips. Request a quote or call.`,
+    // ZW-SEO-01: distinct from the homepage (which leads with the spelled-out
+    // "Non-Emergency Medical Transportation"): this page answers the local
+    // "NEMT in Metro Atlanta" detail intent: services, who it serves, how to request.
+    title: `NEMT in ${market.name}: Services & How to Request`,
+    description: `NEMT in ${market.name}: how Zenward's scheduled, non-emergency medical transportation works, who it serves, and how to request a ride.`,
     path: `/locations/${market.slug}`,
   });
 }

@@ -21,7 +21,7 @@ const market = getDefaultMarket();
 
 export const metadata: Metadata = pageMetadata({
   title: "Our Transportation Services",
-  description: `Medical appointment, dialysis, rehabilitation, hospital discharge, recurring care, senior medical and wheelchair-accessible transportation in ${market.name}, plus airport transportation. Request a quote or call Zenward Mobility.`,
+  description: `Compare Zenward's non-emergency medical transportation in ${market.name}: appointments, dialysis, rehab, discharge, recurring, senior, wheelchair and airport trips.`,
   path: "/services",
 });
 

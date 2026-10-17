@@ -65,6 +65,11 @@ export interface ServiceContent extends CatalogEntry {
   /** One sentence used on the homepage, /services and related-service links. */
   summary: string;
   /** Meta description stem; the page appends the market sentence. */
+  /**
+   * Search-result sentence (ZW-SEO-01). The page description is
+   * "<label> in <market>. <metaDescription>", so the service and the market
+   * lead and survive search-result truncation (~155 characters in total).
+   */
   metaDescription: string;
   icon: Icon;
   /** Approved photograph for this page (existing repository imagery only). */
@@ -107,7 +112,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["medical-appointments"],
     summary: "Rides to doctor visits, specialist and outpatient appointments, and diagnostic visits.",
     metaDescription:
-      "Non-emergency transportation to doctor visits, specialist and outpatient appointments, and diagnostic visits. Request a quote and Zenward will review your trip and contact you.",
+      "Scheduled, non-emergency rides to doctor, specialist and outpatient visits. Request a quote or call.",
     icon: Stethoscope,
     image: { asset: brandImages.vanWalkerAssist, objectPosition: "70% 55%" },
     lede: "Non-emergency transportation to scheduled medical appointments, planned around your appointment time, from request to arrival.",
@@ -189,7 +194,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["dialysis-transportation"],
     summary: "Transportation coordinated around repeating dialysis treatment schedules, there and back.",
     metaDescription:
-      "Non-emergency transportation coordinated around dialysis treatment schedules, including return trips. Describe your schedule and Zenward will review it with you.",
+      "Rides planned around your dialysis schedule, including return trips. Request a quote or call.",
     icon: Heartbeat,
     image: { asset: brandImages.vanWalkerAssist, objectPosition: "82% 55%" },
     lede: "Dialysis means getting to the same place again and again. Tell us your treatment schedule and we'll review it and confirm what we can arrange.",
@@ -270,7 +275,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["rehabilitation-transportation"],
     summary: "Rides to physical therapy, occupational therapy and other rehabilitation appointments.",
     metaDescription:
-      "Non-emergency transportation to physical therapy, occupational therapy and rehabilitation appointments, including a series of visits. Request a quote and Zenward will contact you.",
+      "Rides to physical therapy, occupational therapy and other rehabilitation visits. Request a quote or call.",
     icon: FirstAidKit,
     image: { asset: brandImages.staffWalkingAssist, objectPosition: "center 38%" },
     lede: "Rehabilitation often means a series of visits over weeks. Zenward coordinates non-emergency transportation to them, so getting there is one less thing to plan.",
@@ -347,7 +352,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["hospital-discharge-transportation"],
     summary: "Planned, non-emergency transportation from the hospital to the passenger's next destination.",
     metaDescription:
-      "Planned non-emergency transportation after a hospital stay, coordinated with the passenger, family, caregivers or the care team. Request a quote for the trip to the next destination.",
+      "Planned, non-emergency rides home or onward after a hospital stay. Request a quote or call.",
     icon: Hospital,
     image: { asset: brandImages.staffWalkingAssist, objectPosition: "60% 38%" },
     lede: "When a hospital stay ends, the trip to the next place shouldn't be left to the last minute. Zenward coordinates non-emergency transportation with families, caregivers and care teams.",
@@ -423,7 +428,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["recurring-care-transportation"],
     summary: "One request for appointments that repeat, such as dialysis, therapy or ongoing care.",
     metaDescription:
-      "Regular non-emergency transportation for repeating appointments such as dialysis, therapy and ongoing care. Describe your schedule and Zenward will review and confirm it with you.",
+      "One request for repeating appointments such as dialysis or therapy, reviewed and confirmed with you.",
     icon: CalendarCheck,
     image: { asset: brandImages.staffWalkingAssist, objectPosition: "35% 38%" },
     lede: "For appointments that repeat, describe the schedule once. Zenward reviews it with you and confirms a regular arrangement, so you aren't starting over with every trip.",
@@ -500,7 +505,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["senior-medical-transportation"],
     summary: "Transportation for older adults going to scheduled medical care, arranged with family or caregivers.",
     metaDescription:
-      "Non-emergency transportation for older adults travelling to scheduled medical care, arranged directly or with family members and caregivers. Request a quote and Zenward will contact you.",
+      "Scheduled medical rides for older adults, arranged by the passenger, family or caregivers. Request a quote.",
     icon: HandHeart,
     image: { asset: brandImages.vanWalkerAssist, objectPosition: "72% 55%" },
     lede: "Non-emergency transportation for older adults travelling to scheduled medical care, with clear communication for the passenger and anyone helping to arrange it.",
@@ -576,7 +581,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["wheelchair-transportation"],
     summary: "Wheelchair-accessible transportation for scheduled, non-emergency medical trips.",
     metaDescription:
-      "Zenward offers wheelchair-accessible transportation for scheduled, non-emergency medical trips. Share the passenger's mobility details and Zenward will review the trip and contact you.",
+      "Scheduled, non-emergency trips for wheelchair users. Share mobility needs and request a quote or call.",
     icon: Wheelchair,
     image: { asset: brandImages.heroDesktop, objectPosition: "72% 45%" },
     lede: "Zenward offers wheelchair-accessible transportation for scheduled, non-emergency medical trips. Tell us about the passenger's mobility needs and we'll review the trip and confirm the arrangement with you.",
@@ -659,7 +664,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["airport-transportation"],
     summary: "Pre-arranged rides to and from the airport, coordinated in advance.",
     metaDescription:
-      "Pre-arranged transportation to and from the airport for older adults, family-arranged travel and passengers with mobility considerations. Request a quote and Zenward will review your trip and contact you.",
+      "Pre-arranged rides to and from the airport for older adults and passengers with mobility considerations.",
     icon: AirplaneTilt,
     image: { asset: brandImages.vanWalkerAssist, objectPosition: "62% 55%" },
     heroEyebrow: "Pre-Arranged Transportation",

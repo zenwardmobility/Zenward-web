@@ -1,0 +1,489 @@
+ZENWARD-WEB — ZW-SEO-01
+INITIAL ORGANIC SEARCH LAUNCH + FIRST-CUSTOMER SEO FOUNDATION
+Date: 2026-10-17
+Mode: LOCAL SEO IMPLEMENTATION + RESEARCH ONLY.
+- Not committed, pushed or deployed.
+- No Google Ads measurement, GA4, GTM, analytics sink or click-ID capture.
+- No Google Business Profile.
+- No city or county pages.
+- No invented hours, area, payment, coverage, prices, reviews or partnerships.
+- No homepage redesign.
+
+==================================================
+1. STARTING GIT STATE
+==================================================
+- HEAD e77b735 "Prepare privacy-safe Google Ads conversion measurement" (04M) =
+  origin/main e77b735. Aligned (0/0). git diff --check clean.
+- Working tree: clean except the known untracked diagnostic report
+  (docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt), left as is and not
+  part of SEO-01.
+- Test baseline: 244/244.
+
+==================================================
+2. LIVE COMPETITOR / SEARCH AUDIT
+==================================================
+Public web research on 2026-10-17. Results vary by user and location; this is a snapshot,
+not a rank report.
+
+Queries:
+- non emergency medical transportation Atlanta
+- NEMT Atlanta providers
+- wheelchair transportation Atlanta
+- dialysis transportation Atlanta
+- hospital discharge transportation Atlanta
+- medical-appointment / recurring / senior variants, via the provider and aggregator
+  results
+
+Findings:
+- Broad "non emergency medical transportation Atlanta" mixes Georgia DCH / Medicaid NEMT
+  documents with provider sites. Many searchers are Medicaid members, so intent is mixed.
+- Provider pages that appear use exact-match titles and H1s ("NEMT in Atlanta, GA",
+  "Non-Emergency Wheelchair Transportation in Atlanta, GA"). Many add:
+  - ZIP and city lists
+  - city doorway pages
+  - footer link farms
+  - unverified claims: 24/7, "Medicaid-approved", NEMTAC/ADA certification, 5-star
+    testimonials, equipment specifications
+- The strongest dialysis result found, a request/directory aggregator, wins on tight
+  intent: dialysis-specific title and H1, recurring scheduling, uncertain return times,
+  named centers, and an FAQ.
+- The most common decision content is cost, insurance and Medicaid FAQs. Zenward cannot
+  answer these until the owner confirms its payment position.
+- Wheelchair queries also surface MARTA paratransit, accessible taxis and van rentals, so
+  service pages must make "scheduled medical trips" clear (already true).
+
+Details and opportunities: docs/product/seo-competitor-opportunity-map.md (8 entries).
+No competitor text or claims were copied.
+
+==================================================
+3. INDEXABILITY AUDIT (production build, every public route)
+==================================================
+INDEX + self-canonical + one H1 (22):
+- /, /services, the 8 service pages, /locations/metro-atlanta
+- /healthcare-providers, /resources, the 6 Resources
+- /about, /contact, /privacy, /terms
+
+NOINDEX, follow + self-canonical + one H1 + outside the sitemap (4 campaign pages):
+- /metro-atlanta/dialysis-transportation
+- /metro-atlanta/medical-appointment-transportation
+- /metro-atlanta/non-emergency-medical-transportation
+- /metro-atlanta/wheelchair-transportation
+
+/request-transportation is dynamic and indexable. Its canonical is the bare path, so the
+?service= variants consolidate to it.
+
+Structured data:
+| Page | Schema |
+| --- | --- |
+| Home | Organization |
+| Hub | Service + BreadcrumbList |
+| Service pages | Service + BreadcrumbList |
+| Provider page, /services, /resources | BreadcrumbList |
+| Resources R1–R5 | Article + BreadcrumbList |
+| Trip checklist | BreadcrumbList |
+
+Internal discoverability: every organic page is linked from main content or the nav and
+footer. The hub previously had no contextual link from the homepage; that is fixed (§12).
+
+The campaign strategy is unchanged.
+
+==================================================
+4. SITEMAP FINDINGS
+==================================================
+Before: 24 URLs. These included /request-transportation (the form), /privacy and /terms,
+and every URL had lastModified = the build time, claiming that all pages changed on every
+deploy.
+
+After: 21 URLs, the pages that should rank:
+- /, /services, the 8 service pages, /locations/metro-atlanta
+- /healthcare-providers, /resources, /about, /contact
+- the 6 Resources, each with a real lastModified (its updatedDate)
+- no build timestamps
+
+Excluded, but still crawlable and linked: the campaign pages (noindex), the request form,
+privacy and terms. /contact is kept as the business-information page for brand and
+navigational searches.
+
+Implementation: the list moved to src/lib/sitemap-entries.ts (node-loadable, so tests
+check the real entries). src/app/sitemap.ts now only calls it.
+
+==================================================
+5. ROBOTS FINDINGS
+==================================================
+- robots.txt: "User-Agent: * / Allow: /" plus the sitemap URL. Everything is crawlable,
+  so Google can see the campaign pages' noindex; they are not blocked.
+- No assets are blocked, there is no site-wide robots metadata, and no staging directives
+  exist. The live robots.txt matches.
+- No change needed.
+
+==================================================
+6. SEARCH CONSOLE READINESS
+==================================================
+docs/product/google-search-console-launch-checklist.md covers:
+1. an owner account
+2. a Domain property
+3. DNS TXT verification (no token in the repository)
+4. the HTTPS www canonical (verified live)
+5. sitemap submission (21 URLs after deploy)
+6–13. inspecting the home, hub, wheelchair, dialysis, medical-appointment, discharge,
+   provider and Resource URLs
+14. requesting indexing for priority URLs only
+15–18. monitoring Pages, Search results, Core Web Vitals, and manual actions/security
+19. recording the baseline
+20. reviews at 7, 14 and 30 days
+
+It includes the weekly baseline table (Date, Indexed pages, Impressions, Clicks, CTR,
+Average position, Top query, Top page, Qualified transportation requests,
+Notes/actions). No data was fabricated.
+
+==================================================
+7. KEYWORD-TO-PAGE MAP
+==================================================
+docs/product/seo-keyword-map.md assigns one primary intent per page. The brief's
+hypotheses were validated, with one adjustment:
+- Homepage: owns the spelled-out head term ("non emergency medical transportation
+  Atlanta / Metro Atlanta").
+- Hub: takes "NEMT in Metro Atlanta" plus local detail (services, who, how to request).
+- Service pages: one each "<service> Atlanta" intent (the title says "Metro Atlanta",
+  which also matches "Atlanta").
+- Resources: informational "how to / checklist / what is" intents, each bridging to its
+  service and the request form.
+- Airport: "airport transportation for older adults / passengers with mobility needs".
+  It is truthful and does not claim flight tracking or meet-and-greet.
+- Blocked keywords are recorded: city/county, Medicaid/insurance, same-day/24-hour, cost.
+
+==================================================
+8. CANNIBALISATION FINDINGS
+==================================================
+| Overlap | Finding | Action |
+| --- | --- | --- |
+| Homepage vs /locations/metro-atlanta | REAL. Titles "Non-Emergency Medical Transportation in Metro Atlanta" vs "Non-Emergency Medical Transportation Services in Metro Atlanta"; H1s "…Across Metro Atlanta" vs "…in Metro Atlanta". | Minimal change: the hub title is now "NEMT in Metro Atlanta: Services & How to Request" with a matching description. H1s are unchanged (approved copy). Monitor in Search Console; SEO-02 option: fold the hub into the homepage if Google consolidates. |
+| /services vs hub | Distinct (category/compare vs local overview) | none |
+| Service pages vs their Resources | Distinct (transactional vs planning) and cross-linked | none |
+| Campaign pages | noindex, so no organic competition | none |
+
+==================================================
+9. TITLE CHANGES
+==================================================
+Only one title changed:
+- /locations/metro-atlanta: "Non-Emergency Medical Transportation Services in Metro
+  Atlanta" → "NEMT in Metro Atlanta: Services & How to Request" (67 characters with the
+  brand).
+
+Preserved (already strong and intent-matched):
+- the homepage
+- all service pages ("<Service> in Metro Atlanta")
+- /healthcare-providers, /resources and all Resources
+- /about, /contact
+
+/services ("Our Transportation Services") was kept: a category title that doesn't compete
+with the hub. All indexable titles are unique (tested).
+
+==================================================
+10. DESCRIPTION CHANGES
+==================================================
+Problem: on all 8 service pages the market came LAST (" … Serving Metro Atlanta.") in
+184–227-character descriptions, so search-result truncation (about 155–160) removed the
+local qualifier. The homepage (239), hub (224) and /services (227) were also over-long.
+
+Change:
+- Service descriptions are now "<Service> in Metro Atlanta. <one sentence>". The 8
+  services.ts metaDescription sentences were rewritten, and the builder in
+  service-pages.ts updated. All are 135–157 characters.
+- Homepage (154): "Zenward Mobility provides scheduled non-emergency medical transportation in
+  Metro Atlanta, including wheelchair-accessible trips. Request a quote or call."
+- Hub (133): "NEMT in Metro Atlanta: how Zenward's scheduled, non-emergency medical
+  transportation works, who it serves, and how to request a ride."
+- /services (163): "Compare Zenward's non-emergency medical transportation in Metro Atlanta:
+  appointments, dialysis, rehab, discharge, recurring, senior, wheelchair and airport
+  trips."
+
+No claims were added (tested: no best, top-rated, #1, 24/7, always on time, guarantee,
+same-day, Medicaid, Medicare, insurance, cheap, lowest, ADA, CPR, certified). Campaign
+descriptions are untouched.
+
+==================================================
+11. HEADING FINDINGS
+==================================================
+- Every organic page has one H1 and no skipped heading levels.
+- The H1s match intent: services "<Service> in Metro Atlanta"; Resources by topic;
+  provider "Healthcare transportation coordination for Metro Atlanta".
+- /about's H1 is the tagline "Care that gets you there." It is brand-appropriate, and the
+  title carries the search intent. Kept.
+- /resources repeats one card heading (the discharge checklist listed under two
+  audiences, a 04K owner decision). Acceptable.
+- No hidden headings were added. No heading changes were needed.
+
+==================================================
+12. INTERNAL-LINK CHANGES
+==================================================
+- The homepage now links to /locations/metro-atlanta from its closing section ("Serving
+  Metro Atlanta. Zenward reviews every request…"). Previously the hub had no contextual
+  link from the homepage.
+  - First attempt: the link went in the reassurance band near the top, but browser QA
+    showed Zenny's greeting bubble covering it on phones.
+  - Fix: I moved it to the closing section and restored the band's plain text.
+- Existing journeys verified:
+  - home → /services → service
+  - service → Helpful resources → request
+  - Resource → service bridge → request
+  - provider page → services, Resources (discharge checklist) and request
+  - hub → services, Resources and request
+- The footer and nav are unchanged: no link farm.
+
+==================================================
+13. RESOURCE AUDIT
+==================================================
+| Resource | Intent | Service / CTA | Notes |
+| --- | --- | --- | --- |
+| R1 What is NEMT | definition / "what is NEMT" | generic request | Article schema; links R2, R6; no cannibalisation (the hub is commercial) |
+| R2 How to arrange NEMT in Metro Atlanta | local how-to | generic request | the only local Resource (04K rule); Article; FAQ |
+| R3 Dialysis guide | planning recurring dialysis rides | ?service=dialysis | Article; title "Recurring Dialysis Transportation Guide" is distinct from the service page "Dialysis Transportation in Metro Atlanta" |
+| R4 Wheelchair guide | preparing for wheelchair transport and assistance levels | ?service=wheelchair_transportation | Article |
+| R5 Discharge checklist | discharge checklist | ?service=hospital_discharge | Article; linked from the provider page |
+| R6 Trip checklist | appointment checklist | generic request | BreadcrumbList only (interactive tool) |
+
+All six are indexable, in the sitemap with real dates, and keep their 04K schema. No
+changes were needed.
+
+==================================================
+14. CONTENT ROADMAP
+==================================================
+docs/product/seo-content-roadmap.md scores 13 candidates on commercial relevance, request
+likelihood, service link, usefulness and whether they can be written from confirmed facts.
+
+Several suggested topics already exist (wheelchair prep = R4, discharge checklist = R5,
+appointment checklist = R6) or would cannibalise existing pages (dialysis caregivers /
+how to arrange dialysis → extend R3 and the service FAQ instead; how discharge works →
+the service FAQ). Blocked: Medicaid vs private, city guides, cost.
+
+Recommended first three (SEO-02):
+1. How to Arrange Recurring Medical Transportation for a Parent
+2. How Care Coordinators Can Request Patient Transportation
+3. NEMT vs Ambulance: Which Does Your Trip Need? (boundary wording only)
+
+Before those: add short FAQ blocks to the dialysis and discharge service pages.
+
+==================================================
+15. LOCAL-SEO BOUNDARIES
+==================================================
+Only Metro Atlanta is confirmed. City and county SEO (Marietta, Decatur, Alpharetta,
+Fulton, DeKalb, …) is BLOCKED on owner service-area confirmation. No geography was
+inferred from competitors, and tests guard routes, the sitemap and copy.
+
+==================================================
+16. GBP STATUS
+==================================================
+DEFERRED (vehicle branding in progress). No profile is claimed, there is no sameAs, no
+GBP schema, no address, no reviews and no stars (tested). The 04L checklist is unchanged.
+
+==================================================
+17. STRUCTURED-DATA FINDINGS
+==================================================
+- Organization (homepage) is the single source (src/lib/organization.ts) with an @id.
+  Service schema references it via provider.
+- Article publisher and author are the Organization (04K/04L).
+- BreadcrumbLists are consistent with the visible breadcrumbs.
+- Duplication: none harmful (one Organization entity, referenced elsewhere).
+- No aggregateRating, review, openingHours, priceRange, address, geo, sameAs,
+  foundingDate or award (tested).
+- Minor, not changed: the schema logo is an 822 KB PNG. Valid, but a lighter square logo
+  (at least 112 px) would be kinder to crawlers. Optional.
+
+==================================================
+18. TECHNICAL SEO FINDINGS
+==================================================
+Live checks (read-only GETs, 2026-10-17):
+- http://zenwardmobility.com → 308 → https://zenwardmobility.com → 308 →
+  https://www.zenwardmobility.com/. Two hops: harmless; optional single-hop redirect at
+  the host.
+- http://www. → 308 → https://www.
+- Trailing slash /services/ → 308 → /services (consistent with the canonicals).
+- 404 for an unknown path; unknown /resources/<slug> → 404 noindex.
+- robots.txt and sitemap.xml return 200.
+- Canonicals all use https://www.zenwardmobility.com.
+
+Metadata: the title template adds the brand once. OpenGraph and Twitter cards are on
+every page, with a 1200×630 social image. The favicon set is locked (04C).
+
+No duplicate routes or infrastructure changes.
+
+==================================================
+19. PERFORMANCE FINDINGS
+==================================================
+- JavaScript: about 188–190 KB gz per route, nearly all shared framework, with no
+  route-specific growth.
+  - Zenny's panel is lazy-loaded.
+  - No third-party scripts.
+  - The 04M boundary is absent from client bundles.
+- Images: photos are served through next/image (AVIF/WebP, responsive sizes). The source
+  JPGs are 170–312 KB.
+- Fonts: next/font (self-hosted) for Manrope and Inter.
+- Fix: the hero image on service pages and the provider page was lazy-loaded, although on
+  desktop it sits in the first viewport beside the H1 (a likely LCP element). It now uses
+  `priority`, like the home, hub and campaign heroes.
+- Measured locally on the production build: CLS 0 on all 10 QA routes at all widths. LCP
+  72–384 ms locally; field data will come from Search Console Core Web Vitals.
+- Lighthouse is not installed and was not added.
+
+==================================================
+20. MOBILE / DESKTOP QA
+==================================================
+Run with Playwright and Chrome on the production build at 390, 430, 768, 1024 and 1440,
+across:
+- /, /services, /locations/metro-atlanta
+- /services/wheelchair-transportation, /services/dialysis-transportation,
+  /services/medical-appointments, /services/hospital-discharge-transportation
+- /healthcare-providers, /resources, /resources/dialysis-transportation-guide
+
+Passed everywhere:
+- the H1 is visible in the first viewport
+- the phone CTA is visible in the first viewport (header Call or hero)
+- the Request CTA is visible in the first viewport on every commercial page (home,
+  services, hub, service pages, provider page)
+- no horizontal overflow
+- body text is a normal size (median paragraph ≥ 14 px)
+- CLS 0
+- no console errors, 0 external requests
+- no intrusive overlay
+
+Expected and not defects:
+- /resources and the dialysis guide show no request CTA in the first viewport below
+  1024px. They are informational pages; the header Call button is visible and the guide
+  ends with its service bridge and request CTA.
+- Pre-existing (04K): on /resources at 390, Zenny's launcher avatar overlaps the corner of
+  the full-width "Featured guide" card at load. The card remains tappable, and the teaser
+  is already suppressed on Resource pages below 768.
+
+Fixed during QA: the first placement of the homepage hub link (the "Serving Metro
+Atlanta" band near the top) sat under Zenny's greeting at 390/430. It was moved to the
+closing section; the re-run shows no overlap.
+
+==================================================
+21. COMPETITOR OPPORTUNITY MAP
+==================================================
+docs/product/seo-competitor-opportunity-map.md covers 8 entries:
+- Duke Family Transportation, My Ride Aid, MedicalRide.org, Heart2Heart Medical
+  Transport and Atlanta Ride Care (page-audited)
+- Oasis Mobility and Vitality Transport EMS (search listings)
+- Georgia Medicaid/DCH results
+
+For each: pages, focus, local specificity, useful UX and SEO patterns, claims Zenward
+must NOT copy, and the opportunity.
+
+Key opportunity: honest cost and coverage answers, which are blocked on owner facts.
+
+==================================================
+22. FIRST-CUSTOMER ACQUISITION PLAN
+==================================================
+docs/product/first-customer-acquisition-plan.md is a 30-day plan.
+
+Provider outreach is the fastest path to a first paying customer:
+- a target list of dialysis centers, rehab/PT, senior living, clinics and
+  case-management teams
+- a one-page leave-behind from approved copy
+- 10–15 contacts a week
+- fast follow-up within the 2-hour standard
+
+Other tracks:
+- community and direct demand
+- organic search: deploy SEO-01, Search Console, service FAQs, the first roadmap
+  Resource
+- paid search: BLOCKED on 04M
+- GBP: DEFERRED
+
+It uses the approved proposition and forbids partnership, preferred-provider, contract,
+manager and affiliation claims. Success measure: manual source tracking (no tracking
+code).
+
+==================================================
+23. OWNER DECISIONS STILL NEEDED
+==================================================
+1. Payment model (private pay? facility invoicing? Medicaid/insurance position?). This
+   is the biggest SEO and conversion unlock.
+2. Working hours.
+3. Service area (counties/cities).
+4. Real vehicle and team photos; GBP readiness.
+5. Search Console: an owner account plus DNS verification.
+6. Whether to fold the hub into the homepage if Search Console shows consolidation.
+7. Optional: a lighter schema logo; single-hop apex redirect at the host.
+
+==================================================
+24. TESTS / TYPECHECK / LINT / BUILD
+==================================================
+New: src/lib/seo-launch.test.mjs (12 tests) covering:
+- the exact organic sitemap (21 URLs; request form, privacy, terms and the 4 campaign
+  pages excluded)
+- lastModified only for Resources, with no build timestamps
+- robots allow-all, the sitemap advertised, no disallow/noindex
+- organic pages indexable and self-canonical; campaigns noindex/follow and
+  self-canonical; the request canonical
+- unique titles, with the home and hub distinct
+- concise, market-led descriptions with no unsupported claims
+- one H1 per template
+- the homepage → hub link, and a restrained footer
+- hero priority
+- Metro Atlanta only, with no city or county routes
+- no GBP sameAs, review/rating schema, Google Ads activation, GA4/GTM or sink
+- intake and policies unchanged
+- the SEO docs exist
+
+Updated to the new sitemap module (intent unchanged): campaign-routes, service-catalog,
+resources, assistance-level and provider-trust tests.
+
+| Check | Result |
+| --- | --- |
+| git diff --check | clean |
+| npm test | 256/256 pass, 0 fail (244 before SEO-01; 12 added) |
+| npx tsc --noEmit | clean |
+| npm run lint | 0 errors, 1 pre-existing warning (src/lib/contact-intake/assistant-callback.test.mjs:24) |
+| npm run build | success; built sitemap has 21 URLs |
+
+==================================================
+25. FILES MODIFIED
+==================================================
+New:
+- src/lib/sitemap-entries.ts
+- src/lib/seo-launch.test.mjs
+- docs/product/google-search-console-launch-checklist.md
+- docs/product/seo-keyword-map.md
+- docs/product/seo-content-roadmap.md
+- docs/product/seo-competitor-opportunity-map.md
+- docs/product/first-customer-acquisition-plan.md
+- docs/reports/ZW-SEO-01-initial-organic-search-launch.txt
+
+Modified:
+- src/app/sitemap.ts: delegates to sitemap-entries
+- src/lib/service-pages.ts: service description format
+- src/lib/services.ts: 8 metaDescription sentences
+- src/lib/service-area.ts: homepage description; unused import removed
+- src/app/locations/[market]/page.tsx: hub title and description
+- src/app/services/page.tsx: description
+- src/app/page.tsx: hub link in the closing section
+- src/components/public/ServicePage.tsx: hero priority
+- src/app/healthcare-providers/page.tsx: hero priority
+- tests: campaign-routes, service-catalog, resources, assistance-level, provider-trust
+
+Not changed:
+- intake contract, Nemryn mapping, quote form, Server Actions
+- assistant, contact delivery
+- Privacy, Terms
+- campaign pages and rules
+- 04M measurement (MEASUREMENT_APPROVED false, no sink)
+- GBP docs
+- robots.ts, header/nav, footer, homepage hero and layout
+
+==================================================
+26. RECOMMENDED NEXT SEO PHASE (SEO-02)
+==================================================
+1. Deploy SEO-01; complete the Search Console setup, sitemap and inspections.
+2. FAQ blocks on the dialysis and discharge service pages (confirmed facts: recurring
+   schedules, return times, what to send).
+3. The first roadmap Resource: "How to Arrange Recurring Medical Transportation for a
+   Parent". Then the care-coordinator guide and NEMT vs ambulance.
+4. A 30-day Search Console review: titles and descriptions for queries with impressions
+   but low CTR; watch for homepage/hub consolidation.
+5. As soon as the owner confirms the payment model and service area, a factual
+   payment/coverage FAQ and honest local content. These are the largest unlocks.
+
+STOPPED. Not committed, pushed or deployed. SEO-02 not started.
