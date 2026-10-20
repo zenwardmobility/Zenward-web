@@ -75,6 +75,14 @@ export default function ResourcesHubPage() {
                 </li>
               ))}
             </ul>
+            {category === "riders-families" && (
+              <p className={cn(typography.bodySmall, "mt-lg text-text-secondary")}>
+                Arranging a ride in Metro Atlanta?{" "}
+                <Link href="/locations/metro-atlanta" className="font-semibold text-text-accent-on-tint underline-offset-4 hover:underline">
+                  How Zenward works in Metro Atlanta
+                </Link>
+              </p>
+            )}
             {category === "providers" && (
               <p className={cn(typography.bodySmall, "mt-lg text-text-secondary")}>
                 Arranging transportation for patients regularly?{" "}

@@ -142,6 +142,7 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
       {
         type: "p",
         text: "Think about the reason for the trip: a single appointment, a repeating treatment such as dialysis, a hospital discharge, or a trip that needs wheelchair-accessible transportation. Picking the closest match helps the team plan, and you can add anything else in the notes.",
+        link: { href: "/locations/metro-atlanta", label: "Transportation services in Metro Atlanta" },
       },
       { type: "h2", id: "timing", text: "3. Plan the date and time" },
       {
