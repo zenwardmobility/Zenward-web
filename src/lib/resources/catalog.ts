@@ -86,7 +86,7 @@ export const RESOURCES: readonly ResourceMeta[] = [
   }),
   r({
     slug: "what-is-non-emergency-medical-transportation",
-    title: "What Is Non-Emergency Medical Transportation?",
+    title: "What Is Non-Emergency Medical Transportation? A Guide for Patients and Families",
     description:
       "What NEMT is, who it helps, the kinds of trips it covers, and how it differs from an ambulance.",
     category: "riders-families",
@@ -97,7 +97,7 @@ export const RESOURCES: readonly ResourceMeta[] = [
     relatedResources: ["how-to-arrange-nemt-in-metro-atlanta", "medical-transportation-trip-checklist"],
     seoTitle: "What Is Non-Emergency Medical Transportation?",
     seoDescription:
-      "A plain-language guide to non-emergency medical transportation (NEMT): who it is for, common trips, how it differs from an ambulance and how to request it.",
+      "Learn how non-emergency medical transportation works, who needs it, and how Zenward Mobility helps patients and families arrange rides in Metro Atlanta.",
     cardAction: "Read guide",
   }),
   r({

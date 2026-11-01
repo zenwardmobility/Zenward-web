@@ -1,0 +1,242 @@
+ZENWARD-WEB-SEO-ARTICLE-01 — IMPLEMENTATION REPORT
+Article: /resources/what-is-non-emergency-medical-transportation
+Date: 2026-11-01
+Status: Implemented and verified locally. NOT committed, pushed, merged or deployed.
+        Awaiting owner approval before any release action.
+
+------------------------------------------------------------------------
+1. EXISTING ARTICLE LOCATION
+------------------------------------------------------------------------
+The article is not a standalone page or MDX file. Resources are typed data
+rendered by one shared template:
+
+  - Route:     src/app/resources/[slug]/page.tsx (static, dynamicParams = false)
+  - Metadata:  src/lib/resources/catalog.ts  (title, SEO title/description, dates,
+               related services/resources, request CTA)
+  - Body:      src/lib/resources/content.ts  (RESOURCE_BODIES, typed blocks)
+  - Template:  src/components/public/resources/ResourcePage.tsx
+  - Schema:    src/lib/resources/schema.ts   (Article + BreadcrumbList JSON-LD)
+
+Existing routes confirmed (HTTP 200 on the local production build):
+  - Services:            /services
+  - Metro Atlanta area:  /locations/metro-atlanta
+  - Request flow:        /request-transportation (the existing quote form;
+                         this article's catalog entry already used the generic
+                         form with no service preselected — owner decision kept)
+
+------------------------------------------------------------------------
+2. FILES MODIFIED
+------------------------------------------------------------------------
+  src/lib/resources/catalog.ts
+      - title (= H1, breadcrumb, Article headline, Resource card title)
+      - seoDescription
+  src/lib/resources/content.ts
+      - Article body replaced with the owner-approved copy.
+      - Additive block-model extensions (used only by this article today):
+          * inline markup in block text: **bold**, *italic*, [label](/path)
+          * "figure" block (approved brandImages photo + caption)
+          * "actions" block (Request Transportation button + call button)
+          * `bridge` is now optional (this article ends with its own approved
+            request section, so the template's extra bridge box is omitted)
+  src/components/public/resources/ResourcePage.tsx
+      - Renders the inline markup, figure and actions blocks.
+      - Blocks before the first H2 (opening paragraphs + photo) render above
+        the "On this page" contents box. All other Resources begin with an H2,
+        so their output is unchanged (verified on how-to-arrange-nemt…).
+  src/lib/images.ts
+      - Registered the owner photo as brandImages.officialVehicle (static
+        import → intrinsic dimensions + blur placeholder) with the alt text.
+  src/lib/resources/resources.test.mjs
+      - resourceText() handles the optional bridge and new blocks.
+      - "every Resource has a bridge" now accepts an in-body request section.
+      - The old R1 test (which pinned the previous article copy) is replaced
+        by a test of the approved article: H1, SEO title/description,
+        published date, H2 order, photo placement/caption/alt, links, CTA.
+      NOTE: this file already had uncommitted owner changes (sitemapEntries
+      check); those were preserved untouched.
+
+Not modified by this task (pre-existing uncommitted changes, left as found):
+  src/lib/assistance-level.test.mjs, campaign-routes.test.mjs,
+  provider-trust.test.mjs, service-catalog.test.mjs,
+  docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt
+
+No changes to: Nemryn / intake integration, request form, Supabase, auth,
+DNS, Vercel config, other pages or the resource/hub templates' design.
+
+------------------------------------------------------------------------
+3. ARTICLE CONTENT IMPLEMENTATION STATUS
+------------------------------------------------------------------------
+Complete. All approved paragraphs, headings, lists, bold phrases, caption,
+CTA text, tagline and emergency note are present verbatim (see section 11
+for the mechanical formatting decisions).
+
+Mapping to the template:
+  - H1: "What Is Non-Emergency Medical Transportation? A Guide for Patients
+    and Families" (single H1, from the catalog title).
+  - First intro paragraph = the header lede; the remaining three intro
+    paragraphs, then the photo + caption, open the article body.
+  - 8 H2s in approved order, each with an anchor id and listed in
+    "On this page".
+
+------------------------------------------------------------------------
+4. EXACT VEHICLE IMAGE PATH
+------------------------------------------------------------------------
+  public/images/zenward-official-nemt-vehicle.webp
+  (1448 × 1086, 4:3, WebP, 2,938,506 bytes)
+
+Differs from the brief's expected public/images/zenward/ — the owner's file
+is in public/images/ alongside the other approved photography; used as-is.
+The file is currently UNTRACKED in git and must be included in the release
+commit, or the build will fail (it is a static import).
+
+Visually verified: white Toyota Sienna (BraunAbility conversion), side view,
+Zenward Mobility mark, 678-935-5489 and "Non-Emergency Medical
+Transportation" on the front passenger door. Not altered, cropped or
+regenerated.
+
+------------------------------------------------------------------------
+5. IMAGE RENDERING AND ALT TEXT
+------------------------------------------------------------------------
+  Alt:      "White Zenward Mobility non-emergency medical transportation
+            vehicle with company branding"
+  Caption:  <figcaption>, italic, beneath the image:
+            "Zenward Mobility's branded non-emergency medical transportation
+            vehicle serving Metro Atlanta, Georgia."
+  Placement: after the introductory paragraphs, immediately before the
+            first H2 (asserted by test).
+  Rendering: existing BrandImage component (next/image, rounded frame),
+            aspect-4/3 container matching the photo exactly → whole photo
+            visible, no crop/stretch; reserved box + blur placeholder → no
+            layout shift; lazy-loaded; responsive srcset,
+            sizes="(min-width: 768px) 44rem, 100vw".
+  Delivered weight (next/image AVIF, q75): 31 KB @640w, 52 KB @828w,
+            84 KB @1080w, 134 KB @1920w. Browsers never download the 2.9 MB
+            source. No new dependencies; source not reprocessed.
+
+------------------------------------------------------------------------
+6. SEO TITLE AND META DESCRIPTION (verified in rendered HTML)
+------------------------------------------------------------------------
+  <title>: What Is Non-Emergency Medical Transportation? | Zenward Mobility
+           (catalog seoTitle unchanged; the layout template appends the brand)
+  Meta description (152 chars):
+    Learn how non-emergency medical transportation works, who needs it, and
+    how Zenward Mobility helps patients and families arrange rides in Metro
+    Atlanta.
+  og:title / twitter title match; og:type = article.
+
+------------------------------------------------------------------------
+7. CANONICAL AND STRUCTURED-DATA VERIFICATION
+------------------------------------------------------------------------
+  - Route unchanged; canonical = <site>/resources/what-is-non-emergency-
+    medical-transportation (self-canonical via NEXT_PUBLIC_SITE_URL; locally
+    it renders as http://localhost:3000/… because that env var is not set
+    locally — existing behaviour).
+  - No robots/noindex tag; remains in the sitemap.
+  - JSON-LD Article: headline = displayed H1; description = new meta
+    description; datePublished 2026-10-16 (preserved); dateModified
+    2026-10-16; author/publisher = Organization "Zenward Mobility" (no
+    invented individuals). BreadcrumbList intact (Resources > article).
+  - No geo meta tags or country restrictions added.
+  - dateModified / visible "Updated" date intentionally NOT changed: per the
+    brief it should become the actual revision date only when published.
+    The catalog helper currently sets updatedDate = publishedDate for all
+    Resources; at release, add an updatedDate override for this entry
+    (small catalog change) if the owner wants the modified date shown.
+
+------------------------------------------------------------------------
+8. INTERNAL LINKS AND CTA DESTINATIONS (all returned HTTP 200)
+------------------------------------------------------------------------
+  "medical transportation services" → /services
+  "Metro Atlanta service area"      → /locations/metro-atlanta
+  "Request Transportation" button   → /request-transportation (existing
+       TrackedLinkButton, primary button style, fires the existing
+       request_transportation_clicked event, source resource_page)
+  "Call: 678-935-5489"              → tel:+16789355489 (existing CallButton,
+       number from src/lib/business.ts, phone_cta_clicked event)
+  Breadcrumb, related resources and the site-wide closing CTA panel are
+  unchanged.
+
+------------------------------------------------------------------------
+9. RESPONSIVE CHECKS (headless Chrome, CDP device emulation, prod build)
+------------------------------------------------------------------------
+  Widths: 360, 390, 768, 1024, 1440 px.
+  - No horizontal scrolling at any width (scrollWidth ≤ viewport) on this
+    article, how-to-arrange-nemt-in-metro-atlanta and /services.
+  - Photo: 328×246 @360, 358×269 @390, 689×517 @768, 704×528 @1024/1440 —
+    exact 4:3, loaded, correct srcset candidate selected.
+  - CTA buttons 48 px tall (touch target); stacked full-width on mobile,
+    side by side from sm up.
+  - Screenshots reviewed (desktop and mobile): typography, caption spacing,
+    bold lead-ins, link underline styles and the emergency note render
+    correctly; no overlap.
+  - Keyboard/contrast: all new interactive elements are native <a> elements
+    using the existing button/link classes (existing focus styles and
+    colour tokens); no new colours introduced.
+  - Not done: manual testing on physical devices / Safari / Firefox.
+
+------------------------------------------------------------------------
+10. TEST AND BUILD RESULTS (actually executed)
+------------------------------------------------------------------------
+  npm test          256 tests, 256 pass, 0 fail (baseline before change: 256/256)
+  npx tsc --noEmit  exit 0, no errors
+  npm run lint      0 errors, 1 warning — pre-existing, unrelated file
+                    (src/lib/contact-intake/assistant-callback.test.mjs:24)
+  npm run build     success; /resources/what-is-non-emergency-medical-
+                    transportation prerendered as static HTML (SSG)
+  Rendered-HTML checks: title, description, canonical, single H1, H2 order,
+  JSON-LD, img alt/srcset, figcaption, tel link, no leftover ** or [](
+  markup, all internal hrefs 200.
+
+------------------------------------------------------------------------
+11. DEVIATIONS FROM APPROVED CONTENT (mechanical only; no wording changed)
+------------------------------------------------------------------------
+  a. Absolute links https://www.zenwardmobility.com/services and
+     /locations/metro-atlanta implemented as relative in-site links
+     (/services, /locations/metro-atlanta) — the project rule is never to
+     hardcode the domain; they resolve to the same production pages.
+  b. "[INSERT OFFICIAL ZENWARD VEHICLE PHOTO HERE]" replaced by the photo.
+  c. "**[Request Transportation]**" and "**Call: 678-935-5489**" rendered as
+     a primary button and an outline call button (existing button styles).
+  d. The emergency disclaimer keeps its italics and exact wording but sits
+     in the site's existing info-note style (same treatment as the other
+     Resources' emergency notes).
+  e. The first intro paragraph renders as the header lede (larger type)
+     under the H1, per the existing Resource template.
+  f. The "On this page" contents box (existing template feature for articles
+     with ≥ 4 headings) appears between the photo and the first H2.
+  g. Template-level elements outside the article body remain as before:
+     breadcrumb, category eyebrow, "Published by Zenward Mobility" dates,
+     Related resources, and the site-wide closing panel ("Ready to request
+     transportation?" with a "Request a Quote" button). The per-article
+     bridge box was omitted for this article to avoid adding non-approved
+     copy directly after the approved CTA section.
+
+------------------------------------------------------------------------
+12. OUTSTANDING ISSUES / NOTES FOR THE OWNER
+------------------------------------------------------------------------
+  1. public/images/zenward-official-nemt-vehicle.webp is untracked; it must
+     be committed with this change.
+  2. The source WebP is 2.9 MB (likely lossless). Visitors receive 31–134 KB
+     optimized versions, so this is not a page-speed issue; optionally
+     re-export a lossy derivative later to reduce repo size, and add the
+     photo to docs/design/brand-assets.md.
+  3. Updated date (see section 7) to set at publication if desired.
+  4. The approved copy mentions Medicaid and insurance benefits in general
+     terms. The content rules in content.ts previously excluded
+     insurance/Medicaid topics; the owner has approved this text, and it
+     makes no coverage or billing claim about Zenward (existing claim scans
+     still pass). Flagged for awareness only.
+  5. Resource card description in the hub ("…how it differs from an
+     ambulance") was not part of the brief and is unchanged; it remains
+     broadly accurate.
+  6. Optional future enhancement (not done): add the photo as `image` in
+     this article's Article JSON-LD.
+
+------------------------------------------------------------------------
+13. RELEASE-READINESS ASSESSMENT
+------------------------------------------------------------------------
+Ready for owner review. All automated checks pass and the rendered page was
+verified at five widths. Before release: owner approval, include the
+untracked image in the commit, decide on the updated date, and do a quick
+preview-deployment check (canonical with the production
+NEXT_PUBLIC_SITE_URL). No commit, push, merge or deploy has been performed.

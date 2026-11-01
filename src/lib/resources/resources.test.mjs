@@ -36,7 +36,7 @@ const SLUGS = [
 /** All public text of one Resource: metadata + body. */
 function resourceText(resource) {
   const body = RESOURCE_BODIES[resource.slug];
-  const parts = [resource.title, resource.description, resource.seoTitle, resource.seoDescription, body.intro, body.bridge.heading, body.bridge.text];
+  const parts = [resource.title, resource.description, resource.seoTitle, resource.seoDescription, body.intro, body.bridge?.heading ?? "", body.bridge?.text ?? ""];
   for (const block of body.blocks) {
     if ("text" in block) parts.push(block.text);
     if (block.type === "list") parts.push(...block.items);
@@ -44,6 +44,8 @@ function resourceText(resource) {
     if (block.type === "faq") for (const item of block.items) parts.push(item.question, item.answer);
     if (block.type === "definitions") for (const item of block.items) parts.push(item.term, item.description);
     if (block.type === "p" && block.link) parts.push(block.link.label);
+    if (block.type === "figure") parts.push(block.caption);
+    if (block.type === "actions") parts.push(block.requestLabel, block.callLabel);
   }
   for (const item of body.tool ?? []) parts.push(item.label, item.hint ?? "");
   return parts.join("\n");
@@ -135,11 +137,12 @@ test("Resource CTAs: service guides preselect their service; R1, R2 and the tool
 
 // ---------------------------------------------------------------- content discipline
 
-test("every Resource has an intro, a bridge and body content; guides have headings", () => {
+test("every Resource has an intro, a bridge (or its own request section) and body content; guides have headings", () => {
   for (const r of RESOURCES) {
     const body = RESOURCE_BODIES[r.slug];
     assert.ok(body.intro.length > 40);
-    assert.ok(body.bridge.heading && body.bridge.text);
+    if (body.bridge) assert.ok(body.bridge.heading && body.bridge.text);
+    else assert.ok(body.blocks.some((b) => b.type === "actions"), `${r.slug} needs a bridge or an in-body request section`);
     assert.ok(body.blocks.length >= (r.kind === "tool" ? 1 : 3), `${r.slug} block count`);
     if (r.kind !== "tool") assert.ok(body.blocks.some((b) => b.type === "h2"));
     const ids = body.blocks.filter((b) => b.type === "h2").map((b) => b.id);
@@ -337,17 +340,55 @@ test("Zenny bundle never imports article content", () => {
 
 const body = (slug) => resourceText(getResource(slug));
 
-test("R1: owner definition, driver wording and simplified ambulance boundary", () => {
-  const r1 = RESOURCE_BODIES["what-is-non-emergency-medical-transportation"];
+test("R1: owner-approved article (ZENWARD-WEB-SEO-ARTICLE-01): H1, SEO, headings, photo, links and CTA", () => {
+  const meta = getResource("what-is-non-emergency-medical-transportation");
+  assert.equal(meta.title, "What Is Non-Emergency Medical Transportation? A Guide for Patients and Families");
+  assert.equal(`${meta.seoTitle} | Zenward Mobility`, "What Is Non-Emergency Medical Transportation? | Zenward Mobility");
   assert.equal(
-    r1.intro,
-    "Non-emergency medical transportation, often called NEMT, is pre-arranged transportation to or from medical care for people who do not need emergency medical transport.",
+    meta.seoDescription,
+    "Learn how non-emergency medical transportation works, who needs it, and how Zenward Mobility helps patients and families arrange rides in Metro Atlanta.",
   );
+  assert.equal(meta.publishedDate, "2026-10-16", "original publication date preserved");
+
+  const r1 = RESOURCE_BODIES["what-is-non-emergency-medical-transportation"];
+  assert.ok(r1.intro.startsWith("Getting to a medical appointment should be straightforward."));
+  assert.equal(r1.bridge, undefined, "the approved body ends with its own request section");
+  assert.deepEqual(r1.blocks.filter((b) => b.type === "h2").map((b) => b.text), [
+    "What Is Non-Emergency Medical Transportation?",
+    "Who Can Benefit From NEMT?",
+    "What Types of Medical Trips Can Be Arranged?",
+    "What Should You Look for in an NEMT Provider?",
+    "How Does NEMT Work in the United States?",
+    "Non-Emergency Medical Transportation in Metro Atlanta, Georgia",
+    "Getting to Care Shouldn't Be Another Worry",
+    "Need Medical Transportation in Metro Atlanta?",
+  ]);
+
+  // The photo sits after the opening paragraphs, immediately before the first H2.
+  const figureAt = r1.blocks.findIndex((b) => b.type === "figure");
+  assert.equal(r1.blocks[figureAt + 1].type, "h2");
+  assert.ok(r1.blocks.slice(0, figureAt).every((b) => b.type === "p"));
+  const figure = r1.blocks[figureAt];
+  assert.equal(figure.image, "officialVehicle");
+  assert.equal(figure.caption, "Zenward Mobility's branded non-emergency medical transportation vehicle serving Metro Atlanta, Georgia.");
+  assert.ok(existsSync(path.join(root, "public/images/zenward-official-nemt-vehicle.webp")));
+  const images = read("lib/images.ts");
+  assert.match(images, /from "\.\.\/\.\.\/public\/images\/zenward-official-nemt-vehicle\.webp"/);
+  assert.match(images, /alt: "White Zenward Mobility non-emergency medical transportation vehicle with company branding"/);
+
+  // In-site links only, to existing routes.
   const text = body("what-is-non-emergency-medical-transportation");
-  assert.ok(text.includes("People who cannot drive themselves or need another transportation option for a medical appointment"));
-  assert.ok(!/shouldn't drive/.test(text));
-  assert.ok(text.includes("NEMT is not emergency medical transportation. If someone needs emergency medical care, call 911. Zenward does not provide ambulance or stretcher transportation."));
-  assert.ok(!/medical care during the journey|well enough to travel/.test(text), "ambulance use cases are no longer defined");
+  const links = [...text.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1]);
+  assert.deepEqual(links, ["/services", "/locations/metro-atlanta"]);
+  assert.ok(existsSync(path.join(src, "app/services/page.tsx")) && existsSync(path.join(src, "app/locations/[market]/page.tsx")));
+  assert.ok(!/https?:\/\//.test(text), "no absolute URLs in article copy");
+
+  // Final request section: Request Transportation (the generic quote form) and the business line.
+  const actions = r1.blocks.find((b) => b.type === "actions");
+  assert.equal(actions.requestLabel, "Request Transportation");
+  assert.equal(actions.callLabel, "Call: 678-935-5489");
+  assert.equal(requestCtaFor(meta).href, "/request-transportation");
+  assert.match(text, /If you're experiencing a medical emergency, call 911\./);
 });
 
 test("R2: six steps kept, plus Common questions answered from confirmed facts", async () => {

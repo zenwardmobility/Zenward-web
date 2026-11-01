@@ -30,7 +30,7 @@ function publicCopyFiles() {
   };
   walk(path.join(src, "app"));
   walk(path.join(src, "components/public"));
-  for (const rel of ["lib/trust.ts", "lib/services.ts", "lib/campaigns.ts", "lib/service-area.ts", "lib/business.ts"]) {
+  for (const rel of ["lib/trust.ts", "lib/services.ts", "lib/campaigns.ts", "lib/service-area.ts", "lib/business.ts", "lib/wheelchair-page.ts"]) {
     files.push(path.join(src, rel));
   }
   return files.map((file) => ({ file: path.relative(src, file), text: stripComments(readFileSync(file, "utf8")) }));

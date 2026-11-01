@@ -19,9 +19,12 @@ import { SERVICES, type ServiceContent, type ServiceSectionKey } from "@/lib/ser
 import type { ServiceSlug } from "@/lib/service-catalog";
 
 /**
- * Shared renderer for the seven service pages (ZW-WEB-03A; rebuilt in
+ * Shared renderer for the service pages (ZW-WEB-03A; rebuilt in
  * ZW-WEB-04C). One system, controlled variation: each page supplies its own
- * photo, section order, considerations, FAQ and related services.
+ * photo, section order, considerations, FAQ and related services. The
+ * wheelchair page has its own owner-approved structure
+ * (WheelchairServicePage, ZENWARD-WEB-SERVICE-WHEELCHAIR-01) and reuses
+ * `ServiceRelated` from here.
  *
  * Every page funnels into the existing /request-transportation form. The CTA
  * carries only an allow-listed `?service=` label (see `requestHrefFor`) so the
@@ -215,7 +218,7 @@ const SECTION_RENDERERS: Record<
   scenarios: Scenarios,
 };
 
-function Related({ service, tone }: { service: ServiceContent; tone: SectionTone }) {
+export function ServiceRelated({ service, tone }: { service: ServiceContent; tone: SectionTone }) {
   return (
     <Section tone={tone}>
       <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Related services</h2>
@@ -277,11 +280,11 @@ function HelpfulResources({ service }: { service: ServiceContent }) {
 
 /**
  * Pickup & assistance level explainer (ZW-WEB-04G3), only where it genuinely
- * helps: the strongest treatment on the wheelchair page, a compact one on
- * senior and medical-appointment pages. Other service pages don't repeat it.
+ * helps: a compact one on senior and medical-appointment pages. The full
+ * treatment lives on the wheelchair page (WheelchairServicePage). Other
+ * service pages don't repeat it.
  */
 const ASSISTANCE_EXPLAINER: Partial<Record<ServiceSlug, "full" | "compact">> = {
-  "wheelchair-transportation": "full",
   "senior-medical-transportation": "compact",
   "medical-appointments": "compact",
 };
@@ -319,7 +322,7 @@ export function ServicePage({ service }: { service: ServiceContent }) {
         </div>
       </Section>
 
-      <Related service={service} tone={relatedTone} />
+      <ServiceRelated service={service} tone={relatedTone} />
 
       {/* Compact operating standards (ZW-WEB-04F), right before the closing CTA. */}
       <div className="border-t border-border-subtle bg-surface-elevated">

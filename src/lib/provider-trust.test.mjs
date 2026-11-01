@@ -43,7 +43,7 @@ function publicFiles() {
   };
   walk(path.join(src, "app"));
   walk(path.join(src, "components/public"));
-  for (const rel of ["lib/trust.ts", "lib/services.ts", "lib/providers.ts", "lib/operating-facts.ts", "lib/campaigns.ts", "lib/resources/content.ts", "lib/assistance-level.ts", "lib/quote-form/success.ts", "lib/organization.ts"]) {
+  for (const rel of ["lib/trust.ts", "lib/services.ts", "lib/providers.ts", "lib/operating-facts.ts", "lib/campaigns.ts", "lib/resources/content.ts", "lib/assistance-level.ts", "lib/quote-form/success.ts", "lib/organization.ts", "lib/wheelchair-page.ts"]) {
     out.push(path.join(src, rel));
   }
   return out.map((f) => ({ file: path.relative(src, f), text: stripComments(readFileSync(f, "utf8")) }));
@@ -324,7 +324,7 @@ test("Zenny trust answers stay canonical: licensed, vetted drivers, background c
 test("04G3 and 04K remain intact", () => {
   assert.match(read("components/public/RequestTransportationForm.tsx"), /<AssistanceLevelField/);
   assert.match(read("lib/quote-form/model.ts"), /if \(isDeliveredConversion\(action\.result\)\) return \{ \.\.\.state, status: "success", delivered: true \};/);
-  assert.match(read("components/public/ServicePage.tsx"), /"wheelchair-transportation": "full"/);
+  assert.match(read("components/public/WheelchairServicePage.tsx"), /<AssistanceLevelExplainer variant="full"/);
   assert.equal(RESOURCES.length, 6);
   assert.match(read("lib/resources/schema.ts"), /author: \{ "@type": "Organization", name: siteName, url: siteUrl \}/);
 });

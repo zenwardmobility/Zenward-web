@@ -20,6 +20,14 @@ import heroDesktop from "../../public/images/zenward-hero-desktop-v3.jpg";
 import heroMobile from "../../public/images/zenward-hero-mobile-v3.jpg";
 import vanWalkerAssist from "../../public/images/zenward-van-walker-assist.jpg";
 import staffWalkingAssist from "../../public/images/zenward-staff-walking-assist.jpg";
+// Owner-supplied original photograph (WebP, 1448 × 1086), served as-is; no PNG master.
+import officialVehicle from "../../public/images/zenward-official-nemt-vehicle.webp";
+// Wheelchair page (ZENWARD-WEB-SERVICE-WHEELCHAIR-01), owner-supplied WebP, served as-is.
+// The hero is an AI-generated illustrative scene; the other three are authentic photographs.
+import wheelchairAssistanceHero from "../../public/images/zenward/wheelchair-transportation/zenward-wheelchair-assistance-hero.webp";
+import wheelchairRamp from "../../public/images/zenward/wheelchair-transportation/zenward-wheelchair-accessible-ramp.webp";
+import wheelchairSecurementArea from "../../public/images/zenward/wheelchair-transportation/zenward-wheelchair-securement-area.webp";
+import passengerSeating from "../../public/images/zenward/wheelchair-transportation/zenward-passenger-seating.webp";
 import zenwardLogo from "../../public/images/zenward-mobility-logo.png";
 import zenwardLogoTrimmed from "../../public/images/zenward-mobility-logo-trimmed.png";
 
@@ -51,6 +59,36 @@ export const brandImages = {
   staffWalkingAssist: {
     src: staffWalkingAssist,
     alt: "A Zenward Mobility staff member walking beside an older passenger who is using a walker on a path outside a care residence",
+  },
+  /** The "What is NEMT?" Resource (ZENWARD-WEB-SEO-ARTICLE-01). Side view of the white Zenward Mobility minivan in a parking lot; the front passenger door carries the Zenward Mobility mark, 678-935-5489 and "Non-Emergency Medical Transportation". No people in frame. */
+  officialVehicle: {
+    src: officialVehicle,
+    alt: "White Zenward Mobility non-emergency medical transportation vehicle with company branding",
+  },
+  /** The same photograph as `officialVehicle` (same file), with the wheelchair page's own alt text. */
+  officialVehicleWheelchair: {
+    src: officialVehicle,
+    alt: "White Zenward Mobility wheelchair-accessible vehicle showing the company's branding.",
+  },
+  /** Wheelchair page hero (1448 × 1086). AI-GENERATED illustrative scene, not a photograph of real staff or passengers: the white Zenward vehicle with the rear hatch open and rear ramp deployed outside a healthcare building; an assistant in a navy polo helps an older passenger in a wheelchair onto the ramp. Branding (mark, 678-935-5489, descriptor, BraunAbility) on the front door only. */
+  wheelchairAssistanceHero: {
+    src: wheelchairAssistanceHero,
+    alt: "Illustrative scene of a Zenward Mobility assistant helping a wheelchair passenger board a wheelchair-accessible vehicle using a rear ramp.",
+  },
+  /** Authentic, portrait (1086 × 1448): rear view, hatch open, BraunAbility rear-entry ramp deployed, two floor securement fittings and the rear seats visible. */
+  wheelchairRamp: {
+    src: wheelchairRamp,
+    alt: "Rear-entry BraunAbility wheelchair ramp deployed on Zenward Mobility's vehicle.",
+  },
+  /** Authentic, portrait (1086 × 1448): the wheelchair area floor seen from the rear opening, with floor securement fittings and the second-row seats beyond. */
+  wheelchairSecurementArea: {
+    src: wheelchairSecurementArea,
+    alt: "Wheelchair accommodation area with floor securement fittings inside Zenward Mobility's vehicle.",
+  },
+  /** Authentic, portrait (1086 × 1448): second-row passenger seating seen through the open sliding door. */
+  passengerSeating: {
+    src: passengerSeating,
+    alt: "Passenger seating inside Zenward Mobility's wheelchair-accessible vehicle.",
   },
 } satisfies Record<string, BrandImageAsset>;
 

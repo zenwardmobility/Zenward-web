@@ -19,11 +19,20 @@ import { QUOTE_RESPONSE_LINE } from "../trust.ts";
 import { CONFIRMED, factAnswer } from "../operating-facts.ts";
 import { business } from "../business.ts";
 import { ASSISTANCE_LEVELS, ASSISTANCE_REVIEW_NOTE } from "../assistance-level.ts";
+import type { brandImages } from "../images.ts";
 import type { ResourceSlug } from "./catalog.ts";
 
+/*
+ * Block text (p, list items, notes) may use a minimal inline markup for
+ * owner-approved copy: **bold**, *italic* and [label](/in-site-path).
+ */
 export type ResourceBlock =
   /** A paragraph, optionally followed by one in-site link. */
   | { type: "p"; text: string; link?: { href: string; label: string } }
+  /** An approved photograph from `brandImages`, shown uncropped with a caption. */
+  | { type: "figure"; image: keyof typeof brandImages; caption: string }
+  /** In-body request + call buttons (the Resource's request CTA and the business line). */
+  | { type: "actions"; requestLabel: string; callLabel: string }
   /** Term + description pairs (the canonical assistance levels). */
   | { type: "definitions"; items: { term: string; description: string }[] }
   | { type: "h2"; id: string; text: string }
@@ -38,8 +47,8 @@ export type ResourceBlock =
 export interface ResourceBody {
   intro: string;
   blocks: ResourceBlock[];
-  /** One contextual bridge to the most relevant service. */
-  bridge: { heading: string; text: string };
+  /** One contextual bridge to the most relevant service. Omitted when the body ends with its own request section. */
+  bridge?: { heading: string; text: string };
   /** Interactive checklist items (the trip-checklist tool only). */
   tool?: { label: string; hint: string }[];
 }
@@ -55,67 +64,168 @@ const ASSISTANCE_DEFINITIONS: ResourceBlock = {
 };
 
 export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
+  // Owner-approved copy (ZENWARD-WEB-SEO-ARTICLE-01): do not reword. The body
+  // ends with its own request section, so it has no separate bridge.
   "what-is-non-emergency-medical-transportation": {
     intro:
-      "Non-emergency medical transportation, often called NEMT, is pre-arranged transportation to or from medical care for people who do not need emergency medical transport.",
+      "Getting to a medical appointment should be straightforward. But for many people, especially older adults, wheelchair users, and those managing ongoing health conditions, transportation can be one of the hardest parts of receiving care.",
     blocks: [
-      { type: "h2", id: "what-it-is", text: "What NEMT is" },
       {
         type: "p",
-        text: "NEMT is planned transportation for medical reasons. The trip is arranged ahead of time, the pickup and destination are known, and the transportation team knows enough about the passenger to plan the ride properly.",
+        text: "Perhaps your mother needs to attend dialysis three times a week, but you cannot always leave work to drive her. Maybe your father no longer feels comfortable behind the wheel. Or someone you care for needs a wheelchair-accessible vehicle that an ordinary rideshare cannot provide.",
       },
       {
         type: "p",
-        text: "It is different from a taxi or rideshare because the trip is organised around the medical visit and the passenger's needs, not just the address.",
+        text: "These are everyday situations where **non-emergency medical transportation (NEMT)** can make a meaningful difference.",
       },
-      { type: "h2", id: "who-uses-it", text: "Who may use it" },
+      {
+        type: "p",
+        text: "For families in **Metro Atlanta, Georgia**, Zenward Mobility provides scheduled medical transportation, helping patients and caregivers arrange suitable rides with greater clarity and less uncertainty.",
+      },
+      {
+        type: "figure",
+        image: "officialVehicle",
+        caption: "Zenward Mobility's branded non-emergency medical transportation vehicle serving Metro Atlanta, Georgia.",
+      },
+      { type: "h2", id: "what-is-nemt", text: "What Is Non-Emergency Medical Transportation?" },
+      {
+        type: "p",
+        text: "Non-emergency medical transportation, commonly called NEMT, helps people travel to and from healthcare appointments when they don't require an ambulance but need a suitable way to get there.",
+      },
+      {
+        type: "p",
+        text: "Unlike emergency transportation, NEMT is arranged in advance. It may involve an ordinary passenger vehicle or a wheelchair-accessible vehicle, depending on the rider's mobility requirements.",
+      },
+      {
+        type: "p",
+        text: "The goal is simple: help people reach necessary medical care without transportation becoming another obstacle.",
+      },
+      { type: "h2", id: "who-can-benefit", text: "Who Can Benefit From NEMT?" },
+      { type: "p", text: "Medical transportation isn't only for people who use wheelchairs. It can also help:" },
       {
         type: "list",
         items: [
-          "People who cannot drive themselves or need another transportation option for a medical appointment",
-          "Older adults going to regular medical care",
-          "Passengers who use a wheelchair or need extra time getting in and out of a vehicle",
-          "People going home after a hospital stay",
-          "Anyone with a repeating schedule, such as dialysis or therapy sessions",
+          "**Older adults** who no longer drive independently.",
+          "**Dialysis patients** who need transportation several times a week.",
+          "**People with mobility limitations** who require an accessible vehicle.",
+          "**Patients recovering from procedures** who are unable to drive.",
+          "**Individuals attending therapy or specialist appointments** without dependable transportation.",
+          "**Families and caregivers** coordinating appointments for loved ones.",
         ],
       },
       {
         type: "p",
-        text: "The ride is often arranged by someone else: a family member, a caregiver, or a care team at a clinic or hospital.",
+        text: "For someone managing a health condition, knowing that transportation has been arranged can make an already demanding day a little easier.",
       },
-      { type: "h2", id: "examples", text: "Examples of non-emergency trips" },
+      { type: "h2", id: "types-of-trips", text: "What Types of Medical Trips Can Be Arranged?" },
+      { type: "p", text: "Depending on the provider's capabilities, non-emergency medical transportation may be arranged for:" },
       {
         type: "list",
         items: [
-          "A doctor, specialist or outpatient appointment",
-          "A diagnostic visit, such as a scan or test",
-          "Dialysis treatments on set days each week",
-          "Physical or occupational therapy sessions",
-          "Leaving the hospital after discharge",
+          "Doctor and specialist appointments",
+          "Dialysis treatments",
+          "Physical therapy and rehabilitation",
+          "Outpatient procedures",
+          "Medical tests and follow-up visits",
+          "Suitable hospital discharge trips",
+          "Recurring medical appointments",
         ],
       },
-      { type: "h2", id: "not-an-ambulance", text: "How it differs from an ambulance" },
       {
         type: "p",
-        text: "NEMT is not emergency medical transportation. If someone needs emergency medical care, call 911. Zenward does not provide ambulance or stretcher transportation.",
+        text: "At Zenward Mobility, we review each transportation request to understand the passenger's needs, destination, schedule, and vehicle requirements before confirming availability.",
       },
-      { type: "h2", id: "how-a-request-works", text: "How a transportation request generally works" },
+      { type: "h2", id: "choosing-a-provider", text: "What Should You Look for in an NEMT Provider?" },
+      { type: "p", text: "When arranging transportation for yourself or someone you love, a few questions are worth asking." },
       {
-        type: "list",
-        ordered: true,
-        items: [
-          "You share the trip details: who is travelling, from where, to where, and when.",
-          "The transportation provider reviews the trip, including any mobility or assistance needs.",
-          "They contact you to confirm availability, the details and the price.",
-          "The ride takes place as confirmed.",
-        ],
+        type: "p",
+        text: "**Is the vehicle suitable?** If the passenger uses a wheelchair or mobility aid, confirm that the vehicle can accommodate their needs.",
       },
-      { type: "note", text: REQUEST_NOTE },
+      {
+        type: "p",
+        text: "**Are pickup and return arrangements clear?** Medical appointments sometimes run longer than expected. Ask how the return trip will be handled.",
+      },
+      {
+        type: "p",
+        text: "**Will you receive confirmation?** Make sure the provider has reviewed the trip details and confirmed the arrangements.",
+      },
+      {
+        type: "p",
+        text: "**Do you understand the cost?** Ask about pricing, waiting time, and any additional charges before booking.",
+      },
+      {
+        type: "p",
+        text: "A dependable experience begins with clear communication, not just a vehicle arriving at the pickup location.",
+      },
+      { type: "h2", id: "nemt-in-the-united-states", text: "How Does NEMT Work in the United States?" },
+      {
+        type: "p",
+        text: "In the United States, non-emergency medical transportation may be arranged privately, through healthcare facilities, or through certain health coverage programs.",
+      },
+      {
+        type: "p",
+        text: "Some eligible Medicaid beneficiaries may receive transportation assistance for covered medical services. However, eligibility, scheduling procedures, and participating providers vary by state and health plan.",
+      },
+      {
+        type: "p",
+        text: "If you intend to use an insurance or transportation benefit, confirm the arrangements with your coverage provider before booking.",
+      },
+      {
+        type: "p",
+        text: "For privately arranged trips, contact the transportation company directly to discuss availability, mobility requirements, and pricing.",
+      },
+      { type: "h2", id: "metro-atlanta", text: "Non-Emergency Medical Transportation in Metro Atlanta, Georgia" },
+      {
+        type: "p",
+        text: "Finding dependable transportation for medical appointments can be challenging, especially when you're coordinating care for someone else.",
+      },
+      {
+        type: "p",
+        text: "**Zenward Mobility serves patients and families in Metro Atlanta**, providing scheduled non-emergency medical transportation with a focus on clear communication, appropriate vehicle arrangements, and respectful service.",
+      },
+      {
+        type: "p",
+        text: "Our transportation options include wheelchair-accessible transportation for suitable trips, subject to vehicle availability and the passenger's needs.",
+      },
+      {
+        type: "p",
+        text: "Whether you're arranging transportation for a doctor's visit, recurring treatment, or another non-emergency medical appointment, we want the process to feel straightforward.",
+      },
+      {
+        type: "p",
+        text: "When you request a ride, we review your trip details, confirm what transportation arrangements are available, and communicate pricing before the booking is finalized.",
+      },
+      {
+        type: "p",
+        text: "You can learn more about our [medical transportation services](/services) or explore our [Metro Atlanta service area](/locations/metro-atlanta).",
+      },
+      { type: "h2", id: "getting-to-care", text: "Getting to Care Shouldn't Be Another Worry" },
+      {
+        type: "p",
+        text: "Medical appointments can already bring enough uncertainty. Patients may be thinking about their treatment, while family members are concerned about how their loved one will get there and return home.",
+      },
+      {
+        type: "p",
+        text: "Having the right transportation arrangements won't remove every concern, but it can make one important part of the day easier to manage.",
+      },
+      { type: "p", text: "That is what we want to help families achieve at Zenward Mobility." },
+      { type: "h2", id: "request-transportation", text: "Need Medical Transportation in Metro Atlanta?" },
+      {
+        type: "p",
+        text: "If you or someone you care for needs non-emergency medical transportation in Metro Atlanta, we'd be glad to review your trip requirements.",
+      },
+      {
+        type: "p",
+        text: "Tell us where you need to go, when your appointment is scheduled, and whether you need wheelchair-accessible transportation or other assistance.",
+      },
+      { type: "p", text: "We'll review the details, check availability, and explain the next steps." },
+      { type: "actions", requestLabel: "Request Transportation", callLabel: `Call: ${business.phoneDisplay}` },
+      { type: "p", text: "*Zenward Mobility — Care that gets you there.*" },
+      {
+        type: "note",
+        text: "*Please note: Non-emergency medical transportation is not a substitute for emergency medical care. If you're experiencing a medical emergency, call 911.*",
+      },
     ],
-    bridge: {
-      heading: "Need a ride to a medical appointment?",
-      text: "Zenward Mobility provides non-emergency medical transportation in Metro Atlanta. Send the trip details and our team will review them and contact you.",
-    },
   },
 
   "how-to-arrange-nemt-in-metro-atlanta": {

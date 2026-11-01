@@ -17,6 +17,8 @@ export function ClosingCta({
   event,
   surface,
   note,
+  requestLabel = "Request a Quote",
+  callLabel,
 }: {
   heading: string;
   body: string;
@@ -25,6 +27,10 @@ export function ClosingCta({
   /** Analytics surface for the phone CTA. */
   surface: AnalyticsSurface;
   note?: string;
+  /** Primary button label (defaults to "Request a Quote"). */
+  requestLabel?: string;
+  /** Call button label (defaults to CallButton's responsive number label). */
+  callLabel?: string;
 }) {
   return (
     <section className="bg-surface-elevated py-3xl sm:py-4xl">
@@ -43,9 +49,9 @@ export function ClosingCta({
             <p className={cn(typography.lede, "max-w-[36rem] text-white/85")}>{body}</p>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               <TrackedLinkButton href={requestHref} size="lg" onDark event={event}>
-                Request a Quote
+                {requestLabel}
               </TrackedLinkButton>
-              <CallButton surface={surface} onDark />
+              <CallButton surface={surface} onDark label={callLabel} />
             </div>
             {note && <p className={cn(typography.metadata, "max-w-[32rem] text-white/70")}>{note}</p>}
           </div>

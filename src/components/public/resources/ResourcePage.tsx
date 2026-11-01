@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { ArrowRight, CaretRight, Info } from "@phosphor-icons/react/dist/ssr";
 import { Section } from "@/components/layout/Section";
+import { BrandImage } from "@/components/layout/BrandImage";
 import { TrackedLinkButton } from "@/components/public/TrackedLinkButton";
 import { ClosingCta } from "@/components/public/ClosingCta";
+import { CallButton } from "@/components/public/CallButton";
 import { ResourceCard } from "@/components/public/resources/ResourceCard";
 import { TripChecklist } from "@/components/public/resources/TripChecklist";
 import { typography } from "@/design/typography";
 import { cn } from "@/lib/cn";
+import { brandImages } from "@/lib/images";
 import { siteName } from "@/lib/seo";
 import { breadcrumbJsonLd } from "@/lib/service-pages";
 import { getDefaultMarket } from "@/lib/service-area";
-import { RESOURCE_CATEGORIES, categoriesOf, getResource, requestCtaFor, type ResourceMeta } from "@/lib/resources/catalog";
+import { RESOURCE_CATEGORIES, categoriesOf, getResource, requestCtaFor, type ResourceMeta, type ResourceRequestCta } from "@/lib/resources/catalog";
 import { RESOURCE_BODIES, type ResourceBlock } from "@/lib/resources/content";
 import { resourceArticleJsonLd } from "@/lib/resources/schema";
 
@@ -20,7 +23,32 @@ function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 }
 
-function Block({ block }: { block: ResourceBlock }) {
+const INLINE = /(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)\s]+\))/;
+
+/** Renders the inline markup allowed in block text: **bold**, *italic* and [label](/path). */
+function Inline({ text }: { text: string }) {
+  return text.split(INLINE).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-text-primary">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) return <em key={i}>{part.slice(1, -1)}</em>;
+    const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(part);
+    if (link) {
+      return (
+        <Link key={i} href={link[2]} className="font-semibold text-text-accent-on-tint underline underline-offset-4">
+          {link[1]}
+        </Link>
+      );
+    }
+    return part;
+  });
+}
+
+function Block({ block, cta }: { block: ResourceBlock; cta: ResourceRequestCta }) {
   switch (block.type) {
     case "h2":
       return (
@@ -31,7 +59,7 @@ function Block({ block }: { block: ResourceBlock }) {
     case "p":
       return (
         <p className={cn(typography.body, "text-text-secondary")}>
-          {block.text}
+          <Inline text={block.text} />
           {block.link && (
             <>
               {" "}
@@ -41,6 +69,23 @@ function Block({ block }: { block: ResourceBlock }) {
             </>
           )}
         </p>
+      );
+    case "figure":
+      return (
+        <figure className="my-sm">
+          {/* The approved photograph is 4:3: shown whole, never cropped. */}
+          <BrandImage asset={brandImages[block.image]} aspectClass="aspect-4/3" sizes="(min-width: 768px) 44rem, 100vw" />
+          <figcaption className={cn(typography.bodySmall, "mt-2 italic text-text-secondary")}>{block.caption}</figcaption>
+        </figure>
+      );
+    case "actions":
+      return (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center print:hidden">
+          <TrackedLinkButton href={cta.href} size="md" event={{ name: "request_transportation_clicked", source: "resource_page" }}>
+            {block.requestLabel}
+          </TrackedLinkButton>
+          <CallButton surface="resource_page" size="md" label={block.callLabel} />
+        </div>
       );
     case "definitions":
       return (
@@ -58,7 +103,9 @@ function Block({ block }: { block: ResourceBlock }) {
       return (
         <List className={cn(typography.body, "flex flex-col gap-1.5 pl-6 text-text-secondary", block.ordered ? "list-decimal" : "list-disc")}>
           {block.items.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>
+              <Inline text={item} />
+            </li>
           ))}
         </List>
       );
@@ -92,7 +139,9 @@ function Block({ block }: { block: ResourceBlock }) {
       return (
         <p className={cn(typography.bodySmall, "flex gap-2.5 rounded-lg border border-border-subtle bg-surface-app px-4 py-3 text-text-primary")}>
           <Info className="mt-0.5 size-5 shrink-0 text-text-accent-on-tint" aria-hidden />
-          <span>{block.text}</span>
+          <span>
+            <Inline text={block.text} />
+          </span>
         </p>
       );
   }
@@ -109,6 +158,9 @@ export function ResourcePage({ resource }: { resource: ResourceMeta }) {
   const cta = requestCtaFor(resource);
   const market = getDefaultMarket();
   const headings = body.blocks.filter((b): b is Extract<ResourceBlock, { type: "h2" }> => b.type === "h2");
+  // Opening paragraphs (and a photo) before the first heading render above "On this page".
+  const firstHeading = Math.max(0, body.blocks.findIndex((b) => b.type === "h2"));
+  const opening = body.blocks.slice(0, firstHeading);
   const related = resource.relatedResources.map((slug) => getResource(slug)).filter((r): r is ResourceMeta => Boolean(r));
   const isTool = resource.kind === "tool";
   const crumbs = [
@@ -152,6 +204,14 @@ export function ResourcePage({ resource }: { resource: ResourceMeta }) {
       </Section>
 
       <Section tone="white" narrow className="print:py-4">
+        {opening.length > 0 && (
+          <div className="mb-xl flex flex-col gap-md">
+            {opening.map((block, index) => (
+              <Block key={index} block={block} cta={cta} />
+            ))}
+          </div>
+        )}
+
         {headings.length >= 4 && (
           <nav aria-labelledby="contents-heading" className="mb-xl rounded-lg border border-border-subtle bg-surface-app p-md print:hidden">
             <h2 id="contents-heading" className={cn(typography.label, "text-text-primary")}>
@@ -170,8 +230,8 @@ export function ResourcePage({ resource }: { resource: ResourceMeta }) {
         )}
 
         <div className="flex flex-col gap-md">
-          {body.blocks.map((block, index) => (
-            <Block key={index} block={block} />
+          {body.blocks.slice(firstHeading).map((block, index) => (
+            <Block key={index} block={block} cta={cta} />
           ))}
           {body.tool && <TripChecklist items={body.tool} />}
         </div>
@@ -181,7 +241,7 @@ export function ResourcePage({ resource }: { resource: ResourceMeta }) {
         </p>
 
         {/* One contextual bridge to the most relevant service (not for the tool, whose final CTA is the bridge). */}
-        {!isTool && (
+        {!isTool && body.bridge && (
           <aside aria-labelledby="bridge-heading" className="mt-2xl rounded-lg border-l-4 border-brand-route-teal bg-surface-app p-lg print:hidden">
             <h2 id="bridge-heading" className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>
               {body.bridge.heading}
@@ -215,8 +275,8 @@ export function ResourcePage({ resource }: { resource: ResourceMeta }) {
 
       <div className="print:hidden">
         <ClosingCta
-          heading={isTool ? body.bridge.heading : "Ready to request transportation?"}
-          body={isTool ? body.bridge.text : `Zenward Mobility provides non-emergency medical transportation in ${market.name}. Send the trip details and our team will review them and contact you.`}
+          heading={isTool && body.bridge ? body.bridge.heading : "Ready to request transportation?"}
+          body={isTool && body.bridge ? body.bridge.text : `Zenward Mobility provides non-emergency medical transportation in ${market.name}. Send the trip details and our team will review them and contact you.`}
           requestHref={cta.href}
           event={{ name: "request_transportation_clicked", source: "resource_page" }}
           surface="resource_page"

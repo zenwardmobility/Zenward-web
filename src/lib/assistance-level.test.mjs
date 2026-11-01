@@ -316,7 +316,9 @@ test("explainer: canonical source, full on wheelchair, compact on senior/medical
   assert.match(ex, /Choose the level of assistance that fits the trip/);
   assert.ok(!/Curb-to-curb|Door-to-door/.test(ex), "labels are never retyped");
   const page = read("components/public/ServicePage.tsx");
-  assert.match(page, /"wheelchair-transportation": "full",\s*"senior-medical-transportation": "compact",\s*"medical-appointments": "compact",\s*\};/);
+  assert.match(page, /"senior-medical-transportation": "compact",\s*"medical-appointments": "compact",\s*\};/);
+  // ZENWARD-WEB-SERVICE-WHEELCHAIR-01: the wheelchair page has its own component and keeps the full explainer.
+  assert.match(read("components/public/WheelchairServicePage.tsx"), /<AssistanceLevelExplainer variant="full" requestHref=\{service\.requestHref\} \/>/);
   assert.match(read("app/services/page.tsx"), /<AssistanceLevelExplainer variant="compact" \/>/);
   for (const slug of ["dialysis-transportation", "airport-transportation", "hospital-discharge-transportation", "rehabilitation-transportation", "recurring-care-transportation"]) {
     assert.ok(!new RegExp(`"${slug}": "(full|compact)"`).test(page), slug);

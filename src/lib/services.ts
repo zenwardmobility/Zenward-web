@@ -23,7 +23,9 @@
  * care, oxygen administration, transfer/lifting assistance, door-through-door
  * assistance, vehicle/securement specifications, chair size or weight limits,
  * Medicaid/insurance, certification (incl. ADA), same-day availability,
- * guaranteed punctuality, pricing, or automatic scheduling. Owner-confirmed
+ * guaranteed punctuality, pricing, or automatic scheduling. (The wheelchair
+ * page's own copy, src/lib/wheelchair-page.ts, describes the owner-confirmed
+ * rear-entry ramp and securement fittings shown in its photographs.) Owner-confirmed
  * trust facts (licensed & insured, on-time standard, trained & vetted
  * drivers, 2-hour response) are stated only via src/lib/trust.ts (ZW-WEB-04F).
  */
@@ -583,7 +585,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     metaDescription:
       "Scheduled, non-emergency trips for wheelchair users. Share mobility needs and request a quote or call.",
     icon: Wheelchair,
-    image: { asset: brandImages.heroDesktop, objectPosition: "72% 45%" },
+    image: { asset: brandImages.wheelchairAssistanceHero, objectPosition: "50% 60%" },
     lede: "Zenward offers wheelchair-accessible transportation for scheduled, non-emergency medical trips. Tell us about the passenger's mobility needs and we'll review the trip and confirm the arrangement with you.",
     fit: ["Passengers who use a wheelchair", "Scheduled, non-emergency medical trips", "One-time or recurring appointments"],
     audience: {

@@ -21,6 +21,7 @@ const { sitemapEntries, SITEMAP_PAGES } = await import("./sitemap-entries.ts");
 const { SERVICE_CATALOG, SERVICE_PATHS } = await import("./service-catalog.ts");
 const { getActiveMarkets, getDefaultMarket, homeMetadataCopy } = await import("./service-area.ts");
 const { RESOURCES } = await import("./resources/catalog.ts");
+const { WHEELCHAIR_SEO } = await import("./wheelchair-page.ts");
 const { pageMetadata } = await import("./seo.ts");
 const { MEASUREMENT_APPROVED } = await import("./analytics/google-ads.ts");
 const { CAMPAIGN_ROUTES, CAMPAIGN_MARKET_SLUG } = await import("./campaign-routes.ts");
@@ -94,6 +95,7 @@ function titles() {
     t[route] = read(rel).match(/title: "([^"]+)"/)[1];
   }
   for (const s of Object.values(SERVICE_CATALOG)) t[s.path] = `${s.label} in ${market.name}`;
+  t["/services/wheelchair-transportation"] = WHEELCHAIR_SEO.title; // ZENWARD-WEB-SERVICE-WHEELCHAIR-01 owner-approved title
   for (const r of RESOURCES) t[r.path] = r.seoTitle;
   return t;
 }
@@ -134,7 +136,7 @@ test("descriptions: concise, market-led on service pages, no unsupported claims"
 });
 
 test("one H1 per organic page template", () => {
-  const files = ["components/public/HomeHero.tsx", "components/public/ServicePage.tsx", "components/public/resources/ResourcePage.tsx", "app/locations/[market]/page.tsx", "app/healthcare-providers/page.tsx", "app/services/page.tsx", "app/about/page.tsx", "app/contact/page.tsx", "app/resources/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx"];
+  const files = ["components/public/HomeHero.tsx", "components/public/ServicePage.tsx", "components/public/WheelchairServicePage.tsx", "components/public/resources/ResourcePage.tsx", "app/locations/[market]/page.tsx", "app/healthcare-providers/page.tsx", "app/services/page.tsx", "app/about/page.tsx", "app/contact/page.tsx", "app/resources/page.tsx", "app/privacy/page.tsx", "app/terms/page.tsx"];
   for (const rel of files) assert.equal((stripComments(read(rel)).match(/<h1[\s>]/g) ?? []).length, 1, rel);
   assert.equal((stripComments(read("app/page.tsx")).match(/<h1[\s>]/g) ?? []).length, 0, "the homepage H1 lives in HomeHero");
 });
@@ -153,6 +155,7 @@ test("first-viewport hero images load eagerly on service, provider, hub and home
   assert.match(read("app/healthcare-providers/page.tsx"), /sizes="\(min-width: 1024px\) 30rem, 100vw"\s*priority/);
   assert.match(read("app/locations/[market]/page.tsx"), /priority/);
   assert.match(read("components/public/HomeHero.tsx"), /priority/);
+  assert.match(read("components/public/WheelchairServicePage.tsx"), /sizes="\(min-width: 1024px\) 34rem, 100vw"\s*priority/);
 });
 
 // ================================================================ boundaries

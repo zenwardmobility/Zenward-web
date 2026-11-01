@@ -1,0 +1,326 @@
+ZENWARD-WEB-SERVICE-WHEELCHAIR-01 — IMPLEMENTATION REPORT (final consolidated brief)
+Page: /services/wheelchair-transportation
+Date: 2026-11-01
+Status: Implemented and verified locally. NOT committed, pushed, merged or deployed.
+        Awaiting owner approval before any release action.
+
+------------------------------------------------------------------------
+REVISION 2026-11-01 — FINAL REVIEW CORRECTIONS (owner)
+------------------------------------------------------------------------
+  1. Hero disclosure caption added beneath the generated hero (visible
+     <figcaption>, small, white/75 on navy):
+     "Illustrative scene. Actual Zenward vehicle and accessibility
+     features shown below."
+     Hero image, layout, aspect ratios, priority loading and alt text
+     unchanged.
+  2. Family-booking FAQ answer replaced with:
+     "Yes. Family members and caregivers can submit transportation
+     requests on behalf of a passenger. Our team may contact you to
+     clarify the passenger's needs and any additional information
+     required before confirming transportation."
+  3. Duplicate removed: public/images/zenward-wheelchair-assistance-hero.webp
+     Verified first: no code/config references (only this report
+     mentioned it); SHA-1 99177385ea4975ca941aaeaaf03f802d1fb0ef3c
+     identical to the active asset; untracked in git. The active hero
+     public/images/zenward/wheelchair-transportation/
+     zenward-wheelchair-assistance-hero.webp is preserved.
+  4. Resource article and all unrelated uncommitted work untouched.
+  5. Re-verified (actually executed):
+       npm test          262 pass, 0 fail (assertions added for the caption,
+                         the new FAQ answer and the duplicate's removal)
+       npx tsc --noEmit  exit 0
+       npm run lint      0 errors, 1 pre-existing unrelated warning
+       npm run build     success
+       Rendered HTML: caption present; new FAQ text present, old
+       "appropriate authorization" text gone; hero alt unchanged; one H1.
+       375 px and 1440 px: no horizontal overflow, CLS 0, hero unchanged
+       (343×214 / 495×371); caption screenshot-checked on mobile.
+  Items 18a and 18b and release step 3 below are resolved by this revision.
+
+------------------------------------------------------------------------
+1. GIT AND REPOSITORY STATE
+------------------------------------------------------------------------
+Branch: main (HEAD 611d6d6). No other branches, stashes or commits relating
+to WHEELCHAIR-01 existed; no earlier partial implementation was found, so
+nothing needed reconciling. No concurrent session was editing the tree.
+
+Pre-existing uncommitted work, preserved untouched:
+  - ZENWARD-WEB-SEO-ARTICLE-01 (resource article): ResourcePage.tsx,
+    resources/catalog.ts, resources/content.ts, resources.test.mjs, report,
+    public/images/zenward-official-nemt-vehicle.webp
+  - Owner edits: assistance-level.test.mjs, campaign-routes.test.mjs,
+    provider-trust.test.mjs, service-catalog.test.mjs (sitemap-entries
+    checks), docs/reports/ZW-WEB-intake-fail-closed-diagnostic-2026-10-16.txt
+
+------------------------------------------------------------------------
+2. FILES MODIFIED / ADDED
+------------------------------------------------------------------------
+Added
+  src/lib/wheelchair-page.ts                      approved copy + SEO (pure data)
+  src/components/public/WheelchairServicePage.tsx page component
+  src/lib/wheelchair-page.test.mjs                6 tests for this page
+  docs/reports/ZENWARD-WEB-SERVICE-WHEELCHAIR-01-report.txt
+Modified
+  src/app/services/wheelchair-transportation/page.tsx
+      renders WheelchairServicePage; owner-approved metadata
+  src/lib/images.ts            5 new brandImages entries (additive; the
+                               ARTICLE-01 entry above them is unchanged)
+  src/lib/services.ts          wheelchair entry's image -> new hero; header
+                               comment notes the owner-confirmed vehicle features
+  src/components/public/ServicePage.tsx
+      exports ServiceRelated (was internal Related) for reuse; wheelchair
+      removed from its explainer map (the full explainer now lives on the
+      wheelchair page). Other seven service pages render identically.
+  src/components/public/ClosingCta.tsx
+      optional requestLabel / callLabel props; defaults unchanged
+  Tests (additive edits, existing owner changes preserved):
+      seo-launch.test.mjs     wheelchair title override; new component in
+                              the one-H1 and hero-priority checks
+      assistance-level.test.mjs, provider-trust.test.mjs
+                              full explainer asserted on the new page
+      trust.test.mjs, provider-trust.test.mjs
+                              claim scans now also cover lib/wheelchair-page.ts
+Not modified: the request form/intake, Nemryn, Supabase, auth, DNS,
+Vercel, the resource article, other service pages' content.
+
+Why a dedicated component: the approved 9-section structure doesn't map to
+the shared ServicePage template. Building it from the same parts (Section,
+BrandImage, TrackedLinkButton, CallButton, FaqAccordion,
+AssistanceLevelExplainer, PracticalFacts, TrustStrip, ClosingCta,
+ServiceRelated) avoids changing the other seven service pages.
+
+------------------------------------------------------------------------
+3. FINAL PAGE STRUCTURE (rendered heading outline)
+------------------------------------------------------------------------
+H1  Wheelchair-Accessible Transportation in Metro Atlanta        [1 Hero]
+    (existing PracticalFacts strip)
+H2  Meet Our Wheelchair-Accessible Vehicle                       [2]
+  H3  Wheelchair Access Through a Rear-Entry Ramp
+  H3  Space Designed for Wheelchair Transportation
+H2  Wheelchair Transportation That Starts With Your Needs        [3]
+H2  Wheelchair-Accessible Rides for Medical Appointments and Treatments [4]
+H2  Know What to Expect Before You Travel                        [5]
+  H3  A Comfortable Space for the Journey
+H2  Choose the level of assistance that fits the trip  (existing explainer)
+H2  Arranging Your Ride Is Straightforward                       [6]
+  H3  x4 steps
+H2  Wheelchair Transportation in Metro Atlanta, Georgia          [7]
+H2  Frequently Asked Questions                                   [8]
+  H3  x7 questions (accordion)
+H2  Related services (existing; + Helpful resources H3)
+    (existing compact TrustStrip, sr-only heading)
+H2  Need Wheelchair-Accessible Transportation in Metro Atlanta?  [9 CTA]
+
+Retained existing site elements not listed in the brief: PracticalFacts
+strip, the canonical Pickup & assistance level explainer (section 9 asks to
+preserve curb-to-curb / door-to-door / door-through-door; its text already
+says assistance is reviewed and confirmed, not guaranteed), Related
+services + Helpful resources (internal links), compact TrustStrip.
+
+------------------------------------------------------------------------
+4. APPROVED COPY IMPLEMENTATION
+------------------------------------------------------------------------
+All approved headings, paragraphs, cards, trip list, steps, FAQ, captions,
+alt text, CTA labels and closing copy are used verbatim
+(src/lib/wheelchair-page.ts). Mechanical-only adjustments:
+  - Trailing periods dropped from the four audience cards and six trip list
+    items (short card/list labels).
+  - "All trips remain subject to capability, passenger suitability and
+    scheduling availability." shown as a small note under the trip list
+    (the brief's wording, used as visible copy).
+  - The eyebrow renders uppercase via the existing eyebrow style.
+  - Metro Atlanta paragraph links: "Metro Atlanta service area" ->
+    /locations/metro-atlanta; "contact us" -> /contact.
+  - Closing panel keeps the site's standard 911 note under the buttons.
+
+------------------------------------------------------------------------
+5-9. IMAGE PATHS (all WebP, served as-is; dimensions; source size)
+------------------------------------------------------------------------
+5. Generated hero (AI-generated, illustrative):
+   public/images/zenward/wheelchair-transportation/zenward-wheelchair-assistance-hero.webp
+   1448 × 1086, 2,975,761 bytes
+6. Authentic exterior (reused from ARTICLE-01, not duplicated):
+   public/images/zenward-official-nemt-vehicle.webp
+   1448 × 1086, 2,938,506 bytes
+7. Ramp:
+   public/images/zenward/wheelchair-transportation/zenward-wheelchair-accessible-ramp.webp
+   1086 × 1448 (portrait), 3,383,796 bytes
+8. Securement area:
+   public/images/zenward/wheelchair-transportation/zenward-wheelchair-securement-area.webp
+   1086 × 1448 (portrait), 2,793,303 bytes
+9. Passenger seating:
+   public/images/zenward/wheelchair-transportation/zenward-passenger-seating.webp
+   1086 × 1448 (portrait), 2,929,469 bytes
+
+All four expected assets were present; none missing.
+
+------------------------------------------------------------------------
+10. IMAGE OPTIMIZATION AND ALT TEXT
+------------------------------------------------------------------------
+Rendering: next/image via the existing BrandImage component (static
+imports -> intrinsic size, blur placeholder, reserved aspect box).
+  Hero:      priority (eager + preload; the only priority image);
+             aspect 16:10 below lg, 4:3 (whole image) from lg;
+             object-position 50% 60%; sizes (min-width:1024px) 34rem, 100vw
+  Exterior:  lazy; 4:3 (whole image); sizes (min-width:1024px) 38rem, 100vw
+  Ramp/space: lazy; 3:4 (whole image, nothing cropped);
+             sizes (min-width:1024px) 30rem, (min-width:768px) 50vw, 100vw
+  Seating:   lazy; 3:4 (whole image); sizes (min-width:1024px) 28rem, 100vw
+Delivered (AVIF, q75, measured): hero 31/49/76 KB, exterior 30/50/82 KB,
+ramp 51/83/130 KB, securement 26/41/69 KB, seating 30/48/80 KB at
+640/828/1080w. Visitors never download the ~3 MB sources.
+No image title attributes; no carousels; no new dependencies.
+
+Alt text (exact):
+  Hero:       "Illustrative scene of a Zenward Mobility assistant helping a
+              wheelchair passenger board a wheelchair-accessible vehicle
+              using a rear ramp."
+  Exterior:   "White Zenward Mobility wheelchair-accessible vehicle showing
+              the company's branding."
+  Ramp:       "Rear-entry BraunAbility wheelchair ramp deployed on Zenward
+              Mobility's vehicle."
+  Securement: "Wheelchair accommodation area with floor securement fittings
+              inside Zenward Mobility's vehicle."
+  Seating:    "Passenger seating inside Zenward Mobility's
+              wheelchair-accessible vehicle."
+Captions: visible <figcaption> under each authentic photo, exact approved
+text. Hero: disclosure caption "Illustrative scene. Actual Zenward vehicle
+and accessibility features shown below." (revision above).
+
+------------------------------------------------------------------------
+11. BRANDING ACCURACY CHECK (generated hero, visually inspected)
+------------------------------------------------------------------------
+PASS. Zenward mark, "Mobility", 678-935-5489, "Non-Emergency Medical
+Transportation" and the BraunAbility badge appear only on the front
+driver's door. No Zenward marks on the sliding door, rear quarter panel or
+tailgate. The only other vehicle marking is a small wheelchair-access
+sticker on the rear side window (also on the real vehicle). Vehicle
+proportions, open hatch and deployed rear ramp match the real photographs.
+Observations (not vehicle decals): the assistant's polo has a small chest
+logo and a lanyard ID badge. Flagged for the owner's awareness only.
+
+------------------------------------------------------------------------
+12. SEO METADATA AND SCHEMA (verified in rendered HTML)
+------------------------------------------------------------------------
+  <title>   Wheelchair Transportation in Metro Atlanta, GA | Zenward Mobility
+  Meta description (153 chars): Need wheelchair-accessible transportation in
+    Metro Atlanta? Zenward Mobility helps arrange scheduled medical rides.
+    Request a quote or call 678-935-5489.
+  Canonical: <site>/services/wheelchair-transportation (self-referencing;
+    renders as http://localhost:3000/... locally because
+    NEXT_PUBLIC_SITE_URL is unset locally — existing behaviour)
+  Robots: no noindex; stays in the sitemap (unchanged service path).
+  Open Graph/Twitter: title/description/url match; type website; the
+    site-default share image (unchanged).
+  H1: exactly one. Titles remain unique site-wide (test).
+  JSON-LD (unchanged shared builder): one Service (name, serviceType,
+    description, url, provider = Organization ref, areaServed = Metro
+    Atlanta) + one BreadcrumbList (Home > Services > page). No FAQPage, no
+    ratings/reviews, no prices, no hours, no ADA/certification claims.
+  No geographic meta tags added.
+
+------------------------------------------------------------------------
+13. INTERNAL LINKS (all HTTP 200 on the local production build)
+------------------------------------------------------------------------
+  /locations/metro-atlanta, /contact, /services (back link), related
+  services (/services/medical-appointments, /services/dialysis-transportation,
+  /services/airport-transportation), helpful resources
+  (/resources/wheelchair-accessible-transportation-guide,
+  /resources/hospital-discharge-transportation-checklist,
+  /resources/what-is-non-emergency-medical-transportation), plus site nav.
+
+------------------------------------------------------------------------
+14. CTA DESTINATIONS
+------------------------------------------------------------------------
+  "Request Transportation" (hero + closing) ->
+      /request-transportation?service=wheelchair_transportation
+      (existing form; verified it preselects Wheelchair-Accessible
+      Transportation). Fires the existing request_transportation_clicked
+      event (source service_page). No new form or workflow.
+  "Call 678-935-5489" (hero + closing) -> tel:+16789355489 (business.ts;
+      phone_cta_clicked event).
+  Shared components still show "Request a Quote": the site header button
+  and the assistance explainer's link. Left as-is (site-wide components).
+
+------------------------------------------------------------------------
+15. ACCESSIBILITY CHECKS (headless Chrome, production build)
+------------------------------------------------------------------------
+  - Keyboard: 29 Tab stops in <main> at 1280px, every one :focus-visible
+    with a solid 2px outline (hero Request/Call, inline links, FAQ, etc.).
+  - FAQ: native <button>s with aria-expanded/aria-controls; Enter opened
+    and Space closed a question (state and panel visibility in sync); all
+    answers are in the HTML.
+  - Heading order valid (H1 > H2 > H3, no skips).
+  - All images have the descriptive alt text above; icons aria-hidden;
+    step numbers prefixed with screen-reader "Step".
+  - Colours/buttons: existing design tokens and button styles only (gold
+    primary on navy, outline secondary on navy; navy/teal on light);
+    no new colour pairs introduced.
+  - Not done: screen-reader (VoiceOver/NVDA) pass, automated axe audit.
+
+------------------------------------------------------------------------
+16. RESPONSIVE CHECKS (CDP device emulation)
+------------------------------------------------------------------------
+  Widths 375, 768, 1280, 1440:
+  - No horizontal scrolling at any width (also on two regression pages:
+    /services/dialysis-transportation and the NEMT article).
+  - CLS measured 0 at every width.
+  - Hero 16:10 at 375/768 (van, ramp, passenger, assistant all in frame,
+    screenshot-verified), 4:3 at 1280/1440.
+  - Ramp + securement: stacked at 375 (309×412 each), side by side from
+    768 (279×371 / 446×595), exact 3:4. Seating 3:4 at all widths.
+  - Desktop and mobile screenshots reviewed: spacing, card styling,
+    captions and CTA placement consistent with the site.
+  Issue found and fixed during QA: max-w-5xl resolves to a 7rem spacing
+  token in this theme and collapsed the feature cards; replaced with
+  max-w-[64rem] (the project's arbitrary-width convention).
+
+------------------------------------------------------------------------
+17. LINT, TYPE-CHECK, BUILD AND TESTS (actually executed)
+------------------------------------------------------------------------
+  npm test          262 tests, 262 pass, 0 fail (was 256; +6 new; re-run
+                    after the review corrections, same result)
+  npx tsc --noEmit  exit 0
+  npm run lint      0 errors, 1 pre-existing warning in an unrelated file
+                    (src/lib/contact-intake/assistant-callback.test.mjs:24)
+  npm run build     success; /services/wheelchair-transportation static
+
+------------------------------------------------------------------------
+18. MISSING ASSETS OR UNVERIFIED CLAIMS
+------------------------------------------------------------------------
+  Missing assets: none.
+  Claims kept to what the real photographs show: rear-entry BraunAbility
+  ramp, wheelchair accommodation area with securement fittings, passenger
+  seating. No capacities, dimensions, weight limits, restraint standards,
+  ADA/certifications, compatibility or assistance guarantees (enforced by
+  a new test).
+  For the owner to confirm:
+  a. RESOLVED: visible hero disclosure caption added (revision above).
+  b. RESOLVED: family-booking FAQ answer replaced (revision above).
+
+------------------------------------------------------------------------
+19. CONFLICTS WITH THE RESOURCE ARTICLE UPDATE
+------------------------------------------------------------------------
+  None. The article's files were not edited. The only shared file is
+  src/lib/images.ts, where entries were appended after the article's
+  officialVehicle entry. The exterior photo file is shared by both pages
+  (one file, two alt texts). The article page still renders correctly
+  (re-checked at all four widths).
+
+------------------------------------------------------------------------
+20. RELEASE READINESS
+------------------------------------------------------------------------
+Ready for owner review. Before release:
+  1. Approve the page.
+  2. Commit the untracked assets with the change, or the build fails
+     (static imports): public/images/zenward/ (4 files) and
+     public/images/zenward-official-nemt-vehicle.webp.
+  3. DONE: the unused duplicate hero was removed (revision above).
+     Exclude the .DS_Store files from the commit.
+  4. Optional: smaller lossy source exports (the ~3 MB WebPs don't affect
+     visitors, only repo size); add the new photos to
+     docs/design/brand-assets.md.
+  5. Check a preview deployment (canonical with the production
+     NEXT_PUBLIC_SITE_URL).
+No ranking or indexing improvement is claimed; measure after publication.
+No commit, push, merge or deploy has been performed.
