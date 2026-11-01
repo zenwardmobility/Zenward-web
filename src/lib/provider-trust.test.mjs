@@ -28,6 +28,7 @@ const { respond } = await import("./assistant/responses.ts");
 const { validateReply } = await import("./assistant/safety.ts");
 const { SERVICE_CATALOG } = await import("./service-catalog.ts");
 const { RESOURCES } = await import("./resources/catalog.ts");
+const { sitemapEntries } = await import("./sitemap-entries.ts");
 
 const PROVIDER_PAGE = "app/healthcare-providers/page.tsx";
 
@@ -214,11 +215,12 @@ test("metadata: static page titles are unique and the provider/about titles are 
 });
 
 test("sitemap and indexing: organic pages and Resources in; campaigns out and noindex", () => {
-  const sitemap = stripComments(read("app/sitemap.ts"));
-  for (const route of ['"/"', '"/healthcare-providers"', '"/services"', '"/about"', '"/contact"', '"/resources"', "...RESOURCE_PATHS", "...SERVICE_PATHS", "/locations/${market.slug}"]) {
-    assert.ok(sitemap.includes(route), route);
+  // ZW-SEO-01: check the real entries (lib/sitemap-entries.ts).
+  const urls = sitemapEntries("").map((e) => e.url);
+  for (const route of ["/", "/healthcare-providers", "/services", "/about", "/contact", "/resources", "/locations/metro-atlanta", ...Object.values(SERVICE_CATALOG).map((s) => s.path), ...RESOURCES.map((r) => r.path)]) {
+    assert.ok(urls.includes(route), route);
   }
-  assert.ok(!/campaign|metro-atlanta\//i.test(sitemap));
+  assert.ok(!urls.some((u) => /^\/metro-atlanta\//.test(u)));
   assert.match(read("lib/service-pages.ts"), /export function campaignMetadata[\s\S]*?robots: \{ index: false, follow: true \}/);
   for (const rel of [PROVIDER_PAGE, "app/about/page.tsx", "app/contact/page.tsx"]) assert.ok(!/robots|noindex/.test(stripComments(read(rel))), rel);
 });

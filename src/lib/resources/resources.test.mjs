@@ -20,6 +20,7 @@ const stripComments = (code) => code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(
 const { RESOURCES, RESOURCE_PATHS, RESOURCE_CATEGORIES, getResource, resourcesForService, requestCtaFor, categoriesOf } = await import("./catalog.ts");
 const { RESOURCE_BODIES } = await import("./content.ts");
 const { resourceArticleJsonLd } = await import("./schema.ts");
+const { sitemapEntries } = await import("../sitemap-entries.ts");
 const { SERVICE_CATALOG } = await import("../service-catalog.ts");
 const { respond } = await import("../assistant/responses.ts");
 const { validateReply, isAllowedHref } = await import("../assistant/safety.ts");
@@ -227,9 +228,10 @@ test("hub and Resource pages are indexable and self-canonical; in the sitemap; c
   assert.match(hub, /title: "Medical Transportation Resources & Guides"/);
   for (const heading of ["Featured guide", "riders-families", "providers", "tools"]) assert.ok(hub.includes(heading));
 
-  const sitemap = stripComments(read("app/sitemap.ts"));
-  assert.match(sitemap, /"\/resources",\s*\.\.\.RESOURCE_PATHS/);
-  assert.ok(!/campaign|metro-atlanta\//.test(sitemap), "campaign pages must not be listed");
+  // ZW-SEO-01: the sitemap list lives in lib/sitemap-entries.ts; check the real entries.
+  const urls = sitemapEntries("").map((e) => e.url);
+  for (const p of ["/resources", ...RESOURCE_PATHS]) assert.ok(urls.includes(p), p);
+  assert.ok(!urls.some((u) => /^\/metro-atlanta\//.test(u)), "campaign pages must not be listed");
 });
 
 test("Resources is in the header and footer navigation, labelled Resources (not Blog)", () => {

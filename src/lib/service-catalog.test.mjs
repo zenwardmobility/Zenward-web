@@ -45,9 +45,10 @@ test("every catalogue service has a route file", () => {
 test("the sitemap lists every catalogue service, including airport", () => {
   assert.ok(SERVICE_PATHS.includes("/services/airport-transportation"));
   assert.equal(SERVICE_PATHS.length, 8);
-  const sitemap = readFileSync(path.join(root, "src/app/sitemap.ts"), "utf8");
-  assert.match(sitemap, /import \{ SERVICE_PATHS \} from "@\/lib\/service-catalog"/);
-  assert.match(sitemap, /\.\.\.SERVICE_PATHS/);
+  // ZW-SEO-01: the sitemap list lives in src/lib/sitemap-entries.ts.
+  const entries = readFileSync(path.join(root, "src/lib/sitemap-entries.ts"), "utf8");
+  assert.match(entries, /import \{ SERVICE_PATHS \} from "\.\/service-catalog\.ts"/);
+  assert.match(entries, /\.\.\.SERVICE_PATHS/);
 });
 
 test("service page title stem uses the label and the configured market", () => {

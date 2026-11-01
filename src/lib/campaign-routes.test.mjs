@@ -46,9 +46,11 @@ test("no airport campaign and no airport preselection", () => {
 test("campaign pages are noindex,follow with a self canonical, and not in the sitemap", () => {
   const pages = readFileSync(path.join(src, "lib/service-pages.ts"), "utf8");
   assert.match(pages, /export function campaignMetadata[\s\S]*?path: campaign\.path[\s\S]*?robots: \{ index: false, follow: true \}/);
-  const sitemap = readFileSync(path.join(src, "app/sitemap.ts"), "utf8");
-  assert.equal(/campaign/i.test(sitemap.replace(/\/\/.*$/gm, "")), false);
-  assert.match(sitemap, /`\/locations\/\$\{market\.slug\}`/);
+  // ZW-SEO-01: the list lives in lib/sitemap-entries.ts; check its code (comments document the exclusion).
+  const entries = readFileSync(path.join(src, "lib/sitemap-entries.ts"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.equal(/campaign/i.test(entries), false);
+  assert.match(entries, /`\/locations\/\$\{market\.slug\}`/);
+  assert.match(readFileSync(path.join(src, "app/sitemap.ts"), "utf8"), /return sitemapEntries\(siteUrl\);/);
   const robots = readFileSync(path.join(src, "app/robots.ts"), "utf8");
   assert.equal(/disallow/i.test(robots), false);
 });

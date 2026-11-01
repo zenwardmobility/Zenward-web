@@ -30,6 +30,7 @@ const { respond } = await import("./assistant/responses.ts");
 const { validateReply } = await import("./assistant/safety.ts");
 const { RESOURCE_BODIES } = await import("./resources/content.ts");
 const { RESOURCES, RESOURCE_PATHS } = await import("./resources/catalog.ts");
+const { sitemapEntries } = await import("./sitemap-entries.ts");
 
 const TODAY = "2026-10-16";
 const { quoteFormReducer, initialState, buildRequestInput, validateStep, reviewSections } = model;
@@ -332,8 +333,8 @@ test("Resources: wheelchair guide has all four levels; checklist item; no new Re
   assert.ok(RESOURCE_BODIES["medical-transportation-trip-checklist"].tool.some((i) => i.label === "Pickup & assistance level"));
   assert.equal(RESOURCES.length, 6);
   assert.ok(!RESOURCE_PATHS.some((p) => /curb|door|assistance/.test(p)));
-  const sitemap = read("app/sitemap.ts");
-  assert.match(sitemap, /"\/resources",\s*\.\.\.RESOURCE_PATHS/);
+  const urls = sitemapEntries("").map((e) => e.url);
+  for (const p of ["/resources", ...RESOURCE_PATHS]) assert.ok(urls.includes(p), p);
   assert.match(read("lib/resources/schema.ts"), /author: \{ "@type": "Organization", name: siteName, url: siteUrl \}/);
 });
 
