@@ -19,7 +19,7 @@ import { pageMetadata, siteName } from "@/lib/seo";
 import { organizationJsonLd } from "@/lib/organization";
 import { SERVICES, SERVICE_ORDER } from "@/lib/services";
 import { OPERATING_STANDARDS, QUOTE_RESPONSE_LINE } from "@/lib/trust";
-import { homeMetadataCopy, servingLine } from "@/lib/service-area";
+import { getDefaultMarket, homeMetadataCopy, servingLine } from "@/lib/service-area";
 import { commercialFaq } from "@/lib/operating-facts";
 
 /*
@@ -160,6 +160,7 @@ function TextPhoneLink({ onDark = false, className }: { onDark?: boolean; classN
 
 export default function HomePage() {
   const serving = servingLine();
+  const market = getDefaultMarket();
 
   return (
     <>
@@ -452,11 +453,13 @@ export default function HomePage() {
             <div className="relative flex flex-col items-center gap-6">
               <h2 className={cn(typography.sectionTitle, "text-white")}>Need medical transportation?</h2>
               <p className={cn(typography.lede, "max-w-[36rem] text-white/85")}>
-                {/* ZW-SEO-01: the homepage's contextual link to the Metro Atlanta hub (kept out of the first viewport, clear of Zenny). */}
+                {/* ZW-SEO-01: the homepage's contextual link to the Metro Atlanta hub (kept out of the first viewport, clear of Zenny).
+                    ZW-SEO-GROWTH-02: descriptive anchor naming the hub's local commercial intent, instead of "Serving Metro Atlanta". */}
+                {serving}. See{" "}
                 <Link href="/locations/metro-atlanta" className="font-medium text-white underline underline-offset-4">
-                  {serving}
+                  our medical transportation services in {market.name}
                 </Link>
-                . Zenward reviews every request and follows up to confirm availability and details.
+                , or request a quote and Zenward will follow up to confirm availability and details.
               </p>
               <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <TrackedLinkButton

@@ -88,7 +88,7 @@ test("organic pages are indexable and self-canonical; paid landing pages noindex
 function titles() {
   const t = {
     "/": homeMetadataCopy().title,
-    "/locations/metro-atlanta": `NEMT in ${market.name}: Services & How to Request`,
+    "/locations/metro-atlanta": `Non-Emergency Medical Transportation in ${market.searchName}`,
     "/healthcare-providers": `Healthcare Provider Transportation in ${market.name}`,
   };
   for (const [rel, route] of [["app/services/page.tsx", "/services"], ["app/about/page.tsx", "/about"], ["app/contact/page.tsx", "/contact"], ["app/resources/page.tsx", "/resources"]]) {
@@ -100,13 +100,16 @@ function titles() {
   return t;
 }
 
-test("indexable titles are unique; homepage and Metro Atlanta hub no longer compete", () => {
+test("indexable titles are unique; homepage and Metro Atlanta hub titles stay distinct", () => {
   const t = titles();
   const values = Object.values(t);
   assert.equal(new Set(values).size, values.length, JSON.stringify(t, null, 1));
   assert.equal(t["/"], `Non-Emergency Medical Transportation in ${market.name}`);
-  assert.match(read("app/locations/[market]/page.tsx"), /title: `NEMT in \$\{market\.name\}: Services & How to Request`/);
-  assert.ok(!t["/locations/metro-atlanta"].includes("Non-Emergency Medical Transportation"), "the hub no longer repeats the homepage head term");
+  // ZW-SEO-GROWTH-02: the hub is the primary local commercial page for Atlanta-area NEMT searches, so it now
+  // leads with the head term, using the market's search label ("Atlanta, GA") rather than the homepage's wording.
+  assert.match(read("app/locations/[market]/page.tsx"), /title: `Non-Emergency Medical Transportation in \$\{market\.searchName\}`/);
+  assert.equal(market.searchName, "Atlanta, GA");
+  assert.notEqual(t["/locations/metro-atlanta"], t["/"], "the hub and homepage titles differ");
   for (const v of values) assert.ok(!/Zenward Mobility/.test(v), "the layout template adds the brand once");
   for (const v of values) assert.ok(`${v} | Zenward Mobility`.length <= 75, v);
 });
@@ -126,8 +129,9 @@ test("descriptions: concise, market-led on service pages, no unsupported claims"
   }
   const home = homeMetadataCopy().description;
   assert.ok(home.length <= 160, String(home.length));
-  const hub = read("app/locations/[market]/page.tsx").match(/description: `(NEMT in [^`]+)`/)[1].replace("${market.name}", market.name);
-  assert.ok(hub.length <= 160);
+  const hub = read("app/locations/[market]/page.tsx").match(/description: `(Need medical transportation in [^`]+)`/)[1].replace("${market.name}", market.name);
+  assert.ok(hub.length <= 160, `${hub.length}: ${hub}`);
+  assert.notEqual(hub, home, "the hub and homepage descriptions differ");
   const svc = read("app/services/page.tsx").match(/description: `(Compare [^`]+)`/)[1].replace("${market.name}", market.name);
   assert.ok(svc.length <= 170);
   for (const d of [home, hub, svc, ...metas]) {
@@ -197,4 +201,32 @@ test("SEO-01 documents exist and fabricate nothing", () => {
     const text = readFileSync(path.join(root, "docs/product", doc), "utf8");
     assert.ok(text.length > 500, doc);
   }
+});
+
+// ================================================================ ZW-SEO-GROWTH-02 contextual links
+
+test("ZW-SEO-GROWTH-02: guides link to their commercial pages; hub links dialysis and discharge; service pages link the hub", async () => {
+  const { RESOURCE_BODIES } = await import("./resources/content.ts");
+  const linksIn = (slug) => {
+    const body = RESOURCE_BODIES[slug];
+    const text = JSON.stringify(body.blocks);
+    const inline = [...text.matchAll(/\]\((\/[^)\s]+)\)/g)].map((m) => m[1]);
+    const blockLinks = body.blocks.filter((b) => b.link).map((b) => b.link.href);
+    return new Set([...inline, ...blockLinks, body.bridge?.about?.href].filter(Boolean));
+  };
+  const guide = linksIn("how-to-arrange-nemt-in-metro-atlanta");
+  for (const href of ["/locations/metro-atlanta", "/services/dialysis-transportation", "/services/hospital-discharge-transportation", "/services/wheelchair-transportation"]) {
+    assert.ok(guide.has(href), `NEMT guide -> ${href}`);
+  }
+  assert.ok(RESOURCE_BODIES["how-to-arrange-nemt-in-metro-atlanta"].blocks.some((b) => b.type === "actions"), "NEMT guide has an in-article request CTA");
+  assert.ok(linksIn("hospital-discharge-transportation-checklist").has("/services/hospital-discharge-transportation"));
+  assert.ok(linksIn("dialysis-transportation-guide").has("/services/dialysis-transportation"));
+  assert.ok(linksIn("wheelchair-accessible-transportation-guide").has("/services/wheelchair-transportation"));
+
+  const hub = read("app/locations/[market]/page.tsx");
+  assert.match(hub, /\["dialysis-transportation", "recurring-care-transportation"\]/);
+  assert.match(hub, /SERVICE_CATALOG\["hospital-discharge-transportation"\]\.path/);
+  assert.match(read("components/public/ServicePage.tsx"), /<ServiceRelated service=\{service\} tone=\{relatedTone\} marketLink \/>/);
+  // Homepage anchor to the hub is descriptive, not just the location line.
+  assert.match(read("app/page.tsx"), /href="\/locations\/metro-atlanta"[^>]*>\s*our medical transportation services in \{market\.name\}/);
 });

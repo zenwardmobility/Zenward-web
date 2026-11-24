@@ -48,7 +48,12 @@ export interface ResourceBody {
   intro: string;
   blocks: ResourceBlock[];
   /** One contextual bridge to the most relevant service. Omitted when the body ends with its own request section. */
-  bridge?: { heading: string; text: string };
+  bridge?: {
+    heading: string;
+    text: string;
+    /** Secondary link beside the bridge button; defaults to the Resource's service/services link (ZW-SEO-GROWTH-02). */
+    about?: { href: string; label: string };
+  };
   /** Interactive checklist items (the trip-checklist tool only). */
   tool?: { label: string; hint: string }[];
 }
@@ -251,8 +256,8 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
       { type: "h2", id: "choose", text: "2. Choose the closest type of transportation" },
       {
         type: "p",
-        text: "Think about the reason for the trip: a single appointment, a repeating treatment such as dialysis, a hospital discharge, or a trip that needs wheelchair-accessible transportation. Picking the closest match helps the team plan, and you can add anything else in the notes.",
-        link: { href: "/locations/metro-atlanta", label: "Transportation services in Metro Atlanta" },
+        text: "Think about the reason for the trip: a single [medical appointment](/services/medical-appointments), a repeating treatment such as [dialysis](/services/dialysis-transportation), a [hospital discharge](/services/hospital-discharge-transportation), or a trip that needs [wheelchair-accessible transportation](/services/wheelchair-transportation). Picking the closest match helps the team plan, and you can add anything else in the notes.",
+        link: { href: "/locations/metro-atlanta", label: "Non-emergency medical transportation in Metro Atlanta" },
       },
       { type: "h2", id: "timing", text: "3. Plan the date and time" },
       {
@@ -288,6 +293,7 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
         ],
       },
       { type: "note", text: REQUEST_NOTE },
+      { type: "actions", requestLabel: "Request a Quote", callLabel: `Call ${business.phoneDisplay}` },
       { type: "h2", id: "common-questions", text: "Common questions" },
       {
         type: "faq",
@@ -306,6 +312,7 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
     bridge: {
       heading: "Ready to arrange a ride in Metro Atlanta?",
       text: `Request a quote online with the details above, or call ${business.phoneDisplay}. Zenward Mobility provides non-emergency medical transportation in Metro Atlanta.`,
+      about: { href: "/locations/metro-atlanta", label: "Medical transportation in Metro Atlanta" },
     },
   },
 
@@ -360,6 +367,7 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
       {
         type: "p",
         text: "Sending a recurring schedule doesn't automatically create or confirm a series of rides. Zenward reviews the schedule and confirms with you what can be arranged.",
+        link: { href: "/services/dialysis-transportation", label: "Dialysis transportation in Metro Atlanta" },
       },
       { type: "note", text: "This guide covers transportation only. For questions about treatment, speak with your care team." },
     ],
@@ -421,7 +429,11 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
         text: "If the passenger needs any other assistance, describe it in the request. Zenward reviews it and confirms what can be accommodated before the trip.",
       },
       { type: "h2", id: "review", text: "Reviewed and confirmed with you" },
-      { type: "p", text: "Zenward reviews every wheelchair-accessible request and confirms the arrangement with you before the trip." },
+      {
+        type: "p",
+        text: "Zenward reviews every wheelchair-accessible request and confirms the arrangement with you before the trip.",
+        link: { href: "/services/wheelchair-transportation", label: "Wheelchair-accessible transportation in Metro Atlanta" },
+      },
       { type: "note", text: REQUEST_NOTE },
     ],
     bridge: {
@@ -463,14 +475,14 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
         items: [
           "Confirm who the transportation team should contact: you, the patient or a family member.",
           "Note anything about the destination the patient can't easily explain, such as building access.",
-          "If the patient needs ambulance or stretcher transport, arrange that separately. Zenward provides non-emergency transportation.",
+          "If the patient needs ambulance or stretcher transport, arrange that separately. Zenward provides non-emergency [hospital discharge transportation](/services/hospital-discharge-transportation).",
         ],
       },
       { type: "note", text: REQUEST_NOTE },
     ],
     bridge: {
       heading: "Arranging transportation after a discharge?",
-      text: "Share the discharge details and Zenward will review the trip and confirm timing with you.",
+      text: "Share the discharge details and Zenward will review the trip and confirm timing with you. Zenward provides non-emergency hospital discharge transportation in Metro Atlanta.",
     },
   },
 

@@ -10,7 +10,7 @@ Paid landing pages (`/metro-atlanta/*`) are noindex, so they never compete organ
 | Page | Primary intent | Supporting / related intents | Title (after SEO-01) |
 |---|---|---|---|
 | `/` | non emergency medical transportation Atlanta / Metro Atlanta (head term, brand) | medical transportation Atlanta; Zenward Mobility | Non-Emergency Medical Transportation in Metro Atlanta |
-| `/locations/metro-atlanta` | NEMT Atlanta / NEMT in Metro Atlanta (the abbreviation plus local detail: services, who, how to request) | non emergency transportation Metro Atlanta service area | **NEMT in Metro Atlanta: Services & How to Request** (changed) |
+| `/locations/metro-atlanta` | **Primary local commercial page** (ZW-SEO-GROWTH-02): non emergency medical transportation Atlanta; NEMT Atlanta / Metro Atlanta | nemt services metro atlanta; medical transportation Atlanta; how to request a ride | **Non-Emergency Medical Transportation in Atlanta, GA** (GROWTH-02; was "NEMT in Metro Atlanta: Services & How to Request") |
 | `/services` | medical transportation services Atlanta (category / compare) | types of NEMT services | Our Transportation Services |
 | `/services/wheelchair-transportation` | wheelchair transportation Atlanta | wheelchair accessible transportation, wheelchair van medical appointments | Wheelchair-Accessible Transportation in Metro Atlanta |
 | `/services/dialysis-transportation` | dialysis transportation Atlanta | rides to dialysis, recurring dialysis transportation | Dialysis Transportation in Metro Atlanta |
@@ -31,6 +31,15 @@ Paid landing pages (`/metro-atlanta/*`) are noindex, so they never compete organ
 | `/about`, `/contact` | brand / navigational | — | unchanged |
 
 ## Cannibalisation rules
+
+- **ZW-SEO-GROWTH-02 update (2026-11-24, pending owner review).** Search Console (Nov 15–21) showed every impression
+  for "non emergency medical transportation atlanta" landing on the informational guide, not the hub. The owner
+  asked for the hub to become the primary local commercial page, so its title now leads with the head term
+  ("… in Atlanta, GA", from `Market.searchName`). The homepage title, H1 and copy are unchanged. The two titles
+  remain distinct but are now close. Watch for the homepage and hub splitting the same query. If they do, consider
+  making the homepage title brand-led. Do **not** merge, redirect or noindex either page.
+- **The guide keeps its informational intent** (title, H1, description unchanged). It now links contextually to the
+  hub and to the dialysis, discharge, wheelchair and appointment service pages, and carries an in-article request CTA.
 
 - **Homepage vs hub (the one real overlap).** Before SEO-01 both titles led with "Non-Emergency Medical
   Transportation (Services) in Metro Atlanta", and the H1s were nearly identical. Now:

@@ -76,7 +76,8 @@ export const RESOURCES: readonly ResourceMeta[] = [
     audience: "Riders, families and caregivers",
     kind: "guide",
     featured: true,
-    relatedServices: ["medical-appointments", "recurring-care-transportation"],
+    // ZW-SEO-GROWTH-02: senior added so the senior page lists this guide under "Helpful resources" (CTA stays generic).
+    relatedServices: ["medical-appointments", "recurring-care-transportation", "senior-medical-transportation"],
     genericRequest: true,
     relatedResources: ["medical-transportation-trip-checklist", "what-is-non-emergency-medical-transportation", "wheelchair-accessible-transportation-guide"],
     seoTitle: "How to Arrange NEMT in Metro Atlanta",
@@ -139,7 +140,8 @@ export const RESOURCES: readonly ResourceMeta[] = [
     alsoIn: ["riders-families"],
     audience: "Families, caregivers and care coordinators",
     kind: "checklist",
-    relatedServices: ["hospital-discharge-transportation", "wheelchair-transportation"],
+    // ZW-SEO-GROWTH-02: senior added (families arranging a parent's discharge); the primary CTA stays hospital discharge.
+    relatedServices: ["hospital-discharge-transportation", "wheelchair-transportation", "senior-medical-transportation"],
     relatedResources: ["medical-transportation-trip-checklist", "wheelchair-accessible-transportation-guide"],
     seoTitle: "Hospital Discharge Transportation Checklist",
     seoDescription:

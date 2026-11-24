@@ -251,8 +251,8 @@ export function ResourcePage({ resource }: { resource: ResourceMeta }) {
               <TrackedLinkButton href={cta.href} size="md" event={{ name: "request_transportation_clicked", source: "resource_page" }}>
                 {cta.label}
               </TrackedLinkButton>
-              <Link href={cta.about.href} className={cn(typography.bodySmall, "inline-flex min-h-11 items-center gap-1.5 font-semibold text-text-accent-on-tint hover:underline")}>
-                {cta.about.label}
+              <Link href={(body.bridge.about ?? cta.about).href} className={cn(typography.bodySmall, "inline-flex min-h-11 items-center gap-1.5 font-semibold text-text-accent-on-tint hover:underline")}>
+                {(body.bridge.about ?? cta.about).label}
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
             </div>

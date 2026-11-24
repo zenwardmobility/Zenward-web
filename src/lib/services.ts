@@ -50,6 +50,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { FaqItem } from "@/components/public/FaqAccordion";
 import { business } from "@/lib/business";
+import { factAnswer } from "@/lib/operating-facts";
 import { brandImages, type BrandImageAsset } from "@/lib/images";
 import { SERVICE_CATALOG, SERVICE_ORDER as CATALOG_ORDER, SERVICE_PATHS as CATALOG_PATHS, type CatalogEntry, type ServiceSlug } from "@/lib/service-catalog";
 
@@ -250,6 +251,11 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
           "Yes. Choose Recurring on the request form and tell us the days, start date and appointment time. Zenward reviews the schedule and confirms with you what it can arrange.",
       },
       {
+        question: "What should I have ready when I request dialysis transportation?",
+        answer:
+          "The treatment days of the week, the start date (and end date, if known), the time you need to arrive, the pickup address and entrance, the treatment center's name and address, whether you need a ride home, any mobility needs, and a contact name and phone number.",
+      },
+      {
         question: "What about the ride home after treatment?",
         answer:
           "Tell us on the request that a return trip is needed. Treatment end times can vary, so Zenward talks through return-trip timing with you when we follow up.",
@@ -354,7 +360,7 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
     ...SERVICE_CATALOG["hospital-discharge-transportation"],
     summary: "Planned, non-emergency transportation from the hospital to the passenger's next destination.",
     metaDescription:
-      "Planned, non-emergency rides home or onward after a hospital stay. Request a quote or call.",
+      "Planned rides home or onward after a hospital stay, requested by families or care teams. Request a quote.",
     icon: Hospital,
     image: { asset: brandImages.staffWalkingAssist, objectPosition: "60% 38%" },
     lede: "When a hospital stay ends, the trip to the next place shouldn't be left to the last minute. Zenward coordinates non-emergency transportation with families, caregivers and care teams.",
@@ -406,6 +412,15 @@ export const SERVICES: Record<ServiceSlug, ServiceContent> = {
         question: "Who can request discharge transportation?",
         answer:
           "The passenger, a family member, a caregiver or a member of the care team. The form asks for your relationship to the passenger so Zenward knows who to follow up with.",
+      },
+      {
+        question: "What information do I need to schedule the ride?",
+        answer:
+          "The hospital name and where the passenger will be picked up, the next destination, the expected discharge date and time, a contact name and phone number, and any mobility needs such as a wheelchair or walker. The request form also asks for the pickup & assistance level. If you don't have every detail yet, send what you know and Zenward will follow up.",
+      },
+      {
+        question: "Can a discharge ride be arranged at short notice?",
+        answer: `${factAnswer("advanceNotice")} ${factAnswer("sameDay")}`,
       },
       {
         question: "Does the trip have to end at the passenger's home?",

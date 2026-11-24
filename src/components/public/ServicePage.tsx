@@ -218,7 +218,16 @@ const SECTION_RENDERERS: Record<
   scenarios: Scenarios,
 };
 
-export function ServiceRelated({ service, tone }: { service: ServiceContent; tone: SectionTone }) {
+export function ServiceRelated({
+  service,
+  tone,
+  marketLink = false,
+}: {
+  service: ServiceContent;
+  tone: SectionTone;
+  /** ZW-SEO-GROWTH-02: a contextual link back to the local market hub (the wheelchair page links it in its own area section). */
+  marketLink?: boolean;
+}) {
   return (
     <Section tone={tone}>
       <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Related services</h2>
@@ -250,7 +259,22 @@ export function ServiceRelated({ service, tone }: { service: ServiceContent; ton
         })}
       </ul>
       <HelpfulResources service={service} />
+      {marketLink && <MarketHubLink />}
     </Section>
+  );
+}
+
+/** One contextual link to the market hub: every NEMT service, who can request and how. */
+function MarketHubLink() {
+  const market = getDefaultMarket();
+  return (
+    <p className={cn(typography.bodySmall, "mt-lg text-text-secondary")}>
+      Arranging more than one kind of trip? See{" "}
+      <Link href={`/locations/${market.slug}`} className="font-semibold text-text-accent-on-tint underline underline-offset-4">
+        non-emergency medical transportation in {market.name}
+      </Link>{" "}
+      for every service and how requests work.
+    </p>
   );
 }
 
@@ -322,7 +346,7 @@ export function ServicePage({ service }: { service: ServiceContent }) {
         </div>
       </Section>
 
-      <ServiceRelated service={service} tone={relatedTone} />
+      <ServiceRelated service={service} tone={relatedTone} marketLink />
 
       {/* Compact operating standards (ZW-WEB-04F), right before the closing CTA. */}
       <div className="border-t border-border-subtle bg-surface-elevated">

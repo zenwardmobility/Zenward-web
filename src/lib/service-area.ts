@@ -31,11 +31,19 @@ export interface Market {
   name: string;
   /** Full state name, used for structured data. */
   state: string;
+  /**
+   * Short place label for search titles (ZW-SEO-GROWTH-02), e.g. "Atlanta, GA".
+   * Wording only: it names the market's principal city and state the way
+   * people search, and does not narrow or extend the confirmed service area.
+   */
+  searchName: string;
   /** Inactive markets are kept out of every public surface. */
   active: boolean;
 }
 
-const MARKETS: readonly Market[] = [{ slug: "metro-atlanta", name: "Metro Atlanta", state: "Georgia", active: true }];
+const MARKETS: readonly Market[] = [
+  { slug: "metro-atlanta", name: "Metro Atlanta", state: "Georgia", searchName: "Atlanta, GA", active: true },
+];
 
 const DEFAULT_MARKET_SLUG = "metro-atlanta";
 

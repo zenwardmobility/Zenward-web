@@ -43,11 +43,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const market = getMarket((await params).market);
   if (!market) return {};
   return pageMetadata({
-    // ZW-SEO-01: distinct from the homepage (which leads with the spelled-out
-    // "Non-Emergency Medical Transportation"): this page answers the local
-    // "NEMT in Metro Atlanta" detail intent: services, who it serves, how to request.
-    title: `NEMT in ${market.name}: Services & How to Request`,
-    description: `NEMT in ${market.name}: how Zenward's scheduled, non-emergency medical transportation works, who it serves, and how to request a ride.`,
+    // ZW-SEO-GROWTH-02: this hub is the primary local commercial page for
+    // Atlanta-area NEMT searches (Search Console showed "non emergency medical
+    // transportation atlanta" landing on the informational guide instead). The
+    // homepage keeps its brand + "in Metro Atlanta" title; this one uses the
+    // market's search label ("Atlanta, GA") so the two titles stay distinct.
+    title: `Non-Emergency Medical Transportation in ${market.searchName}`,
+    description: `Need medical transportation in ${market.name}? Arrange rides for appointments, dialysis, hospital discharge and wheelchair transportation. Request a quote.`,
     path: `/locations/${market.slug}`,
   });
 }
@@ -79,6 +81,7 @@ function hubJsonLd(market: Market) {
       "@type": "Service",
       name: `Non-Emergency Medical Transportation in ${market.name}`,
       serviceType: "Non-Emergency Medical Transportation",
+      description: `Scheduled, non-emergency medical transportation in ${market.name}, including wheelchair-accessible transportation, requested online or by phone and confirmed by Zenward.`,
       url: absoluteUrl(`/locations/${market.slug}`),
       provider: organizationRef(),
       areaServed: areaServedJsonLd(market),
@@ -130,8 +133,9 @@ export default async function MarketHubPage({ params }: Params) {
               Non-Emergency Medical Transportation in {market.name}
             </h1>
             <p className={cn(typography.body, "mt-4 max-w-[36rem] text-white/90 sm:text-lg sm:leading-8")}>
-              Scheduled rides to appointments, treatment and recurring care, including wheelchair-accessible
-              transportation, for passengers and the families, caregivers and care teams who arrange their trips.
+              Scheduled rides to medical appointments, dialysis, hospital discharge and recurring care, including
+              wheelchair-accessible transportation, for passengers and the families, caregivers and care teams who arrange
+              their trips.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <TrackedLinkButton
@@ -243,6 +247,30 @@ export default async function MarketHubPage({ params }: Params) {
           ))}
         </ol>
 
+        {/* ZW-SEO-GROWTH-02: who can request, what to have ready, and the next step, right where the process is explained. */}
+        <div className="mt-2xl rounded-lg border-l-4 border-brand-route-teal bg-surface-app p-lg">
+          <h3 className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>Requesting a ride in {market.name}</h3>
+          <p className={cn(typography.body, "mt-2 max-w-[48rem] text-text-secondary")}>
+            Patients, family members, caregivers and healthcare facilities can request transportation online or by phone.
+            Have the passenger&rsquo;s name, the pickup and destination, the date and appointment time, whether a return trip
+            is needed and any mobility needs ready.{" "}
+            <Link href="/resources/medical-transportation-trip-checklist" className="font-semibold text-text-accent-on-tint underline underline-offset-4">
+              Use the trip checklist
+            </Link>
+          </p>
+          <div className="mt-md flex flex-col gap-3 sm:flex-row">
+            <TrackedLinkButton
+              href="/request-transportation"
+              size="md"
+              className="w-full sm:w-auto"
+              event={{ name: "request_transportation_clicked", source: "market_page" }}
+            >
+              Request a Quote
+            </TrackedLinkButton>
+            <CallButton surface="market_page" size="md" className="w-full sm:w-auto" />
+          </div>
+        </div>
+
         <div className="mt-3xl border-t border-border-subtle pt-2xl">
           <h2 className={cn(typography.sectionTitle, "text-text-primary")}>How Zenward operates in {market.name}</h2>
           <div className="mt-xl grid grid-cols-1 gap-lg sm:grid-cols-2 lg:grid-cols-4">
@@ -296,13 +324,18 @@ export default async function MarketHubPage({ params }: Params) {
               Request a single trip, or describe a repeating schedule for dialysis, therapy or other ongoing care. Recurring
               requests are reviewed by our team and confirmed with you; nothing repeats automatically.
             </p>
-            <Link
-              href={SERVICE_CATALOG["recurring-care-transportation"].path}
-              className={cn(typography.bodySmall, "mt-3 inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline")}
-            >
-              Recurring care transportation
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
+            <div className="mt-3 flex flex-col sm:flex-row sm:gap-lg">
+              {(["dialysis-transportation", "recurring-care-transportation"] as const).map((slug) => (
+                <Link
+                  key={slug}
+                  href={SERVICE_CATALOG[slug].path}
+                  className={cn(typography.bodySmall, "inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-interactive-teal hover:underline")}
+                >
+                  {SERVICE_CATALOG[slug].label}
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              ))}
+            </div>
           </div>
           <div>
             <h2 className={cn(typography.sectionTitle, "text-text-primary")}>For families and caregivers</h2>
@@ -330,7 +363,11 @@ export default async function MarketHubPage({ params }: Params) {
             <h2 className={cn(typography.sectionTitle, "mt-3 text-white")}>Arranging transportation for patients?</h2>
             <p className={cn(typography.lede, "mt-4 text-white/80")}>
               Clinics, dialysis centers, rehabilitation providers, discharge teams and senior care organizations can request
-              one-time trips and recurring schedules for patients.
+              one-time trips and recurring schedules for patients, including{" "}
+              <Link href={SERVICE_CATALOG["hospital-discharge-transportation"].path} className="font-medium text-white underline underline-offset-4">
+                hospital discharge transportation
+              </Link>
+              .
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-end">
