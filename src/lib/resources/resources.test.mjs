@@ -476,7 +476,9 @@ test("R2 step 4 links to the assistance-level definitions; no assistance-level R
 test("Zenny teaser is suppressed on Resource pages below md; the launcher stays", () => {
   const code = stripComments(read("components/public/assistant/AssistantLauncher.tsx"));
   assert.match(code, /const isResourcePage = \(path: string\) => path === "\/resources" \|\| path\.startsWith\("\/resources\/"\)/);
-  assert.match(code, /resourcePage && "max-md:hidden"/);
+  assert.match(code, /resourcePage \? "max-md:hidden" : "max-sm:hidden"/);
+  // ZW-SEO-GROWTH-03: below sm the teaser is hidden on every page (it covered first-viewport CTAs).
+  assert.match(code, /const TEASER_MIN_WIDTH = "\(min-width: 40rem\)";/);
   assert.match(code, /if \(resourcePage && !window\.matchMedia\(TEASER_MIN_WIDTH_ON_RESOURCES\)\.matches\) return;/);
   // The launcher's own classes don't depend on the Resource flag.
   const launcher = code.slice(code.indexOf("ref={launcherRef}"));

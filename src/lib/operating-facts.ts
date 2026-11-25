@@ -77,8 +77,11 @@ export const OPERATING_FACTS: Record<FactKey, OperatingFact> = {
     status: "unconfirmed",
     fallback: `Payment and coverage options can depend on the transportation arrangement. Please contact Zenward at ${PHONE} so our team can confirm the options for your request.`,
   },
+  // ZW-SEO-GROWTH-03 (owner decision, 2026-11-25): coverage is determined trip by trip within the general
+  // Metro Atlanta, Georgia operating region. No city, county or ZIP list is confirmed as blanket coverage.
   serviceAreaDetail: {
-    status: "unconfirmed",
+    status: "confirmed",
+    statement: `Zenward provides scheduled, non-emergency medical transportation in the ${MARKET} area. Availability is confirmed trip by trip: our team reviews the pickup location, destination, mobility needs and requested schedule for each request. To check a specific trip, send a transportation request or call ${PHONE}.`,
     fallback: `Zenward serves ${MARKET}. For a specific pickup or destination, send a transportation request or call our team at ${PHONE} and we'll confirm whether the trip can be arranged.`,
   },
   sameDay: {

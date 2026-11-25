@@ -69,7 +69,10 @@ const AUDIENCES = [
 
 const STEPS = [
   { title: "Request a quote", description: "Online or by phone, with the passenger, pickup, destination and timing." },
-  { title: "We review it", description: "A member of our team reviews the trip and any mobility or assistance notes." },
+  {
+    title: "We review it",
+    description: "Our team reviews the pickup location, destination, mobility needs and requested time to confirm availability for that trip.",
+  },
   { title: "We contact you", description: "To confirm availability, next steps and pricing." },
   { title: "Your trip is confirmed", description: "A request isn't a booking until Zenward confirms it with you." },
 ];
@@ -290,7 +293,9 @@ export default async function MarketHubPage({ params }: Params) {
       {/* 5. Wheelchair-accessible transportation */}
       <Section tone="mist">
         <div className="grid grid-cols-1 items-center gap-2xl lg:grid-cols-2">
-          <BrandImage asset={brandImages.heroDesktop} aspect="video" objectPosition="72% 45%" />
+          {/* ZW-SEO-GROWTH-03: Zenward's actual wheelchair-accessible vehicle (the authentic photo approved for the
+              wheelchair page), instead of general brand imagery, in the section that describes that service. */}
+          <BrandImage asset={brandImages.officialVehicleWheelchair} aspectClass="aspect-4/3" sizes="(min-width: 1024px) 34rem, 100vw" />
           <div>
             <h2 className={cn(typography.sectionTitle, "text-text-primary")}>Wheelchair-accessible transportation</h2>
             <p className={cn(typography.body, "mt-4 text-text-secondary")}>
@@ -302,7 +307,10 @@ export default async function MarketHubPage({ params }: Params) {
             <p className={cn(typography.bodySmall, "mt-3 text-text-secondary")}>
               Every request also includes a pickup &amp; assistance level:{" "}
               {ASSISTANCE_LEVELS.map((level) => level.label.toLowerCase()).join(", ").replace(/, (?=[^,]*$)/, " or ")}.{" "}
-              <Link href={`${SERVICE_CATALOG["wheelchair-transportation"].path}#assistance-levels`} className="font-medium text-brand-interactive-teal underline">
+              <Link
+                href={`${SERVICE_CATALOG["wheelchair-transportation"].path}#assistance-levels`}
+                className="font-semibold text-text-accent-on-tint underline underline-offset-4"
+              >
                 What each level means
               </Link>
             </p>

@@ -41,7 +41,10 @@ export function PublicFooter() {
   const serving = servingLine();
   return (
     <footer className="bg-brand-care-navy text-white">
-      <SectionContainer className="py-3xl">
+      {/* ZW-SEO-GROWTH-03: below xl the floating assistant launcher (bottom-right, ~72–80px tall incl. offset)
+          sat permanently over the last footer lines, including the 911 notice. Extra bottom padding keeps that
+          text clear of it; xl and up (where it never overlapped) keeps the original padding. */}
+      <SectionContainer className="pt-3xl pb-[calc(5.5rem+env(safe-area-inset-bottom))] xl:pb-3xl">
         <div className="grid grid-cols-2 gap-xl sm:grid-cols-3 lg:grid-cols-6">
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <ZenwardLogo treatment="inverse" height={30} />

@@ -55,7 +55,6 @@ test("facts model: confirmed facts are restated from canonical sources; unknowns
     workingHours: "unpublished",
     paymentMethods: "unconfirmed",
     coverage: "unconfirmed",
-    serviceAreaDetail: "unconfirmed",
     sameDay: "unconfirmed",
     advanceNotice: "unconfirmed",
     cancellation: "needs_review",
@@ -67,6 +66,9 @@ test("facts model: confirmed facts are restated from canonical sources; unknowns
     assert.equal(F.OPERATING_FACTS[key].status, status, key);
     assert.equal(F.OPERATING_FACTS[key].statement, undefined, `${key} must not carry a statement until confirmed`);
   }
+  // ZW-SEO-GROWTH-03 owner decision: coverage is trip by trip within the general Metro Atlanta region.
+  assert.equal(F.OPERATING_FACTS.serviceAreaDetail.status, "confirmed");
+  assert.match(F.OPERATING_FACTS.serviceAreaDetail.statement, /Metro Atlanta area\. Availability is confirmed trip by trip/);
 });
 
 test("future activation: a confirmed fact's owner statement replaces the hand-off everywhere it is used", () => {
@@ -101,7 +103,8 @@ test("every public commercial answer avoids unconfirmed claims and offers a next
     F.factAnswer("coverage"),
     "Payment and coverage options can depend on the transportation arrangement. Please contact Zenward at 678-935-5489 so our team can confirm the options for your request.",
   );
-  assert.match(F.factAnswer("serviceAreaDetail"), /^Zenward serves Metro Atlanta\. For a specific pickup or destination, send a transportation request or call our team/);
+  assert.match(F.factAnswer("serviceAreaDetail"), /^Zenward provides scheduled, non-emergency medical transportation in the Metro Atlanta area\. Availability is confirmed trip by trip/);
+  assert.doesNotMatch(F.factAnswer("serviceAreaDetail"), /Marietta|Decatur|Sandy Springs|Roswell|Alpharetta|ZIP|county|counties|all of|throughout/i, "no blanket city/county coverage");
   assert.match(F.factAnswer("sameDay"), /^Same-day availability must be confirmed by the Zenward team\./);
   assert.match(F.factAnswer("advanceNotice"), /^Availability depends on the trip details and requested time\. Submit your request as early as possible/);
 });

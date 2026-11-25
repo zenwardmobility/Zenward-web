@@ -34,6 +34,12 @@ const FORM_PAGES = new Set(["/request-transportation", "/contact"]);
  */
 const isResourcePage = (path: string) => path === "/resources" || path.startsWith("/resources/");
 const TEASER_MIN_WIDTH_ON_RESOURCES = "(min-width: 48rem)";
+/**
+ * ZW-SEO-GROWTH-03: on phones (below sm) the teaser bubble, beside the avatar, covered first-viewport
+ * Request a Quote / Call buttons on most screen heights (measured at 320–390px widths). Below sm the
+ * teaser is not shown on any page (and its chime is skipped); the avatar launcher itself stays.
+ */
+const TEASER_MIN_WIDTH = "(min-width: 40rem)";
 
 /**
  * Site-wide entry to Zenny, the Zenward Transportation Assistant (ZW-WEB-04H,
@@ -94,9 +100,10 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
   // reopen or replies. Supplemental only; silently skipped when autoplay isn't allowed.
   const chimed = useRef(false);
   useEffect(() => {
-    // No chime when the teaser is hidden (Resource pages on phones); the once-only flag stays unset.
+    // No chime when the teaser is hidden (phones; Resource pages below md); the once-only flag stays unset.
     if (!showTeaser || chimed.current) return;
     if (resourcePage && !window.matchMedia(TEASER_MIN_WIDTH_ON_RESOURCES).matches) return;
+    if (!window.matchMedia(TEASER_MIN_WIDTH).matches) return;
     chimed.current = true;
     void playArrivalChime();
   }, [showTeaser, resourcePage]);
@@ -108,8 +115,8 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
           className={cn(
             // Beside the avatar on the same baseline (not stacked above it), so it stays in the bottom
             // corner and clear of first-viewport CTAs (04H2 QA).
-            resourcePage && "max-md:hidden",
-            "fixed right-[5rem] z-30 flex max-w-[13.5rem] items-center gap-0.5 rounded-lg rounded-br-sm border border-brand-care-navy/10 bg-surface-elevated pl-3 shadow-md sm:right-[5.5rem]",
+            resourcePage ? "max-md:hidden" : "max-sm:hidden",
+            "fixed right-[4.5rem] z-30 flex max-w-[13.5rem] items-center gap-0.5 rounded-lg rounded-br-sm border border-brand-care-navy/10 bg-surface-elevated pl-3 shadow-md sm:right-[5.5rem]",
             "bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6",
           )}
         >
@@ -142,7 +149,8 @@ export function AssistantLauncher({ context }: { context: AssistantContext }) {
           aria-label={ZENNY.launcherLabel}
           className={cn(
             "fixed right-4 z-30 items-center justify-center rounded-full bg-surface-elevated p-0.5 shadow-md ring-2 ring-surface-elevated transition-shadow duration-base hover:shadow-lg sm:right-6",
-            compact ? "hidden size-12 lg:inline-flex" : "inline-flex size-14",
+            // ZW-SEO-GROWTH-03: 48px on phones (still above the 44px target minimum) to cover less of the page; 56px from sm.
+            compact ? "hidden size-12 lg:inline-flex" : "inline-flex size-12 sm:size-14",
             "bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-6",
           )}
         >

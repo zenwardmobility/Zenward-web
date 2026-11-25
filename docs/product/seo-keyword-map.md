@@ -30,6 +30,16 @@ Paid landing pages (`/metro-atlanta/*`) are noindex, so they never compete organ
 | `/resources/medical-transportation-trip-checklist` | medical appointment transportation checklist | what to have ready for a medical ride | Medical Transportation Trip Checklist |
 | `/about`, `/contact` | brand / navigational | — | unchanged |
 
+## Geographic vocabulary (ZW-SEO-GROWTH-03)
+
+- **Confirmed general operating region:** Metro Atlanta, Georgia ("Metro Atlanta", "the Metro Atlanta area").
+  Search titles may use "Atlanta, GA" (`Market.searchName`); body copy says Metro Atlanta.
+- **Individual availability:** reviewed and confirmed for each request (pickup, destination, mobility needs,
+  requested schedule). A request is not a booking.
+- **Not claimed:** blanket coverage of any city, county, ZIP code or all of Georgia.
+- Don't paste a location paragraph onto every page. The trip-by-trip statement lives in
+  `operating-facts.ts` (`serviceAreaDetail`) and reaches pages and the assistant through FAQs.
+
 ## Cannibalisation rules
 
 - **ZW-SEO-GROWTH-02 update (2026-11-24, pending owner review).** Search Console (Nov 15–21) showed every impression
@@ -65,7 +75,7 @@ Paid landing pages (`/metro-atlanta/*`) are noindex, so they never compete organ
 
 | Keyword | Blocked on |
 |---|---|
-| "… near me" in city X; Marietta / Decatur / Alpharetta / Fulton / DeKalb … NEMT | Owner-confirmed service area |
+| "… near me" in city X; Marietta / Decatur / Alpharetta / Fulton / DeKalb … NEMT | **Still blocked (ZW-SEO-GROWTH-03).** Owner confirmed coverage is trip by trip within the general Metro Atlanta, Georgia region (2026-11-25). That is not blanket coverage of any city or county, so city/county pages and copy stay research-only until there is operating evidence (e.g. completed trips) for a named area. Research: `docs/reports/ZW-SEO-GROWTH-03-LOCAL-AUTHORITY-OPPORTUNITIES.txt`. |
 | "Medicaid transportation Atlanta", "does insurance cover …" | Payment/coverage position (legal-review list) |
 | "same-day medical transportation Atlanta", "24 hour …" | Unconfirmed |
 | "cost of NEMT in Atlanta" (answerable honestly only with a pricing model) | Pricing model |

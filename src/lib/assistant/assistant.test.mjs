@@ -324,7 +324,10 @@ test("quote page: inline entry below 1024px, compact launcher from 1024px, one s
   const launcher = read("components/public/assistant/AssistantLauncher.tsx");
   assert.match(launcher, /const FORM_PAGES = new Set\(\["\/request-transportation", "\/contact"\]\)/);
   assert.match(launcher, /const pathname = usePathname\(\);\s*const compact = FORM_PAGES\.has\(pathname\);/);
-  assert.match(launcher, /compact \? "hidden size-12 lg:inline-flex" : "inline-flex size-14"/);
+  // ZW-SEO-GROWTH-03: 48px on phones, 56px from sm (never below the 44px target minimum).
+  assert.match(launcher, /compact \? "hidden size-12 lg:inline-flex" : "inline-flex size-12 sm:size-14"/);
+  // The footer reserves room below xl so the launcher never permanently covers its last lines (the 911 notice).
+  assert.match(read("components/public/PublicFooter.tsx"), /pb-\[calc\(5\.5rem\+env\(safe-area-inset-bottom\)\)\] xl:pb-3xl/);
   assert.match(launcher, /const showTeaser = !open && !compact && !teaserDismissed/);
   assert.match(launcher, /window\.addEventListener\(OPEN_ASSISTANT_EVENT, onOpen\)/);
   assert.equal((launcher.match(/<AssistantPanel\b/g) ?? []).length, 1);
