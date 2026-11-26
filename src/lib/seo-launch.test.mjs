@@ -40,7 +40,8 @@ test("organic sitemap: the pages that should rank, and nothing else", () => {
   ];
   assert.deepEqual([...urls].sort(), [...expected].sort());
   assert.equal(new Set(urls).size, urls.length, "no duplicate URLs");
-  assert.equal(urls.length, 21);
+  // ZW-SEO-KW-01: 21 -> 22 with Guide 1 (/resources/no-ride-home-from-the-hospital), owner-approved locally.
+  assert.equal(urls.length, 22);
   for (const excluded of ["/request-transportation", "/privacy", "/terms"]) assert.ok(!urls.includes(excluded), excluded);
   assert.ok(!urls.some((u) => /^\/metro-atlanta\//.test(u)), "paid landing pages stay out of the sitemap");
   assert.equal(CAMPAIGN_PATHS.length, 4);

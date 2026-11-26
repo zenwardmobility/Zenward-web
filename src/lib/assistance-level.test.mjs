@@ -331,7 +331,8 @@ test("Resources: wheelchair guide has all four levels; checklist item; no new Re
   const defs = r4.blocks.find((b) => b.type === "definitions");
   assert.deepEqual(defs.items.map((i) => i.term), ["Curb-to-curb", "Door-to-door", "Door-through-door", "Not sure"]);
   assert.ok(RESOURCE_BODIES["medical-transportation-trip-checklist"].tool.some((i) => i.label === "Pickup & assistance level"));
-  assert.equal(RESOURCES.length, 6);
+  // ZW-SEO-KW-01: Guide 1 (no-ride-home-from-the-hospital) is the 7th, owner-approved Resource; still no assistance-level Resource.
+  assert.equal(RESOURCES.length, 7);
   assert.ok(!RESOURCE_PATHS.some((p) => /curb|door|assistance/.test(p)));
   const urls = sitemapEntries("").map((e) => e.url);
   for (const p of ["/resources", ...RESOURCE_PATHS]) assert.ok(urls.includes(p), p);

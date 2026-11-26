@@ -53,18 +53,29 @@ export interface ResourceMeta {
   relatedResources: ResourceSlug[];
   seoTitle: string;
   seoDescription: string;
+  /**
+   * Restricts which related service pages list this Resource under "Helpful resources" (default: all of
+   * `relatedServices`). ZW-SEO-KW-01: Guide 1 is listed on the hospital discharge page only (owner decision).
+   */
+  serviceListing?: ServiceSlug[];
   /** Card action label. */
   cardAction: "Read guide" | "View checklist";
 }
 
 const PUBLISHED = "2026-10-16";
 
-const r = (meta: Omit<ResourceMeta, "path" | "publishedDate" | "updatedDate">): ResourceMeta => ({
+const r = (
+  meta: Omit<ResourceMeta, "path" | "publishedDate" | "updatedDate">,
+  dates: { published: string; updated: string } = { published: PUBLISHED, updated: PUBLISHED },
+): ResourceMeta => ({
   ...meta,
   path: `/resources/${meta.slug}`,
-  publishedDate: PUBLISHED,
-  updatedDate: PUBLISHED,
+  publishedDate: dates.published,
+  updatedDate: dates.updated,
 });
+
+/** ZW-SEO-KW-01 Guide 1: production release date (visible dates, Article schema and sitemap lastmod). */
+const GUIDE_1_DATE = "2026-11-26";
 
 export const RESOURCES: readonly ResourceMeta[] = [
   r({
@@ -164,6 +175,28 @@ export const RESOURCES: readonly ResourceMeta[] = [
       "A printable checklist of details to prepare before requesting non-emergency medical transportation: locations, dates, times, return trip and mobility needs.",
     cardAction: "View checklist",
   }),
+  // ZW-SEO-KW-01 Guide 1 (owner-approved REV 2). Problem-led ("no ride home"); hands off to the discharge
+  // service page. Not linked from the homepage, hub or NEMT guide (GROWTH-02 experiment preserved).
+  r(
+    {
+      slug: "no-ride-home-from-the-hospital",
+      title: "No Ride Home From the Hospital? How to Arrange a Planned Trip Home",
+      description:
+        "Your options when no one can drive you home after a hospital stay, what to have ready, and how to request a planned, non-emergency ride.",
+      category: "riders-families",
+      alsoIn: ["providers"],
+      audience: "Patients, families, caregivers and care coordinators",
+      kind: "guide",
+      relatedServices: ["hospital-discharge-transportation", "wheelchair-transportation", "senior-medical-transportation"],
+      relatedResources: ["hospital-discharge-transportation-checklist", "wheelchair-accessible-transportation-guide", "medical-transportation-trip-checklist"],
+      seoTitle: "No Ride Home From the Hospital? What to Do",
+      seoDescription:
+        "No one to drive you home after a hospital stay? Your options, what to have ready and how to arrange non-emergency transportation in Metro Atlanta.",
+      cardAction: "Read guide",
+      serviceListing: ["hospital-discharge-transportation"],
+    },
+    { published: GUIDE_1_DATE, updated: GUIDE_1_DATE },
+  ),
 ];
 
 export const RESOURCE_PATHS = RESOURCES.map((resource) => resource.path);
@@ -175,7 +208,7 @@ export function getResource(slug: string): ResourceMeta | undefined {
 /** Resources that help with a given service page ("Helpful resources"). */
 export function resourcesForService(service: ServiceSlug): ResourceMeta[] {
   // Resources whose primary service this is come first (e.g. the wheelchair guide on the wheelchair page).
-  const related = RESOURCES.filter((resource) => resource.relatedServices.includes(service));
+  const related = RESOURCES.filter((resource) => resource.relatedServices.includes(service) && (!resource.serviceListing || resource.serviceListing.includes(service)));
   return [...related.filter((r) => r.relatedServices[0] === service), ...related.filter((r) => r.relatedServices[0] !== service)];
 }
 

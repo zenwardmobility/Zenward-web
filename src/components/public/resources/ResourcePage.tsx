@@ -87,6 +87,21 @@ function Block({ block, cta }: { block: ResourceBlock; cta: ResourceRequestCta }
           <CallButton surface="resource_page" size="md" label={block.callLabel} />
         </div>
       );
+    case "callout":
+      return (
+        <aside aria-labelledby="intro-callout-heading" className="rounded-lg border-l-4 border-brand-route-teal bg-surface-app p-md print:hidden sm:p-lg">
+          <h2 id="intro-callout-heading" className={cn(typography.subsectionTitle, "text-lg text-text-primary")}>
+            {block.heading}
+          </h2>
+          <p className={cn(typography.bodySmall, "mt-1 text-text-secondary")}>{block.text}</p>
+          <div className="mt-md flex flex-col gap-3 sm:flex-row sm:items-center">
+            <TrackedLinkButton href={cta.href} size="md" event={{ name: "request_transportation_clicked", source: "resource_page" }}>
+              {block.requestLabel}
+            </TrackedLinkButton>
+            <CallButton surface="resource_page" size="md" label={block.callLabel} />
+          </div>
+        </aside>
+      );
     case "definitions":
       return (
         <dl className="grid grid-cols-1 gap-md sm:grid-cols-2">

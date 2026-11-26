@@ -11,6 +11,8 @@ export const RESOURCE_SLUGS = [
   "wheelchair-accessible-transportation-guide",
   "hospital-discharge-transportation-checklist",
   "medical-transportation-trip-checklist",
+  // ZW-SEO-KW-01 Guide 1 (owner-approved REV 2; local implementation 2026-11-26).
+  "no-ride-home-from-the-hospital",
 ] as const;
 
 export type ResourceSlug = (typeof RESOURCE_SLUGS)[number];

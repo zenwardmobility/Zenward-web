@@ -327,6 +327,7 @@ test("04G3 and 04K remain intact", () => {
   assert.match(read("components/public/RequestTransportationForm.tsx"), /<AssistanceLevelField/);
   assert.match(read("lib/quote-form/model.ts"), /if \(isDeliveredConversion\(action\.result\)\) return \{ \.\.\.state, status: "success", delivered: true \};/);
   assert.match(read("components/public/WheelchairServicePage.tsx"), /<AssistanceLevelExplainer variant="full"/);
-  assert.equal(RESOURCES.length, 6);
+  // ZW-SEO-KW-01: Guide 1 (no-ride-home-from-the-hospital) is the 7th, owner-approved Resource; still no assistance-level Resource.
+  assert.equal(RESOURCES.length, 7);
   assert.match(read("lib/resources/schema.ts"), /author: \{ "@type": "Organization", name: siteName, url: siteUrl \}/);
 });

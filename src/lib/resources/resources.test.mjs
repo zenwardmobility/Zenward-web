@@ -32,6 +32,8 @@ const SLUGS = [
   "wheelchair-accessible-transportation-guide",
   "hospital-discharge-transportation-checklist",
   "medical-transportation-trip-checklist",
+  // ZW-SEO-KW-01 Guide 1 (owner-approved REV 2).
+  "no-ride-home-from-the-hospital",
 ];
 
 /** All public text of one Resource: metadata + body. */
@@ -59,7 +61,7 @@ const ctx = {
 
 // ---------------------------------------------------------------- catalogue
 
-test("exactly the six launch Resources, with unique slugs, paths, titles and descriptions", async () => {
+test("exactly the approved Resources (six launch + KW-01 Guide 1), with unique slugs, paths, titles and descriptions", async () => {
   assert.deepEqual([...RESOURCES.map((r) => r.slug)].sort(), [...SLUGS].sort());
   for (const key of ["slug", "path", "title", "description", "seoTitle", "seoDescription"]) {
     const values = RESOURCES.map((r) => r[key]);
@@ -469,7 +471,8 @@ test("R2 step 4 links to the assistance-level definitions; no assistance-level R
   const linked = step4.find((b) => b.type === "p" && b.link);
   assert.equal(linked.link.href, "/resources/wheelchair-accessible-transportation-guide#assistance-level");
   assert.match(linked.text, /pickup & assistance level/);
-  assert.equal(RESOURCES.length, 6, "no new Resource for assistance level");
+  // ZW-SEO-KW-01: Guide 1 (no-ride-home-from-the-hospital) is the 7th, owner-approved Resource; still no assistance-level Resource.
+  assert.equal(RESOURCES.length, 7, "no new Resource for assistance level");
   for (const path of RESOURCE_PATHS) assert.ok(!/curb|door|assistance/.test(path));
 });
 
@@ -483,4 +486,60 @@ test("Zenny teaser is suppressed on Resource pages below md; the launcher stays"
   // The launcher's own classes don't depend on the Resource flag.
   const launcher = code.slice(code.indexOf("ref={launcherRef}"));
   assert.ok(!/resourcePage/.test(launcher.slice(0, launcher.indexOf("</button>"))));
+});
+
+// ---------------------------------------------------------------- ZW-SEO-KW-01 Guide 1
+
+test("KW-01 Guide 1: approved metadata, discharge CTA, private-pay position, no unsupported claims, protected pages untouched", async () => {
+  const g = getResource("no-ride-home-from-the-hospital");
+  assert.equal(g.path, "/resources/no-ride-home-from-the-hospital");
+  assert.equal(g.title, "No Ride Home From the Hospital? How to Arrange a Planned Trip Home");
+  assert.equal(g.seoTitle, "No Ride Home From the Hospital? What to Do");
+  assert.equal(g.seoDescription, "No one to drive you home after a hospital stay? Your options, what to have ready and how to arrange non-emergency transportation in Metro Atlanta.");
+  assert.ok(g.seoDescription.length <= 160);
+  assert.equal(g.kind, "guide");
+  assert.equal(g.relatedServices[0], "hospital-discharge-transportation");
+  assert.equal(requestCtaFor(g).href, "/request-transportation?service=hospital_discharge");
+  // Owner decision: listed under Helpful resources on the hospital discharge page ONLY.
+  assert.deepEqual(g.serviceListing, ["hospital-discharge-transportation"]);
+  const { resourcesForService } = await import("./catalog.ts");
+  assert.deepEqual(resourcesForService("hospital-discharge-transportation").slice(0, 3).map((r) => r.slug), ["hospital-discharge-transportation-checklist", "no-ride-home-from-the-hospital"]);
+  for (const s of ["wheelchair-transportation", "senior-medical-transportation", "medical-appointments", "dialysis-transportation"]) {
+    assert.ok(!resourcesForService(s).some((r) => r.slug === g.slug), s);
+  }
+  const body = RESOURCE_BODIES[g.slug];
+  const text = JSON.stringify(body);
+  assert.match(text, /Zenward is a private-pay service\. It doesn't bill Medicaid, Medicare or insurance\./);
+  assert.match(text, /Pricing is confirmed after Zenward reviews the transportation request and trip details\./);
+  assert.match(text, /Availability is confirmed trip by trip/);
+  // Release decision: post-procedure policy is unconfirmed. The guide only points to the facility's discharge
+  // requirements; it never says such trips are accepted or assessed, nor that drivers act as escorts/responsible adults.
+  assert.match(text, /Check these with the care team before you arrange transportation\./);
+  assert.match(text, /Check the facility's discharge requirements with the care team before you arrange transportation\. Include any travel restrictions in your request\./);
+  assert.ok(!/assessed individually|post-procedure restrictions are|sedation[^"]*(accepted|available|we can|Zenward can)/i.test(text), "no post-procedure policy published");
+  assert.equal(g.publishedDate, "2026-11-26");
+  assert.equal(g.updatedDate, g.publishedDate);
+  assert.match(text, /This is a separate state program: Zenward is a private-pay service and doesn't provide Medicaid-covered rides\./);
+  assert.ok(body.blocks.some((b) => b.type === "actions"), "in-article quote CTA");
+  // Conversion callout: first block (renders after the intro, before "On this page"); Guide 1 only.
+  assert.deepEqual(body.blocks[0], {
+    type: "callout",
+    heading: "Need help arranging a ride home?",
+    text: "Request planned hospital discharge transportation in Metro Atlanta. Availability and pricing are confirmed after we review your trip.",
+    requestLabel: "Request a Quote",
+    callLabel: "Call 678-935-5489",
+  });
+  for (const r of RESOURCES) if (r.slug !== g.slug) assert.ok(!RESOURCE_BODIES[r.slug].blocks.some((b) => b.type === "callout"), `${r.slug} has no callout`);
+  // American English in the new guide.
+  assert.ok(!/programme|travell|colour|organis|centre/i.test(text), "American English");
+  assert.ok(body.blocks.some((b) => b.type === "definitions"), "canonical assistance-level definitions");
+  // No unsupported claims: cities, prices, payment methods, deposits, escort/companion services, chemo, guarantees.
+  for (const re of [/\b(Marietta|Roswell|Decatur|Sandy Springs|Alpharetta|Smyrna|Brookhaven|College Park|Fayetteville|East Point|Dunwoody|Peachtree City)\b/,
+    /\$\s?\d|per mile|flat rate|deposit/i, /\b(cash|credit card|debit card|zelle|paypal)\b/i, /responsible adult|companion|medical escort/i, /chemo|radiation/i, /guarantee|\bsafe\b/i]) {
+    assert.ok(!re.test(text), String(re));
+  }
+  // GROWTH-02 protected pages are not linked to it, and it does not link to the hub or NEMT guide.
+  assert.ok(!/\/locations\/metro-atlanta|how-to-arrange-nemt-in-metro-atlanta/.test(text));
+  for (const rel of ["app/page.tsx", "app/locations/[market]/page.tsx"]) assert.ok(!read(rel).includes("no-ride-home-from-the-hospital"), rel);
+  assert.ok(!JSON.stringify(RESOURCE_BODIES["how-to-arrange-nemt-in-metro-atlanta"]).includes("no-ride-home-from-the-hospital"));
 });

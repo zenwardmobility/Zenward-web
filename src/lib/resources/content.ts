@@ -33,6 +33,11 @@ export type ResourceBlock =
   | { type: "figure"; image: keyof typeof brandImages; caption: string }
   /** In-body request + call buttons (the Resource's request CTA and the business line). */
   | { type: "actions"; requestLabel: string; callLabel: string }
+  /**
+   * A compact conversion callout (heading, one line, the Resource's request CTA and the business line), in the
+   * bridge design language. ZW-SEO-KW-01: used by Guide 1 only, right after the introduction.
+   */
+  | { type: "callout"; heading: string; text: string; requestLabel: string; callLabel: string }
   /** Term + description pairs (the canonical assistance levels). */
   | { type: "definitions"; items: { term: string; description: string }[] }
   | { type: "h2"; id: string; text: string }
@@ -483,6 +488,139 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
     bridge: {
       heading: "Arranging transportation after a discharge?",
       text: "Share the discharge details and Zenward will review the trip and confirm timing with you. Zenward provides non-emergency hospital discharge transportation in Metro Atlanta.",
+    },
+  },
+
+  // ZW-SEO-KW-01 Guide 1: owner-approved REV 2 copy (2026-11-26). Shared facts come from their canonical
+  // sources (assistance levels, short-notice hand-off, response line, pricing). Do not reword without approval.
+  "no-ride-home-from-the-hospital": {
+    intro:
+      "When a hospital stay ends, the question of how to get home can come up quickly, especially if family can't drive or no one is nearby. This guide covers your options, what to have ready, and how to request planned, non-emergency transportation home or to the next place of care in the Metro Atlanta area.",
+    blocks: [
+      // Owner-approved conversion callout (KW-01 final refinement): after the intro, before "On this page".
+      {
+        type: "callout",
+        heading: "Need help arranging a ride home?",
+        text: "Request planned hospital discharge transportation in Metro Atlanta. Availability and pricing are confirmed after we review your trip.",
+        requestLabel: "Request a Quote",
+        callLabel: `Call ${business.phoneDisplay}`,
+      },
+      { type: "h2", id: "care-team", text: "1. Start with the care team" },
+      {
+        type: "p",
+        text: "Ask the care team when discharge is expected, and whether the patient has any discharge requirements for the trip home. Discharge times often shift during the day, so treat any time you're given as an estimate.",
+      },
+      {
+        type: "p",
+        text: "If the care team says the patient needs ambulance or stretcher transport, that has to be arranged separately. Zenward provides non-emergency transportation only.",
+      },
+      { type: "h2", id: "options", text: "2. Your options for getting home" },
+      {
+        type: "list",
+        items: [
+          "**Family or a friend.** Often the simplest, if someone is available and the passenger can get in and out of a car comfortably.",
+          "**A taxi or rideshare.** This can work for some people. It may not suit a passenger who uses a wheelchair, or who needs help between the door and the vehicle.",
+          "**Scheduled non-emergency medical transportation.** A planned ride that takes mobility needs into account, requested by the patient, a family member or the care team. This is what Zenward provides.",
+        ],
+      },
+      { type: "h2", id: "no-family", text: "3. When family can't come" },
+      {
+        type: "p",
+        text: "You don't need a relative to make the request. The passenger, a family member, a caregiver, or healthcare provider or facility staff can request transportation. The form asks for your relationship to the passenger, and Zenward follows up with the person who made the request.",
+      },
+      {
+        type: "p",
+        // Release decision (KW-01): post-procedure policy is unconfirmed, so this only points to the facility's requirements.
+        text: "Some facilities have their own discharge requirements, for example after a procedure or sedation. Check these with the care team before you arrange transportation.",
+      },
+      { type: "h2", id: "prepare", text: "4. What to have ready" },
+      {
+        type: "list",
+        items: [
+          "The hospital, and where the passenger will be picked up",
+          "The destination",
+          "The expected discharge date and time (entered as the preferred date and pickup time)",
+          "A contact name and phone number",
+          "Any mobility needs",
+        ],
+      },
+      {
+        type: "p",
+        text: "Our [hospital discharge transportation checklist](/resources/hospital-discharge-transportation-checklist) lists everything in one place.",
+      },
+      { type: "p", text: "If you don't have every detail yet, send what you know. The transportation team can follow up on the rest." },
+      { type: "h2", id: "mobility", text: "5. Wheelchairs, walkers and help at the door" },
+      {
+        type: "p",
+        text: "Say whether the passenger uses a wheelchair, walker or cane, or needs extra time. Zenward offers [wheelchair-accessible transportation](/services/wheelchair-transportation).",
+      },
+      {
+        type: "p",
+        text: "The request form asks for the pickup & assistance level, meaning how much driver escort would help at pickup and drop-off:",
+      },
+      ASSISTANCE_DEFINITIONS,
+      {
+        type: "p",
+        text: ASSISTANCE_REVIEW_NOTE,
+        link: { href: "/resources/wheelchair-accessible-transportation-guide#assistance-level", label: "What each assistance level means" },
+      },
+      { type: "h2", id: "destination", text: "6. Going somewhere other than home" },
+      {
+        type: "p",
+        text: "The trip doesn't have to end at the passenger's own home. It can go to a relative's address or another care setting. Name the destination in the request, and Zenward will review it with you.",
+      },
+      { type: "h2", id: "short-notice", text: "7. If discharge happens sooner than expected" },
+      { type: "p", text: `${factAnswer("advanceNotice")} ${factAnswer("sameDay")}` },
+      {
+        type: "p",
+        text: `If the discharge time changes after you've sent the request, call ${business.phoneDisplay} as soon as you know. A changed time is confirmed by our team, not assumed.`,
+      },
+      { type: "h2", id: "how-zenward-handles-it", text: "8. How Zenward handles a discharge request" },
+      {
+        type: "list",
+        ordered: true,
+        items: [
+          `Send the request online or call ${business.phoneDisplay}.`,
+          QUOTE_RESPONSE_LINE,
+          "Availability is confirmed trip by trip. Our team reviews the pickup location, destination, mobility needs and requested time for each request.",
+          "Zenward confirms availability, details and pricing with you. A request isn't a confirmed ride until Zenward confirms it.",
+        ],
+      },
+      { type: "p", text: `Zenward is a private-pay service. It doesn't bill Medicaid, Medicare or insurance. ${CONFIRMED.pricing}` },
+      { type: "actions", requestLabel: "Request a Quote", callLabel: `Call ${business.phoneDisplay}` },
+      {
+        type: "note",
+        text: "**If the passenger has Georgia Medicaid:** Georgia Medicaid provides non-emergency transportation for eligible members who have no other way to get to covered medical care, arranged through the transportation broker that serves the county where the member lives. The care team can help. This is a separate state program: Zenward is a private-pay service and doesn't provide Medicaid-covered rides.",
+      },
+      { type: "h2", id: "common-questions", text: "Common questions" },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "Can I arrange a ride home for a parent who is in the hospital?",
+            answer: "Yes. A family member, caregiver, or healthcare provider or facility staff can make the request. Zenward follows up with the person who made it.",
+          },
+          {
+            question: "Can the ride go to a rehab facility or a relative's home instead?",
+            answer: "Yes. Give the destination in the request, and Zenward reviews it and confirms availability with you.",
+          },
+          {
+            question: "What if the patient had a procedure or sedation?",
+            answer:
+              "Check the facility's discharge requirements with the care team before you arrange transportation. Include any travel restrictions in your request.",
+          },
+          {
+            question: "Does Zenward provide ambulance or stretcher transport?",
+            answer:
+              "No. Zenward provides non-emergency medical transportation only. If a patient needs ambulance or stretcher transport, that must be arranged separately.",
+          },
+        ],
+      },
+      { type: "note", text: EMERGENCY_NOTE },
+    ],
+    bridge: {
+      heading: "Need a planned ride home from the hospital?",
+      text: "Send the discharge details and Zenward will review the trip, confirm timing with you and let you know what can be arranged.",
     },
   },
 
