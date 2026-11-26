@@ -326,8 +326,11 @@ test("quote page: inline entry below 1024px, compact launcher from 1024px, one s
   assert.match(launcher, /const pathname = usePathname\(\);\s*const compact = FORM_PAGES\.has\(pathname\);/);
   // ZW-SEO-GROWTH-03: 48px on phones, 56px from sm (never below the 44px target minimum).
   assert.match(launcher, /compact \? "hidden size-12 lg:inline-flex" : "inline-flex size-12 sm:size-14"/);
-  // The footer reserves room below xl so the launcher never permanently covers its last lines (the 911 notice).
-  assert.match(read("components/public/PublicFooter.tsx"), /pb-\[calc\(5\.5rem\+env\(safe-area-inset-bottom\)\)\] xl:pb-3xl/);
+  // The footer reserves room at every width so the launcher and greeting bubble never cover its last lines (the
+  // 911 notice). HF01: no desktop override; the bubble covered the notice at xl+.
+  const footer = read("components/public/PublicFooter.tsx");
+  assert.match(footer, /pb-\[calc\(5\.5rem\+env\(safe-area-inset-bottom\)\)\] sm:pb-\[calc\(7rem\+env\(safe-area-inset-bottom\)\)\]"/);
+  assert.doesNotMatch(footer, /xl:pb-/);
   assert.match(launcher, /const showTeaser = !open && !compact && !teaserDismissed/);
   assert.match(launcher, /window\.addEventListener\(OPEN_ASSISTANT_EVENT, onOpen\)/);
   assert.equal((launcher.match(/<AssistantPanel\b/g) ?? []).length, 1);
