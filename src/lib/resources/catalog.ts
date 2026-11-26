@@ -76,6 +76,8 @@ const r = (
 
 /** ZW-SEO-KW-01 Guide 1: production release date (visible dates, Article schema and sitemap lastmod). */
 const GUIDE_1_DATE = "2026-11-26";
+/** ZW-SEO-KW-01-DIALYSIS-UPGRADE: production release date (updated date, Article dateModified and sitemap lastmod). */
+const DIALYSIS_UPGRADE_DATE = "2026-11-26";
 
 export const RESOURCES: readonly ResourceMeta[] = [
   r({
@@ -114,19 +116,20 @@ export const RESOURCES: readonly ResourceMeta[] = [
   }),
   r({
     slug: "dialysis-transportation-guide",
-    title: "Recurring Dialysis Transportation: A Guide for Riders and Families",
+    // ZW-SEO-KW-01-DIALYSIS-UPGRADE (owner-approved, in place; same URL).
+    title: "Need a Ride to Dialysis? How to Arrange Recurring Transportation",
     description:
-      "How to plan reliable transportation for a repeating treatment schedule: pickup details, timing, the ride home and what to tell the transportation team.",
+      "How to arrange recurring rides to dialysis when family can't always drive: transportation options, schedules, return trips and what to include in your request.",
     category: "riders-families",
     audience: "Riders, families and caregivers",
     kind: "guide",
     relatedServices: ["dialysis-transportation", "recurring-care-transportation"],
-    relatedResources: ["medical-transportation-trip-checklist", "how-to-arrange-nemt-in-metro-atlanta"],
-    seoTitle: "Recurring Dialysis Transportation Guide",
+    relatedResources: ["medical-transportation-trip-checklist", "wheelchair-accessible-transportation-guide", "how-to-arrange-nemt-in-metro-atlanta"],
+    seoTitle: "How to Get Transportation to Dialysis",
     seoDescription:
-      "Planning transportation for a recurring dialysis schedule: days and times to share, pickup details, return trips and how a recurring request is reviewed.",
+      "Need a ride to dialysis? How to arrange recurring transportation in Metro Atlanta: options, return trips, schedule changes and how requests are reviewed.",
     cardAction: "Read guide",
-  }),
+  }, { published: PUBLISHED, updated: DIALYSIS_UPGRADE_DATE }),
   r({
     slug: "wheelchair-accessible-transportation-guide",
     title: "Wheelchair-Accessible Transportation: What to Know Before Your Ride",

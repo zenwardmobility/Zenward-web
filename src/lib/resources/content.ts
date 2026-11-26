@@ -321,20 +321,47 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
     },
   },
 
+  // ZW-SEO-KW-01-DIALYSIS-UPGRADE: owner-approved in-place upgrade (same URL). Shared facts come from their
+  // canonical sources; the private-pay sentence and Medicaid note match the live Guide 1 wording.
   "dialysis-transportation-guide": {
     intro:
-      "For many riders, dialysis transportation follows a repeating weekly schedule. Planning those trips together can make transportation easier to coordinate for the rider and family.",
+      "For many riders, dialysis means traveling to the same treatment center on a repeating weekly schedule. When family can't always drive, it helps to plan transportation as a schedule rather than one trip at a time. This guide covers your options, what to share, and how to request recurring, non-emergency transportation in the Metro Atlanta area.",
     blocks: [
-      { type: "h2", id: "schedule", text: "Think in schedules, not single trips" },
+      {
+        type: "callout",
+        heading: "Need regular rides to dialysis?",
+        text: "Request recurring, private-pay dialysis transportation in Metro Atlanta. Availability and pricing are confirmed after we review your schedule.",
+        requestLabel: "Request a Quote",
+        callLabel: `Call ${business.phoneDisplay}`,
+      },
+      { type: "h2", id: "options", text: "1. Your options when family can't drive" },
+      {
+        type: "list",
+        items: [
+          "**Family and friends.** A shared driving schedule can work when several people live nearby and their schedules allow.",
+          "**Your dialysis center.** The center's social worker or care team may know about local transportation options and programs.",
+          "**Your health plan.** If you have Medicaid or another health plan, ask whether it includes non-emergency transportation.",
+          "**A taxi or rideshare.** This can work for some riders. It may not suit a passenger who uses a wheelchair, or who needs help between the door and the vehicle.",
+          "**Scheduled non-emergency medical transportation.** Planned rides that take mobility needs into account, arranged by you, a family member or a caregiver. This is what Zenward provides.",
+        ],
+      },
+      { type: "h2", id: "schedule", text: "2. Think in schedules, not single trips" },
       {
         type: "p",
-        text: "When you request recurring transportation, describe the pattern: which days of the week, the date the schedule should start, and the time you usually need to arrive. If the schedule has an end date, include it.",
+        text: "When you request recurring transportation, describe the pattern. On the request form, select Recurring under How often? and give:",
+      },
+      {
+        type: "list",
+        items: ["The days of the week", "The start date, and an end date if there is one", "Your typical appointment time", "Whether you expect a ride home"],
       },
       {
         type: "p",
-        text: "Consistency matters for transportation planning. If treatment days or times are likely to change, say so in the notes so the team can plan around it.",
+        text: "Zenward reviews the schedule and confirms with you what it can arrange. Nothing is booked automatically.",
+        // GROWTH-02 contextual link to the commercial page, preserved through the upgrade.
+        link: { href: "/services/dialysis-transportation", label: "Dialysis transportation in Metro Atlanta" },
       },
-      { type: "h2", id: "pickup", text: "Pickup details" },
+      { type: "p", text: "Consistency matters for planning. If your treatment days or times are likely to change, say so in the notes." },
+      { type: "h2", id: "pickup", text: "3. Pickup and drop-off details" },
       {
         type: "list",
         items: [
@@ -344,17 +371,32 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
           "A phone number for the person who should be contacted about the rides",
         ],
       },
-      { type: "h2", id: "times", text: "Preferred times" },
+      { type: "h2", id: "return", text: "4. The ride home" },
       {
         type: "p",
-        text: "Give the time you need to arrive for treatment. The transportation team will confirm pickup timing with you, allowing for the trip and check-in.",
+        text: "Say whether a return trip is expected on treatment days. Treatment end times can vary, so Zenward talks through return-trip timing with you rather than assuming a fixed pickup.",
       },
-      { type: "h2", id: "return", text: "The ride home" },
+      { type: "h2", id: "mobility", text: "5. Wheelchairs, walkers and help at the door" },
       {
         type: "p",
-        text: "Say whether a return trip is expected on treatment days. Return pickup times may vary, so the return arrangement should be confirmed rather than assumed.",
+        text: "Say whether the rider uses a wheelchair, walker or cane, or needs extra time. Zenward offers [wheelchair-accessible transportation](/services/wheelchair-transportation).",
       },
-      { type: "h2", id: "prepare", text: "Information to have ready" },
+      {
+        type: "p",
+        text: "The request form asks for the pickup & assistance level, meaning how much driver escort would help at pickup and drop-off:",
+      },
+      ASSISTANCE_DEFINITIONS,
+      {
+        type: "p",
+        text: ASSISTANCE_REVIEW_NOTE,
+        link: { href: "/resources/wheelchair-accessible-transportation-guide#assistance-level", label: "What each assistance level means" },
+      },
+      { type: "h2", id: "changes", text: "6. When your treatment schedule changes" },
+      {
+        type: "p",
+        text: `If your treatment days or times change, let Zenward know as soon as you can by calling ${business.phoneDisplay}. Changes are confirmed with our team, not assumed.`,
+      },
+      { type: "h2", id: "prepare", text: "7. Information to have ready" },
       {
         type: "checklist",
         items: [
@@ -368,17 +410,66 @@ export const RESOURCE_BODIES: Record<ResourceSlug, ResourceBody> = {
           { label: "Contact name and phone number" },
         ],
       },
-      { type: "h2", id: "review", text: "A recurring request is reviewed, not booked automatically" },
       {
         type: "p",
-        text: "Sending a recurring schedule doesn't automatically create or confirm a series of rides. Zenward reviews the schedule and confirms with you what can be arranged.",
-        link: { href: "/services/dialysis-transportation", label: "Dialysis transportation in Metro Atlanta" },
+        text: "Our [trip checklist](/resources/medical-transportation-trip-checklist) lets you tick these off before you request.",
+      },
+      { type: "h2", id: "private-pay", text: "8. Private pay and your quote" },
+      { type: "p", text: `Zenward is a private-pay service. It doesn't bill Medicaid, Medicare or insurance. ${CONFIRMED.pricing}` },
+      {
+        type: "note",
+        text: "**If the rider has Georgia Medicaid:** Georgia Medicaid provides non-emergency transportation for eligible members who have no other way to get to covered medical care, arranged through the transportation broker that serves the county where the member lives. The care team can help. This is a separate state program: Zenward is a private-pay service and doesn't provide Medicaid-covered rides.",
+      },
+      { type: "h2", id: "review", text: "9. How Zenward reviews a recurring request" },
+      {
+        type: "list",
+        ordered: true,
+        items: [
+          `Send the request online or call ${business.phoneDisplay}.`,
+          QUOTE_RESPONSE_LINE,
+          "Availability is confirmed trip by trip. Our team reviews the pickup location, destination, mobility needs and requested schedule.",
+          "Zenward contacts you to confirm availability, details and pricing. A request isn't a confirmed ride until Zenward confirms it.",
+        ],
+      },
+      { type: "actions", requestLabel: "Request a Quote", callLabel: `Call ${business.phoneDisplay}` },
+      { type: "h2", id: "common-questions", text: "Common questions" },
+      {
+        type: "faq",
+        items: [
+          {
+            question: "Can I request transportation for my whole dialysis schedule?",
+            answer:
+              "Yes. Choose Recurring on the request form and tell us the days, start date and appointment time. Zenward reviews the schedule and confirms with you what it can arrange.",
+          },
+          {
+            question: "Will my rides be scheduled automatically after I submit once?",
+            answer:
+              "No. Submitting a request is not a confirmed booking, and the form doesn't create repeat trips on its own. Zenward contacts you to talk through the schedule and confirm next steps.",
+          },
+          {
+            question: "What about the ride home after treatment?",
+            answer:
+              "Tell us on the request that a return trip is needed. Treatment end times can vary, so Zenward talks through return-trip timing with you when we follow up.",
+          },
+          {
+            question: "Can a family member arrange the rides?",
+            answer:
+              "Yes. A family member or caregiver can make the request. The form asks for your relationship to the passenger, and Zenward follows up with the person who made the request.",
+          },
+          {
+            question: "Does Zenward provide care during the trip?",
+            answer: "No. Zenward provides non-emergency transportation only. It does not provide medical monitoring or care.",
+          },
+        ],
       },
       { type: "note", text: "This guide covers transportation only. For questions about treatment, speak with your care team." },
+      { type: "note", text: EMERGENCY_NOTE },
     ],
     bridge: {
       heading: "Need recurring transportation for dialysis?",
       text: "Tell Zenward about the schedule and we'll review what can be arranged.",
+      // Same as the template default (the dialysis service page); declared so the commercial link is explicit.
+      about: { href: "/services/dialysis-transportation", label: "About Dialysis Transportation" },
     },
   },
 

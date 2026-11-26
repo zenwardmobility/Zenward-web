@@ -416,13 +416,11 @@ test("R2: six steps kept, plus Common questions answered from confirmed facts", 
 
 test("R3: dialysis wording is transportation-focused, not a universal treatment schedule", () => {
   const r3 = RESOURCE_BODIES["dialysis-transportation-guide"];
-  assert.equal(
-    r3.intro,
-    "For many riders, dialysis transportation follows a repeating weekly schedule. Planning those trips together can make transportation easier to coordinate for the rider and family.",
-  );
+  // ZW-SEO-KW-01-DIALYSIS-UPGRADE: approved intro keeps the "for many riders" hedge (not a universal schedule).
+  assert.ok(r3.intro.startsWith("For many riders, dialysis means traveling to the same treatment center on a repeating weekly schedule."));
   const text = body("dialysis-transportation-guide");
-  assert.ok(text.includes("Return pickup times may vary, so the return arrangement should be confirmed rather than assumed."));
-  assert.ok(!/Session lengths|usually means travelling/.test(text));
+  assert.ok(text.includes("Treatment end times can vary, so Zenward talks through return-trip timing with you rather than assuming a fixed pickup."));
+  assert.ok(!/Session lengths|usually means travel/.test(text));
   assert.equal(r3.bridge.heading, "Need recurring transportation for dialysis?");
 });
 
@@ -529,7 +527,9 @@ test("KW-01 Guide 1: approved metadata, discharge CTA, private-pay position, no 
     requestLabel: "Request a Quote",
     callLabel: "Call 678-935-5489",
   });
-  for (const r of RESOURCES) if (r.slug !== g.slug) assert.ok(!RESOURCE_BODIES[r.slug].blocks.some((b) => b.type === "callout"), `${r.slug} has no callout`);
+  // Callouts only where the owner approved them: Guide 1 and the KW-01 dialysis upgrade.
+  const CALLOUT_APPROVED = new Set([g.slug, "dialysis-transportation-guide"]);
+  for (const r of RESOURCES) if (!CALLOUT_APPROVED.has(r.slug)) assert.ok(!RESOURCE_BODIES[r.slug].blocks.some((b) => b.type === "callout"), `${r.slug} has no callout`);
   // American English in the new guide.
   assert.ok(!/programme|travell|colour|organis|centre/i.test(text), "American English");
   assert.ok(body.blocks.some((b) => b.type === "definitions"), "canonical assistance-level definitions");
@@ -542,4 +542,51 @@ test("KW-01 Guide 1: approved metadata, discharge CTA, private-pay position, no 
   assert.ok(!/\/locations\/metro-atlanta|how-to-arrange-nemt-in-metro-atlanta/.test(text));
   for (const rel of ["app/page.tsx", "app/locations/[market]/page.tsx"]) assert.ok(!read(rel).includes("no-ride-home-from-the-hospital"), rel);
   assert.ok(!JSON.stringify(RESOURCE_BODIES["how-to-arrange-nemt-in-metro-atlanta"]).includes("no-ride-home-from-the-hospital"));
+});
+
+// ---------------------------------------------------------------- ZW-SEO-KW-01-DIALYSIS-UPGRADE
+
+test("Dialysis upgrade: same URL, approved metadata, dialysis CTAs, recurring instructions, claim boundaries", () => {
+  const g = getResource("dialysis-transportation-guide");
+  assert.equal(g.path, "/resources/dialysis-transportation-guide");
+  assert.equal(g.seoTitle, "How to Get Transportation to Dialysis");
+  assert.equal(g.seoDescription, "Need a ride to dialysis? How to arrange recurring transportation in Metro Atlanta: options, return trips, schedule changes and how requests are reviewed.");
+  assert.equal(g.title, "Need a Ride to Dialysis? How to Arrange Recurring Transportation");
+  assert.equal(g.description, "How to arrange recurring rides to dialysis when family can't always drive: transportation options, schedules, return trips and what to include in your request.");
+  assert.ok(`${g.seoTitle} | Zenward Mobility`.length <= 70 && g.seoDescription.length <= 160);
+  assert.equal(g.publishedDate, "2026-10-16", "original publication date preserved");
+  assert.equal(g.kind, "guide");
+  assert.equal(requestCtaFor(g).href, "/request-transportation?service=dialysis");
+  // Inbound links preserved: listed on the dialysis and recurring-care service pages.
+  assert.ok(resourcesForService("dialysis-transportation").some((r) => r.slug === g.slug));
+  assert.ok(resourcesForService("recurring-care-transportation").some((r) => r.slug === g.slug));
+  const b = RESOURCE_BODIES[g.slug];
+  assert.deepEqual(b.blocks[0], {
+    type: "callout",
+    heading: "Need regular rides to dialysis?",
+    text: "Request recurring, private-pay dialysis transportation in Metro Atlanta. Availability and pricing are confirmed after we review your schedule.",
+    requestLabel: "Request a Quote",
+    callLabel: "Call 678-935-5489",
+  });
+  assert.ok(b.blocks.some((x) => x.type === "actions") && b.blocks.some((x) => x.type === "definitions"));
+  assert.equal(b.bridge.heading, "Need recurring transportation for dialysis?");
+  assert.equal(b.bridge.about.href, "/services/dialysis-transportation");
+  // GROWTH-02 in-body contextual link to the dialysis service page is preserved.
+  assert.ok(b.blocks.some((x) => x.link?.href === "/services/dialysis-transportation" && x.link.label === "Dialysis transportation in Metro Atlanta"));
+  const text = JSON.stringify(b);
+  assert.match(text, /select Recurring under How often\?/);
+  assert.match(text, /A shared driving schedule can work/);
+  assert.ok(!/rota/i.test(text));
+  assert.match(text, /Zenward is a private-pay service\. It doesn't bill Medicaid, Medicare or insurance\./);
+  assert.match(text, /This is a separate state program: Zenward is a private-pay service and doesn't provide Medicaid-covered rides\./);
+  // Safeguards: none of the unconfirmed operating claims, no medical monitoring, American English.
+  for (const re of [/early[- ]morning|weekend|sunday|\b\d{1,2}(:\d{2})?\s?(am|pm)\b/i, /guarantee|reserved|standing (slot|reservation)/i, /same[- ]day/i, /same driver|same vehicle/i,
+    /wait(ing)? (time|fee|included)/i, /cancellation (fee|charge)|no[- ]show (fee|charge)/i, /\b(cash|credit card|debit card|zelle|paypal|weekly billing|per trip)\b/i,
+    /\$\s?\d|per mile|flat rate|deposit/i, /\bfree\b|covered by|we accept/i, /power (wheel)?chair|weight limit/i, /programme|travelling|centre\b|colour|organis/i,
+    /\b(Marietta|Roswell|Decatur|Sandy Springs|Alpharetta|Smyrna|Brookhaven|College Park|Fayetteville|East Point|Dunwoody|Peachtree City)\b/]) {
+    assert.ok(!re.test(text), String(re));
+  }
+  assert.match(text, /does not provide medical monitoring or care/);
+  // Not linked from/to GROWTH-02 protected pages beyond the pre-existing related-resource card.
+  assert.ok(!/\/locations\/metro-atlanta/.test(text));
 });
